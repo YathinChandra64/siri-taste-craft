@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ShoppingBag, Leaf } from "lucide-react";
+import { ArrowRight, ShoppingBag, Leaf, Heart, Star, Users, Sparkles } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -112,6 +112,77 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Features Section */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Why Choose Us</h2>
+            <p className="text-muted-foreground text-lg">
+              Experience the perfect blend of tradition and quality
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1, duration: 0.5 }}
+              whileHover={{ scale: 1.05, y: -8 }}
+              className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-hover transition-all duration-300"
+            >
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-saree flex items-center justify-center">
+                <Heart size={40} className="text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-3">Handcrafted with Love</h3>
+              <p className="text-muted-foreground">
+                Every product is made with genuine care and attention to detail, preserving traditional methods.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              whileHover={{ scale: 1.05, y: -8 }}
+              className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-hover transition-all duration-300"
+            >
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-pickle flex items-center justify-center">
+                <Star size={40} className="text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-3">Premium Quality</h3>
+              <p className="text-muted-foreground">
+                We source the finest fabrics and freshest ingredients to ensure exceptional quality in every product.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              whileHover={{ scale: 1.05, y: -8 }}
+              className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-hover transition-all duration-300"
+            >
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-saree flex items-center justify-center">
+                <Users size={40} className="text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-3">Family Tradition</h3>
+              <p className="text-muted-foreground">
+                A trusted family business bringing generations of expertise and authentic recipes to your home.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* About Snippet */}
       <section className="py-16 px-4 bg-muted/30">
         <div className="container mx-auto max-w-3xl text-center">
@@ -121,13 +192,24 @@ const Home = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl font-bold text-foreground mb-4">About Us</h2>
-            <p className="text-muted-foreground text-lg leading-relaxed">
+            <Sparkles className="w-12 h-12 mx-auto mb-6 text-primary" />
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">Our Story</h2>
+            <p className="text-muted-foreground text-lg leading-relaxed mb-8">
               At Siri Collections & Pickles, we bring together two beautiful traditions — 
               the elegance of handpicked ethnic wear and the authentic taste of homemade pickles. 
               Each product is crafted with love and dedication, preserving the essence of our heritage 
               while serving the modern family.
             </p>
+            <Link to="/our-story">
+              <Button
+                variant="outline"
+                size="lg"
+                className="group"
+              >
+                Read Our Full Story
+                <ArrowRight className="ml-2 group-hover:translate-x-2 transition-transform duration-300" size={20} />
+              </Button>
+            </Link>
           </motion.div>
         </div>
       </section>

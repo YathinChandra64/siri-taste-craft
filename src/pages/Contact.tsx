@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MapPin, Phone, Mail, Instagram, MessageCircle } from "lucide-react";
+import { MapPin, Phone, Mail } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -23,19 +23,22 @@ const Contact = () => {
     {
       icon: MapPin,
       title: "Address",
-      content: "123 Market Street, City Name, State - 123456",
+      content: "22A, Rd No2b, Hanuman Nagar Garden II, Nagole, Hyderabad, Telangana 500068",
+      link: "https://maps.app.goo.gl/hDfn9uqtwvty9Gf49",
       gradient: "bg-gradient-saree",
     },
     {
       icon: Phone,
       title: "Phone",
-      content: "+91 98765 43210",
+      content: "+91 9248627327",
+      link: "tel:+919248627327",
       gradient: "bg-gradient-pickle",
     },
     {
       icon: Mail,
       title: "Email",
-      content: "info@siricollections.com",
+      content: "yathinchandra589@gmail.com",
+      link: "mailto:yathinchandra589@gmail.com",
       gradient: "bg-gradient-saree",
     },
   ];
@@ -73,12 +76,16 @@ const Contact = () => {
                 <h2 className="text-2xl font-bold mb-6 text-foreground">Contact Information</h2>
                 <div className="space-y-6">
                   {contactInfo.map((info, index) => (
-                    <motion.div
+                    <motion.a
                       key={info.title}
+                      href={info.link}
+                      target={info.icon === MapPin ? "_blank" : undefined}
+                      rel={info.icon === MapPin ? "noopener noreferrer" : undefined}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1, duration: 0.5 }}
-                      className="flex items-start gap-4"
+                      whileHover={{ scale: 1.02, x: 4 }}
+                      className="flex items-start gap-4 p-4 rounded-xl hover:bg-muted/50 transition-all duration-300"
                     >
                       <div className={`${info.gradient} p-3 rounded-lg text-white`}>
                         <info.icon size={24} />
@@ -87,31 +94,17 @@ const Contact = () => {
                         <h3 className="font-semibold text-foreground mb-1">{info.title}</h3>
                         <p className="text-muted-foreground">{info.content}</p>
                       </div>
-                    </motion.div>
+                    </motion.a>
                   ))}
                 </div>
               </div>
 
-              {/* Social Links */}
+              {/* Business Hours */}
               <div>
-                <h3 className="font-semibold text-foreground mb-4">Connect With Us</h3>
-                <div className="flex gap-4">
-                  <a
-                    href="https://instagram.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-3 rounded-full bg-gradient-saree text-white hover:shadow-hover transition-all duration-300"
-                  >
-                    <Instagram size={24} />
-                  </a>
-                  <a
-                    href="https://wa.me/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-3 rounded-full bg-gradient-pickle text-white hover:shadow-hover transition-all duration-300"
-                  >
-                    <MessageCircle size={24} />
-                  </a>
+                <h3 className="font-semibold text-foreground mb-4">Business Hours</h3>
+                <div className="space-y-2 text-muted-foreground">
+                  <p>Monday - Saturday: 9:00 AM - 7:00 PM</p>
+                  <p>Sunday: 10:00 AM - 5:00 PM</p>
                 </div>
               </div>
             </motion.div>

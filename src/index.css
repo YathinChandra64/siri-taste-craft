@@ -17,22 +17,27 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 20 14% 10%;
 
-    /* Saree Theme - Rich Maroon & Gold */
-    --primary: 343 75% 31%;
-    --primary-foreground: 42 85% 95%;
-    --primary-light: 343 65% 45%;
+    /* Saree Theme - Vibrant Silk Colors (Royal Purple, Magenta, Gold) */
+    --primary: 285 70% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 320 65% 55%;
+    --primary-dark: 270 80% 35%;
     
-    /* Pickle Theme - Fresh Green */
-    --secondary: 95 56% 20%;
-    --secondary-foreground: 42 85% 95%;
-    --secondary-light: 95 45% 35%;
+    /* Pickle Theme - Tangy & Spicy (Green Chili, Turmeric, Red Chili) */
+    --secondary: 80 70% 45%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-light: 85 60% 55%;
+    --secondary-dark: 75 75% 35%;
 
     /* Accents */
-    --accent-gold: 45 85% 55%;
+    --accent-gold: 45 95% 50%;
     --accent-gold-foreground: 20 14% 10%;
     
-    --accent-orange: 30 95% 55%;
-    --accent-orange-foreground: 20 14% 10%;
+    --accent-tangy: 30 100% 50%;
+    --accent-tangy-foreground: 0 0% 100%;
+    
+    --accent-silk: 320 80% 60%;
+    --accent-silk-foreground: 0 0% 100%;
 
     --muted: 42 20% 90%;
     --muted-foreground: 20 8% 45%;
@@ -46,10 +51,10 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
-    /* Gradients */
-    --gradient-saree: linear-gradient(135deg, hsl(343 75% 31%) 0%, hsl(343 65% 45%) 50%, hsl(45 85% 55%) 100%);
-    --gradient-pickle: linear-gradient(135deg, hsl(95 56% 20%) 0%, hsl(95 45% 35%) 50%, hsl(30 95% 55%) 100%);
-    --gradient-hero: linear-gradient(to bottom, hsl(42 25% 97%) 0%, hsl(42 30% 92%) 100%);
+    /* Gradients - Vibrant and Eye-catching */
+    --gradient-saree: linear-gradient(135deg, hsl(285 70% 45%) 0%, hsl(320 65% 55%) 40%, hsl(270 80% 35%) 70%, hsl(45 95% 50%) 100%);
+    --gradient-pickle: linear-gradient(135deg, hsl(80 70% 45%) 0%, hsl(45 95% 50%) 40%, hsl(30 100% 50%) 70%, hsl(75 75% 35%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(285 70% 45% / 0.05) 0%, hsl(80 70% 45% / 0.05) 100%);
     
     /* Shadows */
     --shadow-soft: 0 4px 20px -4px hsl(20 14% 10% / 0.1);
@@ -70,19 +75,24 @@ All colors MUST be HSL.
     --popover: 20 14% 12%;
     --popover-foreground: 42 85% 95%;
 
-    --primary: 343 65% 45%;
-    --primary-foreground: 42 85% 95%;
-    --primary-light: 343 55% 55%;
+    --primary: 285 60% 55%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 320 55% 65%;
+    --primary-dark: 270 70% 45%;
 
-    --secondary: 95 45% 35%;
-    --secondary-foreground: 42 85% 95%;
-    --secondary-light: 95 35% 45%;
+    --secondary: 80 60% 50%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-light: 85 50% 60%;
+    --secondary-dark: 75 65% 40%;
 
-    --accent-gold: 45 75% 60%;
+    --accent-gold: 45 85% 60%;
     --accent-gold-foreground: 20 14% 10%;
     
-    --accent-orange: 30 85% 60%;
-    --accent-orange-foreground: 20 14% 10%;
+    --accent-tangy: 30 95% 55%;
+    --accent-tangy-foreground: 0 0% 100%;
+    
+    --accent-silk: 320 70% 65%;
+    --accent-silk-foreground: 0 0% 100%;
 
     --muted: 20 10% 20%;
     --muted-foreground: 42 15% 65%;
