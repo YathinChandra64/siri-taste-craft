@@ -6,6 +6,7 @@ export const sarees = [
     name: "Royal Silk Saree",
     category: "Silk",
     price: 4999,
+    stock: 15,
     description: "Exquisite pure silk saree with traditional zari work. Perfect for weddings and special occasions.",
     image: getSareeImage("silk")
   },
@@ -14,6 +15,7 @@ export const sarees = [
     name: "Designer Cotton Saree",
     category: "Cotton",
     price: 1999,
+    stock: 20,
     description: "Comfortable cotton saree with elegant prints. Ideal for everyday elegance.",
     image: getSareeImage("cotton")
   },
@@ -22,6 +24,7 @@ export const sarees = [
     name: "Banarasi Silk Saree",
     category: "Silk",
     price: 7999,
+    stock: 10,
     description: "Authentic Banarasi silk with intricate brocade work. A timeless classic.",
     image: getSareeImage("silk")
   },
@@ -30,6 +33,7 @@ export const sarees = [
     name: "Printed Cotton Saree",
     category: "Cotton",
     price: 1499,
+    stock: 25,
     description: "Vibrant printed cotton saree with beautiful color combinations.",
     image: getSareeImage("cotton")
   },
@@ -38,6 +42,7 @@ export const sarees = [
     name: "Wedding Designer Saree",
     category: "Designer",
     price: 12999,
+    stock: 8,
     description: "Stunning designer saree with heavy embellishments and stonework.",
     image: getSareeImage("designer")
   },
@@ -46,6 +51,7 @@ export const sarees = [
     name: "Party Wear Designer Saree",
     category: "Designer",
     price: 8999,
+    stock: 12,
     description: "Contemporary designer saree perfect for parties and celebrations.",
     image: getSareeImage("designer")
   },
@@ -54,6 +60,7 @@ export const sarees = [
     name: "Tussar Silk Saree",
     category: "Silk",
     price: 5499,
+    stock: 18,
     description: "Natural tussar silk with elegant drape and rich texture.",
     image: getSareeImage("silk")
   },
@@ -62,6 +69,7 @@ export const sarees = [
     name: "Handloom Cotton Saree",
     category: "Cotton",
     price: 2499,
+    stock: 22,
     description: "Traditional handloom cotton saree supporting local artisans.",
     image: getSareeImage("cotton")
   }
@@ -73,6 +81,7 @@ export const pickles = [
     name: "Mango Pickle",
     category: "Mango",
     price: 299,
+    stock: 50,
     description: "Traditional homemade mango pickle with authentic spices. A family recipe passed down through generations.",
     image: getPickleImage("mango")
   },
@@ -81,6 +90,7 @@ export const pickles = [
     name: "Lemon Pickle",
     category: "Lemon",
     price: 249,
+    stock: 45,
     description: "Tangy lemon pickle made with fresh lemons and aromatic spices.",
     image: getPickleImage("lemon")
   },
@@ -89,6 +99,7 @@ export const pickles = [
     name: "Garlic Pickle",
     category: "Garlic",
     price: 329,
+    stock: 30,
     description: "Spicy garlic pickle perfect for adding flavor to any meal.",
     image: getPickleImage("garlic")
   },
@@ -97,6 +108,7 @@ export const pickles = [
     name: "Mixed Vegetable Pickle",
     category: "Mixed",
     price: 279,
+    stock: 40,
     description: "A delightful mix of seasonal vegetables pickled to perfection.",
     image: getPickleImage("mixed")
   },
@@ -105,6 +117,7 @@ export const pickles = [
     name: "Ginger Pickle",
     category: "Ginger",
     price: 269,
+    stock: 35,
     description: "Zesty ginger pickle with a perfect balance of heat and tang.",
     image: getPickleImage("garlic")
   },
@@ -113,6 +126,7 @@ export const pickles = [
     name: "Red Chilli Pickle",
     category: "Chilli",
     price: 289,
+    stock: 28,
     description: "Fiery red chilli pickle for spice lovers.",
     image: getPickleImage("garlic")
   },
@@ -121,6 +135,7 @@ export const pickles = [
     name: "Sweet Mango Pickle",
     category: "Mango",
     price: 319,
+    stock: 42,
     description: "Sweet and tangy mango pickle with jaggery and spices.",
     image: getPickleImage("mango")
   },
@@ -129,6 +144,7 @@ export const pickles = [
     name: "Lime Pickle",
     category: "Lemon",
     price: 259,
+    stock: 38,
     description: "Classic lime pickle with traditional tempering.",
     image: getPickleImage("lemon")
   }
