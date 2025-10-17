@@ -54,7 +54,7 @@ export default {
       },
       backgroundImage: {
         'gradient-saree': 'var(--gradient-saree)',
-        'gradient-pickle': 'var(--gradient-pickle)',
+        'gradient-sweet': 'var(--gradient-sweet)',
         'gradient-hero': 'var(--gradient-hero)',
       },
       boxShadow: {

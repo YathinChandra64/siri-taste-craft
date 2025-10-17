@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import heroMain from "@/assets/hero-main.jpg";
 import sareesHero from "@/assets/sarees-hero.jpg";
-import picklesHero from "@/assets/pickles-hero.jpg";
+import sweetsHero from "@/assets/sweets-hero.jpg";
 
 const Home = () => {
   return (
@@ -47,8 +47,8 @@ const Home = () => {
                 Siri Collections
               </span>
               <span className="text-white"> & </span>
-              <span className="inline-block bg-gradient-to-r from-green-300 via-yellow-300 to-green-300 bg-clip-text text-transparent">
-                Pickles
+              <span className="inline-block bg-gradient-to-r from-orange-300 via-yellow-300 to-orange-300 bg-clip-text text-transparent">
+                Sweets
               </span>
             </motion.h1>
             <motion.p 
@@ -134,14 +134,14 @@ const Home = () => {
               </Link>
             </motion.div>
 
-            {/* Pickle Card */}
+            {/* Sweets Card */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <Link to="/pickles">
+              <Link to="/sweets">
                 <motion.div
                   whileHover={{ scale: 1.03, y: -8 }}
                   transition={{ duration: 0.3 }}
@@ -149,16 +149,16 @@ const Home = () => {
                 >
                   <div className="relative aspect-[4/3] overflow-hidden">
                     <img 
-                      src={picklesHero} 
-                      alt="Pickles Collection" 
+                      src={sweetsHero} 
+                      alt="Sweets Collection" 
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <div className="absolute inset-0 p-8 flex flex-col items-center justify-end text-white">
                       <Leaf size={48} className="mb-3 group-hover:scale-110 transition-transform duration-300" />
-                      <h2 className="text-3xl font-bold mb-2">Explore Pickles</h2>
+                      <h2 className="text-3xl font-bold mb-2">Explore Sweets</h2>
                       <p className="text-white/90 text-center mb-4 text-sm">
-                        Taste our authentic homemade pickles made with traditional recipes
+                        Taste our authentic homemade sweets made with traditional recipes
                       </p>
                       <div className="flex items-center gap-2 text-sm font-medium bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
                         <span>Shop Now</span>
@@ -215,7 +215,7 @@ const Home = () => {
               whileHover={{ scale: 1.05, y: -8 }}
               className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-hover transition-all duration-300"
             >
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-pickle flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-sweet flex items-center justify-center">
                 <Star size={40} className="text-white" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-3">Premium Quality</h3>
@@ -256,8 +256,8 @@ const Home = () => {
             <Sparkles className="w-12 h-12 mx-auto mb-6 text-primary" />
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">Our Story</h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              At Siri Collections & Pickles, we bring together two beautiful traditions — 
-              the elegance of handpicked ethnic wear and the authentic taste of homemade pickles. 
+              At Siri Collections & Sweets, we bring together two beautiful traditions — 
+              the elegance of handpicked ethnic wear and the authentic taste of homemade sweets. 
               Each product is crafted with love and dedication, preserving the essence of our heritage 
               while serving the modern family.
             </p>

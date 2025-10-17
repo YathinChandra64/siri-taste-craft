@@ -32,7 +32,7 @@ const Contact = () => {
       title: "Phone",
       content: "+91 9248627327",
       link: "tel:+919248627327",
-      gradient: "bg-gradient-pickle",
+      gradient: "bg-gradient-sweet",
     },
     {
       icon: Mail,

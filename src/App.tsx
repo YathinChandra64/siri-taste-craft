@@ -6,11 +6,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Home from "./pages/Home";
 import Sarees from "./pages/Sarees";
-import Pickles from "./pages/Pickles";
+import Sweets from "./pages/Sweets";
 import OurStory from "./pages/OurStory";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { initializeInventory } from "./utils/inventory";
@@ -32,7 +33,8 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/sarees" element={<Sarees />} />
-              <Route path="/pickles" element={<Pickles />} />
+              <Route path="/sweets" element={<Sweets />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/our-story" element={<OurStory />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />

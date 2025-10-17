@@ -8,14 +8,14 @@ const OurStory = () => {
     {
       icon: Heart,
       title: "Made with Love",
-      description: "Every saree we curate and every pickle we prepare is crafted with genuine care and attention to detail.",
+      description: "Every saree we curate and every sweet we prepare is crafted with genuine care and attention to detail.",
       gradient: "bg-gradient-saree",
     },
     {
       icon: Users,
       title: "Family Tradition",
       description: "A family business that has been preserving traditional recipes and ethnic wear for generations.",
-      gradient: "bg-gradient-pickle",
+      gradient: "bg-gradient-sweet",
     },
     {
       icon: Award,
@@ -26,8 +26,8 @@ const OurStory = () => {
     {
       icon: Sparkles,
       title: "Authentic Experience",
-      description: "Bringing you the authentic taste of homemade pickles and the elegance of traditional sarees.",
-      gradient: "bg-gradient-pickle",
+      description: "Bringing you the authentic taste of homemade sweets and the elegance of traditional sarees.",
+      gradient: "bg-gradient-sweet",
     },
   ];
 

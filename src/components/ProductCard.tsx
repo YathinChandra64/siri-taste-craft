@@ -10,12 +10,12 @@ interface ProductCardProps {
     description: string;
     image: string;
   };
-  type: "saree" | "pickle";
+  type: "saree" | "sweet";
   onViewDetails: () => void;
 }
 
 const ProductCard = ({ product, type, onViewDetails }: ProductCardProps) => {
-  const gradientClass = type === "saree" ? "bg-gradient-saree" : "bg-gradient-pickle";
+  const gradientClass = type === "saree" ? "bg-gradient-saree" : "bg-gradient-sweet";
 
   return (
     <motion.div

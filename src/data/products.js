@@ -1,4 +1,4 @@
-import { getSareeImage, getPickleImage } from './productImages';
+import { getSareeImage, getSweetImage } from './productImages';
 
 export const sarees = [
   {
@@ -75,82 +75,82 @@ export const sarees = [
   }
 ];
 
-export const pickles = [
+export const sweets = [
   {
     id: 1,
-    name: "Mango Pickle",
-    category: "Mango",
-    price: 299,
+    name: "Besan Ladoo",
+    category: "Ladoo",
+    price: 399,
     stock: 50,
-    description: "Traditional homemade mango pickle with authentic spices. A family recipe passed down through generations.",
-    image: getPickleImage("mango")
+    description: "Traditional homemade besan ladoo made with pure ghee and authentic spices. A family recipe passed down through generations.",
+    image: getSweetImage("ladoo")
   },
   {
     id: 2,
-    name: "Lemon Pickle",
-    category: "Lemon",
-    price: 249,
+    name: "Kaju Barfi",
+    category: "Barfi",
+    price: 599,
     stock: 45,
-    description: "Tangy lemon pickle made with fresh lemons and aromatic spices.",
-    image: getPickleImage("lemon")
+    description: "Rich cashew barfi with silver leaf, perfect for gifting on special occasions.",
+    image: getSweetImage("barfi")
   },
   {
     id: 3,
-    name: "Garlic Pickle",
-    category: "Garlic",
+    name: "Gulab Jamun",
+    category: "Gulab",
     price: 329,
-    stock: 30,
-    description: "Spicy garlic pickle perfect for adding flavor to any meal.",
-    image: getPickleImage("garlic")
+    stock: 60,
+    description: "Soft and spongy gulab jamun soaked in aromatic sugar syrup.",
+    image: getSweetImage("gulab")
   },
   {
     id: 4,
-    name: "Mixed Vegetable Pickle",
-    category: "Mixed",
-    price: 279,
+    name: "Mysore Pak",
+    category: "Mysore",
+    price: 449,
     stock: 40,
-    description: "A delightful mix of seasonal vegetables pickled to perfection.",
-    image: getPickleImage("mixed")
+    description: "Traditional Mysore pak with perfect ghee texture and sweetness.",
+    image: getSweetImage("mysore")
   },
   {
     id: 5,
-    name: "Ginger Pickle",
-    category: "Ginger",
-    price: 269,
-    stock: 35,
-    description: "Zesty ginger pickle with a perfect balance of heat and tang.",
-    image: getPickleImage("garlic")
+    name: "Coconut Ladoo",
+    category: "Ladoo",
+    price: 349,
+    stock: 55,
+    description: "Fresh coconut ladoo with cardamom and condensed milk.",
+    image: getSweetImage("ladoo")
   },
   {
     id: 6,
-    name: "Red Chilli Pickle",
-    category: "Chilli",
-    price: 289,
-    stock: 28,
-    description: "Fiery red chilli pickle for spice lovers.",
-    image: getPickleImage("garlic")
+    name: "Pista Barfi",
+    category: "Barfi",
+    price: 649,
+    stock: 35,
+    description: "Premium pistachio barfi with a melt-in-mouth texture.",
+    image: getSweetImage("barfi")
   },
   {
     id: 7,
-    name: "Sweet Mango Pickle",
-    category: "Mango",
-    price: 319,
-    stock: 42,
-    description: "Sweet and tangy mango pickle with jaggery and spices.",
-    image: getPickleImage("mango")
+    name: "Kala Jamun",
+    category: "Gulab",
+    price: 359,
+    stock: 48,
+    description: "Rich dark jamuns with a unique flavor profile and soft texture.",
+    image: getSweetImage("gulab")
   },
   {
     id: 8,
-    name: "Lime Pickle",
-    category: "Lemon",
-    price: 259,
+    name: "Milk Mysore Pak",
+    category: "Mysore",
+    price: 479,
     stock: 38,
-    description: "Classic lime pickle with traditional tempering.",
-    image: getPickleImage("lemon")
+    description: "Special milk-based Mysore pak with authentic taste.",
+    image: getSweetImage("mysore")
   }
 ];
 
 export const categories = {
   sarees: ["All", "Silk", "Cotton", "Designer"],
-  pickles: ["All", "Mango", "Lemon", "Garlic", "Mixed", "Ginger", "Chilli"]
+  sweets: ["All", "Ladoo", "Barfi", "Gulab", "Mysore"]
 };

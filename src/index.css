@@ -23,11 +23,11 @@ All colors MUST be HSL.
     --primary-light: 320 65% 55%;
     --primary-dark: 270 80% 35%;
     
-    /* Pickle Theme - Tangy & Spicy (Green Chili, Turmeric, Red Chili) */
-    --secondary: 80 70% 45%;
+    /* Sweet Theme - Warm & Delicious (Orange, Golden, Honey) */
+    --secondary: 30 85% 55%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-light: 85 60% 55%;
-    --secondary-dark: 75 75% 35%;
+    --secondary-light: 35 80% 65%;
+    --secondary-dark: 25 90% 45%;
 
     /* Accents */
     --accent-gold: 45 95% 50%;
@@ -53,8 +53,8 @@ All colors MUST be HSL.
 
     /* Gradients - Vibrant and Eye-catching */
     --gradient-saree: linear-gradient(135deg, hsl(285 70% 45%) 0%, hsl(320 65% 55%) 40%, hsl(270 80% 35%) 70%, hsl(45 95% 50%) 100%);
-    --gradient-pickle: linear-gradient(135deg, hsl(80 70% 45%) 0%, hsl(45 95% 50%) 40%, hsl(30 100% 50%) 70%, hsl(75 75% 35%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(285 70% 45% / 0.05) 0%, hsl(80 70% 45% / 0.05) 100%);
+    --gradient-sweet: linear-gradient(135deg, hsl(30 85% 55%) 0%, hsl(45 95% 50%) 40%, hsl(35 80% 65%) 70%, hsl(25 90% 45%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(285 70% 45% / 0.05) 0%, hsl(30 85% 55% / 0.05) 100%);
     
     /* Shadows */
     --shadow-soft: 0 4px 20px -4px hsl(20 14% 10% / 0.1);
@@ -80,10 +80,10 @@ All colors MUST be HSL.
     --primary-light: 320 55% 65%;
     --primary-dark: 270 70% 45%;
 
-    --secondary: 80 60% 50%;
+    --secondary: 30 75% 60%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-light: 85 50% 60%;
-    --secondary-dark: 75 65% 40%;
+    --secondary-light: 35 70% 70%;
+    --secondary-dark: 25 80% 50%;
 
     --accent-gold: 45 85% 60%;
     --accent-gold-foreground: 20 14% 10%;

@@ -23,7 +23,7 @@ interface ProductDetailModalProps {
   product: Product | null;
   isOpen: boolean;
   onClose: () => void;
-  type: "saree" | "pickle";
+  type: "saree" | "sweet";
 }
 
 const ProductDetailModal = ({ product, isOpen, onClose, type }: ProductDetailModalProps) => {
@@ -38,7 +38,7 @@ const ProductDetailModal = ({ product, isOpen, onClose, type }: ProductDetailMod
   const currentStock = productWithStock?.stock ?? 0;
   const inStock = currentStock > 0;
 
-  const gradientClass = type === "saree" ? "bg-gradient-saree" : "bg-gradient-pickle";
+  const gradientClass = type === "saree" ? "bg-gradient-saree" : "bg-gradient-sweet";
 
   const handleBuyNow = () => {
     if (!isAuthenticated) {

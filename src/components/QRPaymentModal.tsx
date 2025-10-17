@@ -13,7 +13,7 @@ interface QRPaymentModalProps {
     name: string;
     price: number;
   };
-  type: "saree" | "pickle";
+  type: "saree" | "sweet";
 }
 
 const QRPaymentModal = ({ isOpen, onClose, product, type }: QRPaymentModalProps) => {

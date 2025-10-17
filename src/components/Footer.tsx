@@ -8,7 +8,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="text-center md:text-left">
             <p className="font-bold text-lg mb-2 bg-gradient-saree bg-clip-text text-transparent">
-              Siri Collections & Pickles
+              Siri Collections & Sweets
             </p>
             <p className="text-sm text-muted-foreground">
               © 2025 All rights reserved.

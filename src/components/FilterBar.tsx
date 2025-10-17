@@ -4,11 +4,11 @@ interface FilterBarProps {
   categories: string[];
   activeCategory: string;
   onCategoryChange: (category: string) => void;
-  type: "saree" | "pickle";
+  type: "saree" | "sweet";
 }
 
 const FilterBar = ({ categories, activeCategory, onCategoryChange, type }: FilterBarProps) => {
-  const gradientClass = type === "saree" ? "bg-gradient-saree" : "bg-gradient-pickle";
+  const gradientClass = type === "saree" ? "bg-gradient-saree" : "bg-gradient-sweet";
 
   return (
     <div className="flex flex-wrap gap-3 mb-8">

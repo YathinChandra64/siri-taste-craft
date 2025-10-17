@@ -43,7 +43,7 @@ const Signup = () => {
     if (signup(name, email, password)) {
       toast({
         title: "Account Created",
-        description: "Welcome to Siri Collections & Pickles!",
+        description: "Welcome to Siri Collections & Sweets!",
       });
       navigate('/');
     } else {
@@ -72,7 +72,7 @@ const Signup = () => {
                 initial={{ scale: 0.9 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.3 }}
-                className="w-20 h-20 mx-auto mb-4 bg-gradient-pickle rounded-full flex items-center justify-center"
+                className="w-20 h-20 mx-auto mb-4 bg-gradient-sweet rounded-full flex items-center justify-center"
               >
                 <User className="w-10 h-10 text-white" />
               </motion.div>
@@ -147,7 +147,7 @@ const Signup = () => {
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-pickle hover:opacity-90 text-white font-semibold py-6 rounded-lg transition-all duration-300 hover:shadow-hover"
+                className="w-full bg-gradient-sweet hover:opacity-90 text-white font-semibold py-6 rounded-lg transition-all duration-300 hover:shadow-hover"
               >
                 Create Account
               </Button>

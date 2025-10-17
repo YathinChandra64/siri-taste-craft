@@ -1,4 +1,4 @@
-import { sarees, pickles } from '@/data/products';
+import { sarees, sweets } from '@/data/products';
 
 export interface ProductWithStock {
   id: number;
@@ -18,7 +18,7 @@ export const initializeInventory = () => {
   if (!existing) {
     const inventory = {
       sarees: sarees.map(s => ({ id: s.id, stock: s.stock })),
-      pickles: pickles.map(p => ({ id: p.id, stock: p.stock }))
+      sweets: sweets.map(p => ({ id: p.id, stock: p.stock }))
     };
     localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
   }
@@ -28,13 +28,13 @@ export const initializeInventory = () => {
 export const getInventory = () => {
   initializeInventory();
   const data = localStorage.getItem(INVENTORY_KEY);
-  return data ? JSON.parse(data) : { sarees: [], pickles: [] };
+  return data ? JSON.parse(data) : { sarees: [], sweets: [] };
 };
 
 // Update stock after purchase
-export const updateStock = (productId: number, type: 'saree' | 'pickle', quantity: number = 1): boolean => {
+export const updateStock = (productId: number, type: 'saree' | 'sweet', quantity: number = 1): boolean => {
   const inventory = getInventory();
-  const productList = type === 'saree' ? inventory.sarees : inventory.pickles;
+  const productList = type === 'saree' ? inventory.sarees : inventory.sweets;
   const product = productList.find((p: any) => p.id === productId);
   
   if (product && product.stock >= quantity) {
@@ -47,14 +47,14 @@ export const updateStock = (productId: number, type: 'saree' | 'pickle', quantit
 };
 
 // Get product with current stock
-export const getProductWithStock = (productId: number, type: 'saree' | 'pickle'): ProductWithStock | null => {
+export const getProductWithStock = (productId: number, type: 'saree' | 'sweet'): ProductWithStock | null => {
   const inventory = getInventory();
-  const sourceList = type === 'saree' ? sarees : pickles;
+  const sourceList = type === 'saree' ? sarees : sweets;
   const product = sourceList.find(p => p.id === productId);
   
   if (!product) return null;
   
-  const stockList = type === 'saree' ? inventory.sarees : inventory.pickles;
+  const stockList = type === 'saree' ? inventory.sarees : inventory.sweets;
   const stockItem = stockList.find((s: any) => s.id === productId);
   
   return {
@@ -64,10 +64,10 @@ export const getProductWithStock = (productId: number, type: 'saree' | 'pickle')
 };
 
 // Get all products with current stock
-export const getAllProductsWithStock = (type: 'saree' | 'pickle'): ProductWithStock[] => {
+export const getAllProductsWithStock = (type: 'saree' | 'sweet'): ProductWithStock[] => {
   const inventory = getInventory();
-  const sourceList = type === 'saree' ? sarees : pickles;
-  const stockList = type === 'saree' ? inventory.sarees : inventory.pickles;
+  const sourceList = type === 'saree' ? sarees : sweets;
+  const stockList = type === 'saree' ? inventory.sarees : inventory.sweets;
   
   return sourceList.map(product => {
     const stockItem = stockList.find((s: any) => s.id === product.id);

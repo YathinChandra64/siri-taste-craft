@@ -2,10 +2,10 @@
 import sareeSilk from "@/assets/saree-silk.jpg";
 import sareeCotton from "@/assets/saree-cotton.jpg";
 import sareeDesigner from "@/assets/saree-designer.jpg";
-import pickleMango from "@/assets/pickle-mango.jpg";
-import pickleLemon from "@/assets/pickle-lemon.jpg";
-import pickleGarlic from "@/assets/pickle-garlic.jpg";
-import pickleMixed from "@/assets/pickle-mixed.jpg";
+import sweetLadoo from "@/assets/sweet-ladoo.jpg";
+import sweetBarfi from "@/assets/sweet-barfi.jpg";
+import sweetGulab from "@/assets/sweet-gulab.jpg";
+import sweetMysore from "@/assets/sweet-mysore.jpg";
 
 export const sareeImages: Record<string, string> = {
   silk: sareeSilk,
@@ -13,11 +13,11 @@ export const sareeImages: Record<string, string> = {
   designer: sareeDesigner,
 };
 
-export const pickleImages: Record<string, string> = {
-  mango: pickleMango,
-  lemon: pickleLemon,
-  garlic: pickleGarlic,
-  mixed: pickleMixed,
+export const sweetImages: Record<string, string> = {
+  ladoo: sweetLadoo,
+  barfi: sweetBarfi,
+  gulab: sweetGulab,
+  mysore: sweetMysore,
 };
 
 // Helper function to get image by category
@@ -25,6 +25,6 @@ export const getSareeImage = (category: string): string => {
   return sareeImages[category.toLowerCase()] || sareeSilk;
 };
 
-export const getPickleImage = (category: string): string => {
-  return pickleImages[category.toLowerCase()] || pickleMango;
+export const getSweetImage = (category: string): string => {
+  return sweetImages[category.toLowerCase()] || sweetLadoo;
 };

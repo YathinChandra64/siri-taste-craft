@@ -14,7 +14,7 @@ const Navbar = () => {
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Sarees", path: "/sarees" },
-    { name: "Pickles", path: "/pickles" },
+    { name: "Sweets", path: "/sweets" },
     { name: "Our Story", path: "/our-story" },
     { name: "Contact", path: "/contact" },
   ];
@@ -32,14 +32,14 @@ const Navbar = () => {
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.2 }}
             >
-              <img src={logo} alt="Siri Collections & Pickles" className="h-10 w-10 object-contain" />
+              <img src={logo} alt="Siri Collections & Sweets" className="h-10 w-10 object-contain" />
               <div className="text-lg md:text-xl font-bold">
                 <span className="bg-gradient-saree bg-clip-text text-transparent">
                   Siri Collections
                 </span>
                 <span className="text-foreground"> & </span>
-                <span className="bg-gradient-pickle bg-clip-text text-transparent">
-                  Pickles
+                <span className="bg-gradient-sweet bg-clip-text text-transparent">
+                  Sweets
                 </span>
               </div>
             </motion.div>
@@ -66,10 +66,15 @@ const Navbar = () => {
             {/* Auth Button */}
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10">
-                  <User size={16} className="text-primary" />
-                  <span className="text-sm font-medium text-foreground">{user?.name}</span>
-                </div>
+                <Link to="/profile">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 cursor-pointer hover:bg-primary/20 transition-colors duration-200"
+                  >
+                    <User size={16} className="text-primary" />
+                    <span className="text-sm font-medium text-foreground">{user?.name}</span>
+                  </motion.div>
+                </Link>
                 <Button
                   onClick={logout}
                   variant="outline"
@@ -133,10 +138,12 @@ const Navbar = () => {
             <div className="mt-4 px-4 space-y-3">
               {isAuthenticated ? (
                 <>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10">
-                    <User size={18} className="text-primary" />
-                    <span className="text-sm font-medium text-foreground">{user?.name}</span>
-                  </div>
+                  <Link to="/profile" onClick={() => setIsOpen(false)}>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 cursor-pointer hover:bg-primary/20 transition-colors duration-200">
+                      <User size={18} className="text-primary" />
+                      <span className="text-sm font-medium text-foreground">{user?.name}</span>
+                    </div>
+                  </Link>
                   <Button
                     onClick={() => {
                       logout();
