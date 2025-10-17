@@ -1,18 +1,156 @@
-{
-  "name": "products.js",
-  "path": "src/data/products.js",
-  "sha": "72e97ee372623f279a1fbd5ccb9df2824f0aeae3",
-  "size": 6404,
-  "url": "https://api.github.com/repos/YathinChandra64/siri-taste-craft/contents/src/data/products.js?ref=main",
-  "html_url": "https://github.com/YathinChandra64/siri-taste-craft/blob/main/src/data/products.js",
-  "git_url": "https://api.github.com/repos/YathinChandra64/siri-taste-craft/git/blobs/72e97ee372623f279a1fbd5ccb9df2824f0aeae3",
-  "download_url": "https://raw.githubusercontent.com/YathinChandra64/siri-taste-craft/main/src/data/products.js",
-  "type": "file",
-  "content": "ewogICJuYW1lIjogInByb2R1Y3RzLmpzIiwKICAicGF0aCI6ICJzcmMvZGF0\nYS9wcm9kdWN0cy5qcyIsCiAgInNoYSI6ICI4MDRmMGMyOTQwNDg2ZjZkYTAw\nNzkyMWIzYjc5OTg1ZTYwODIzYzA3IiwKICAic2l6ZSI6IDM5MTcsCiAgInVy\nbCI6ICJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL1lhdGhpbkNoYW5k\ncmE2NC9zaXJpLXRhc3RlLWNyYWZ0L2NvbnRlbnRzL3NyYy9kYXRhL3Byb2R1\nY3RzLmpzP3JlZj1tYWluIiwKICAiaHRtbF91cmwiOiAiaHR0cHM6Ly9naXRo\ndWIuY29tL1lhdGhpbkNoYW5kcmE2NC9zaXJpLXRhc3RlLWNyYWZ0L2Jsb2Iv\nbWFpbi9zcmMvZGF0YS9wcm9kdWN0cy5qcyIsCiAgImdpdF91cmwiOiAiaHR0\ncHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9ZYXRoaW5DaGFuZHJhNjQvc2ly\naS10YXN0ZS1jcmFmdC9naXQvYmxvYnMvODA0ZjBjMjk0MDQ4NmY2ZGEwMDc5\nMjFiM2I3OTk4NWU2MDgyM2MwNyIsCiAgImRvd25sb2FkX3VybCI6ICJodHRw\nczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vWWF0aGluQ2hhbmRyYTY0\nL3NpcmktdGFzdGUtY3JhZnQvbWFpbi9zcmMvZGF0YS9wcm9kdWN0cy5qcyIs\nCiAgInR5cGUiOiAiZmlsZSIsCiAgImNvbnRlbnQiOiAiYVcxd2IzSjBJSHNn\nWjJWMFUyRnlaV1ZKYldGblpTd2daMlYwVUdsamEyeGxTVzFoWjJVZ2ZTQm1j\nbTl0XG5JQ2N1TDNCeWIyUjFZM1JKYldGblpYTW5Pd29LWlhod2IzSjBJR052\nYm5OMElITmhjbVZsY3lBOUlGc0tcbklDQjdDaUFnSUNCcFpEb2dNU3dLSUNB\nZ0lHNWhiV1U2SUNKU2IzbGhiQ0JUYVd4cklGTmhjbVZsSWl3S1xuSUNBZ0lH\nTmhkR1ZuYjNKNU9pQWlVMmxzYXlJc0NpQWdJQ0J3Y21salpUb2dORGs1T1N3\nS0lDQWdJSE4wXG5iMk5yT2lBeE5Td0tJQ0FnSUdSbGMyTnlhWEIwYVc5dU9p\nQWlSWGh4ZFdsemFYUmxJSEIxY21VZ2MybHNcbmF5QnpZWEpsWlNCM2FYUm9J\nSFJ5WVdScGRHbHZibUZzSUhwaGNta2dkMjl5YXk0Z1VHVnlabVZqZENCbVxu\nYjNJZ2QyVmtaR2x1WjNNZ1lXNWtJSE53WldOcFlXd2diMk5qWVhOcGIyNXpM\naUlzQ2lBZ0lDQnBiV0ZuXG5aVG9nWjJWMFUyRnlaV1ZKYldGblpTZ2ljMmxz\nYXlJcENpQWdmU3dLSUNCN0NpQWdJQ0JwWkRvZ01pd0tcbklDQWdJRzVoYldV\nNklDSkVaWE5wWjI1bGNpQkRiM1IwYjI0Z1UyRnlaV1VpTEFvZ0lDQWdZMkYw\nWldkdlxuY25rNklDSkRiM1IwYjI0aUxBb2dJQ0FnY0hKcFkyVTZJREU1T1Rr\nc0NpQWdJQ0J6ZEc5amF6b2dNakFzXG5DaUFnSUNCa1pYTmpjbWx3ZEdsdmJq\nb2dJa052YldadmNuUmhZbXhsSUdOdmRIUnZiaUJ6WVhKbFpTQjNcbmFYUm9J\nR1ZzWldkaGJuUWdjSEpwYm5SekxpQkpaR1ZoYkNCbWIzSWdaWFpsY25sa1lY\na2daV3hsWjJGdVxuWTJVdUlpd0tJQ0FnSUdsdFlXZGxPaUJuWlhSVFlYSmxa\nVWx0WVdkbEtDSmpiM1IwYjI0aUtRb2dJSDBzXG5DaUFnZXdvZ0lDQWdhV1E2\nSURNc0NpQWdJQ0J1WVcxbE9pQWlRbUZ1WVhKaGMya2dVMmxzYXlCVFlYSmxc\nblpTSXNDaUFnSUNCallYUmxaMjl5ZVRvZ0lsTnBiR3NpTEFvZ0lDQWdjSEpw\nWTJVNklEYzVPVGtzQ2lBZ1xuSUNCemRHOWphem9nTVRBc0NpQWdJQ0JrWlhO\namNtbHdkR2x2YmpvZ0lrRjFkR2hsYm5ScFl5QkNZVzVoXG5jbUZ6YVNCemFX\neHJJSGRwZEdnZ2FXNTBjbWxqWVhSbElHSnliMk5oWkdVZ2QyOXlheTRnUVNC\nMGFXMWxcbmJHVnpjeUJqYkdGemMybGpMaUlzQ2lBZ0lDQnBiV0ZuWlRvZ1oy\nVjBVMkZ5WldWSmJXRm5aU2dpYzJsc1xuYXlJcENpQWdmU3dLSUNCN0NpQWdJ\nQ0JwWkRvZ05Dd0tJQ0FnSUc1aGJXVTZJQ0pRY21sdWRHVmtJRU52XG5kSFJ2\nYmlCVFlYSmxaU0lzQ2lBZ0lDQmpZWFJsWjI5eWVUb2dJa052ZEhSdmJpSXND\naUFnSUNCd2NtbGpcblpUb2dNVFE1T1N3S0lDQWdJSE4wYjJOck9pQXlOU3dL\nSUNBZ0lHUmxjMk55YVhCMGFXOXVPaUFpVm1saVxuY21GdWRDQndjbWx1ZEdW\na0lHTnZkSFJ2YmlCellYSmxaU0IzYVhSb0lHSmxZWFYwYVdaMWJDQmpiMnh2\nXG5jaUJqYjIxaWFXNWhkR2x2Ym5NdUlpd0tJQ0FnSUdsdFlXZGxPaUJuWlhS\nVFlYSmxaVWx0WVdkbEtDSmpcbmIzUjBiMjRpS1FvZ0lIMHNDaUFnZXdvZ0lD\nQWdhV1E2SURVc0NpQWdJQ0J1WVcxbE9pQWlWMlZrWkdsdVxuWnlCRVpYTnBa\nMjVsY2lCVFlYSmxaU0lzQ2lBZ0lDQmpZWFJsWjI5eWVUb2dJa1JsYzJsbmJt\nVnlJaXdLXG5JQ0FnSUhCeWFXTmxPaUF4TWprNU9Td0tJQ0FnSUhOMGIyTnJP\naUE0TEFvZ0lDQWdaR1Z6WTNKcGNIUnBcbmIyNDZJQ0pUZEhWdWJtbHVaeUJr\nWlhOcFoyNWxjaUJ6WVhKbFpTQjNhWFJvSUdobFlYWjVJR1Z0WW1Wc1xuYkds\nemFHMWxiblJ6SUdGdVpDQnpkRzl1WlhkdmNtc3VJaXdLSUNBZ0lHbHRZV2Rs\nT2lCblpYUlRZWEpsXG5aVWx0WVdkbEtDSmtaWE5wWjI1bGNpSXBDaUFnZlN3\nS0lDQjdDaUFnSUNCcFpEb2dOaXdLSUNBZ0lHNWhcbmJXVTZJQ0pRWVhKMGVT\nQlhaV0Z5SUVSbGMybG5ibVZ5SUZOaGNtVmxJaXdLSUNBZ0lHTmhkR1ZuYjNK\nNVxuT2lBaVJHVnphV2R1WlhJaUxBb2dJQ0FnY0hKcFkyVTZJRGc1T1Rrc0Np\nQWdJQ0J6ZEc5amF6b2dNVElzXG5DaUFnSUNCa1pYTmpjbWx3ZEdsdmJqb2dJ\na052Ym5SbGJYQnZjbUZ5ZVNCa1pYTnBaMjVsY2lCellYSmxcblpTQndaWEpt\nWldOMElHWnZjaUJ3WVhKMGFXVnpJR0Z1WkNCalpXeGxZbkpoZEdsdmJuTXVJ\naXdLSUNBZ1xuSUdsdFlXZGxPaUJuWlhSVFlYSmxaVWx0WVdkbEtDSmtaWE5w\nWjI1bGNpSXBDaUFnZlN3S0lDQjdDaUFnXG5JQ0JwWkRvZ055d0tJQ0FnSUc1\naGJXVTZJQ0pVZFhOellYSWdVMmxzYXlCVFlYSmxaU0lzQ2lBZ0lDQmpcbllY\nUmxaMjl5ZVRvZ0lsTnBiR3NpTEFvZ0lDQWdjSEpwWTJVNklEVTBPVGtzQ2lB\nZ0lDQnpkRzlqYXpvZ1xuTVRnc0NpQWdJQ0JrWlhOamNtbHdkR2x2YmpvZ0lr\nNWhkSFZ5WVd3Z2RIVnpjMkZ5SUhOcGJHc2dkMmwwXG5hQ0JsYkdWbllXNTBJ\nR1J5WVhCbElHRnVaQ0J5YVdOb0lIUmxlSFIxY21VdUlpd0tJQ0FnSUdsdFlX\nZGxcbk9pQm5aWFJUWVhKbFpVbHRZV2RsS0NKemFXeHJJaWtLSUNCOUxBb2dJ\nSHNLSUNBZ0lHbGtPaUE0TEFvZ1xuSUNBZ2JtRnRaVG9nSWtoaGJtUnNiMjl0\nSUVOdmRIUnZiaUJUWVhKbFpTSXNDaUFnSUNCallYUmxaMjl5XG5lVG9nSWtO\ndmRIUnZiaUlzQ2lBZ0lDQndjbWxqWlRvZ01qUTVPU3dLSUNBZ0lITjBiMk5y\nT2lBeU1pd0tcbklDQWdJR1JsYzJOeWFYQjBhVzl1T2lBaVZISmhaR2wwYVc5\ndVlXd2dhR0Z1Wkd4dmIyMGdZMjkwZEc5dVxuSUhOaGNtVmxJSE4xY0hCdmNu\nUnBibWNnYkc5allXd2dZWEowYVhOaGJuTXVJaXdLSUNBZ0lHbHRZV2RsXG5P\naUJuWlhSVFlYSmxaVWx0WVdkbEtDSmpiM1IwYjI0aUtRb2dJSDBLWFRzS0Nt\nVjRjRzl5ZENCamIyNXpcbmRDQndhV05yYkdWeklEMGdXd29nSUhzS0lDQWdJ\nR2xrT2lBeExBb2dJQ0FnYm1GdFpUb2dJazFoYm1kdlxuSUZCcFkydHNaU0lz\nQ2lBZ0lDQmpZWFJsWjI5eWVUb2dJazFoYm1kdklpd0tJQ0FnSUhCeWFXTmxP\naUF5XG5PVGtzQ2lBZ0lDQnpkRzlqYXpvZ05UQXNDaUFnSUNCa1pYTmpjbWx3\nZEdsdmJqb2dJbFJ5WVdScGRHbHZcbmJtRnNJR2h2YldWdFlXUmxJRzFoYm1k\ndklIQnBZMnRzWlNCM2FYUm9JR0YxZEdobGJuUnBZeUJ6Y0dsalxuWlhNdUlF\nRWdabUZ0YVd4NUlISmxZMmx3WlNCd1lYTnpaV1FnWkc5M2JpQjBhSEp2ZFdk\nb0lHZGxibVZ5XG5ZWFJwYjI1ekxpSXNDaUFnSUNCcGJXRm5aVG9nWjJWMFVH\nbGphMnhsU1cxaFoyVW9JbTFoYm1kdklpa0tcbklDQjlMQW9nSUhzS0lDQWdJ\nR2xrT2lBeUxBb2dJQ0FnYm1GdFpUb2dJa3hsYlc5dUlGQnBZMnRzWlNJc1xu\nQ2lBZ0lDQmpZWFJsWjI5eWVUb2dJa3hsYlc5dUlpd0tJQ0FnSUhCeWFXTmxP\naUF5TkRrc0NpQWdJQ0J6XG5kRzlqYXpvZ05EVXNDaUFnSUNCa1pYTmpjbWx3\nZEdsdmJqb2dJbFJoYm1kNUlHeGxiVzl1SUhCcFkydHNcblpTQnRZV1JsSUhk\ncGRHZ2dabkpsYzJnZ2JHVnRiMjV6SUdGdVpDQmhjbTl0WVhScFl5QnpjR2xq\nWlhNdVxuSWl3S0lDQWdJR2x0WVdkbE9pQm5aWFJRYVdOcmJHVkpiV0ZuWlNn\naWJHVnRiMjRpS1FvZ0lIMHNDaUFnXG5ld29nSUNBZ2FXUTZJRE1zQ2lBZ0lD\nQnVZVzFsT2lBaVIyRnliR2xqSUZCcFkydHNaU0lzQ2lBZ0lDQmpcbllYUmxa\nMjl5ZVRvZ0lrZGhjbXhwWXlJc0NpQWdJQ0J3Y21salpUb2dNekk1TEFvZ0lD\nQWdjM1J2WTJzNlxuSURNd0xBb2dJQ0FnWkdWelkzSnBjSFJwYjI0NklDSlRj\nR2xqZVNCbllYSnNhV01nY0dsamEyeGxJSEJsXG5jbVpsWTNRZ1ptOXlJR0Zr\nWkdsdVp5Qm1iR0YyYjNJZ2RHOGdZVzU1SUcxbFlXd3VJaXdLSUNBZ0lHbHRc\nbllXZGxPaUJuWlhSUWFXTnJiR1ZKYldGblpTZ2laMkZ5Ykdsaklpa0tJQ0I5\nTEFvZ0lIc0tJQ0FnSUdsa1xuT2lBMExBb2dJQ0FnYm1GdFpUb2dJazFwZUdW\na0lGWmxaMlYwWVdKc1pTQlFhV05yYkdVaUxBb2dJQ0FnXG5ZMkYwWldkdmNu\nazZJQ0pOYVhobFpDSXNDaUFnSUNCd2NtbGpaVG9nTWpjNUxBb2dJQ0FnYzNS\ndlkyczZcbklEUXdMQW9nSUNBZ1pHVnpZM0pwY0hScGIyNDZJQ0pCSUdSbGJH\nbG5hSFJtZFd3Z2JXbDRJRzltSUhObFxuWVhOdmJtRnNJSFpsWjJWMFlXSnNa\nWE1nY0dsamEyeGxaQ0IwYnlCd1pYSm1aV04wYVc5dUxpSXNDaUFnXG5JQ0Jw\nYldGblpUb2daMlYwVUdsamEyeGxTVzFoWjJVb0ltMXBlR1ZrSWlrS0lDQjlM\nQW9nSUhzS0lDQWdcbklHbGtPaUExTEFvZ0lDQWdibUZ0WlRvZ0lrZHBibWRs\nY2lCUWFXTnJiR1VpTEFvZ0lDQWdZMkYwWldkdlxuY25rNklDSkhhVzVuWlhJ\naUxBb2dJQ0FnY0hKcFkyVTZJREkyT1N3S0lDQWdJSE4wYjJOck9pQXpOU3dL\nXG5JQ0FnSUdSbGMyTnlhWEIwYVc5dU9pQWlXbVZ6ZEhrZ1oybHVaMlZ5SUhC\ncFkydHNaU0IzYVhSb0lHRWdcbmNHVnlabVZqZENCaVlXeGhibU5sSUc5bUlH\naGxZWFFnWVc1a0lIUmhibWN1SWl3S0lDQWdJR2x0WVdkbFxuT2lCblpYUlFh\nV05yYkdWSmJXRm5aU2dpWjJGeWJHbGpJaWtLSUNCOUxBb2dJSHNLSUNBZ0lH\nbGtPaUEyXG5MQW9nSUNBZ2JtRnRaVG9nSWxKbFpDQkRhR2xzYkdrZ1VHbGph\nMnhsSWl3S0lDQWdJR05oZEdWbmIzSjVcbk9pQWlRMmhwYkd4cElpd0tJQ0Fn\nSUhCeWFXTmxPaUF5T0Rrc0NpQWdJQ0J6ZEc5amF6b2dNamdzQ2lBZ1xuSUNC\na1pYTmpjbWx3ZEdsdmJqb2dJa1pwWlhKNUlISmxaQ0JqYUdsc2JHa2djR2xq\nYTJ4bElHWnZjaUJ6XG5jR2xqWlNCc2IzWmxjbk11SWl3S0lDQWdJR2x0WVdk\nbE9pQm5aWFJRYVdOcmJHVkpiV0ZuWlNnaVoyRnlcbmJHbGpJaWtLSUNCOUxB\nb2dJSHNLSUNBZ0lHbGtPaUEzTEFvZ0lDQWdibUZ0WlRvZ0lsTjNaV1YwSUUx\naFxuYm1kdklGQnBZMnRzWlNJc0NpQWdJQ0JqWVhSbFoyOXllVG9nSWsxaGJt\nZHZJaXdLSUNBZ0lIQnlhV05sXG5PaUF6TVRrc0NpQWdJQ0J6ZEc5amF6b2dO\nRElzQ2lBZ0lDQmtaWE5qY21sd2RHbHZiam9nSWxOM1pXVjBcbklHRnVaQ0Iw\nWVc1bmVTQnRZVzVuYnlCd2FXTnJiR1VnZDJsMGFDQnFZV2RuWlhKNUlHRnVa\nQ0J6Y0dsalxuWlhNdUlpd0tJQ0FnSUdsdFlXZGxPaUJuWlhSUWFXTnJiR1ZK\nYldGblpTZ2liV0Z1WjI4aUtRb2dJSDBzXG5DaUFnZXdvZ0lDQWdhV1E2SURn\nc0NpQWdJQ0J1WVcxbE9pQWlUR2x0WlNCUWFXTnJiR1VpTEFvZ0lDQWdcblky\nRjBaV2R2Y25rNklDSk1aVzF2YmlJc0NpQWdJQ0J3Y21salpUb2dNalU1TEFv\nZ0lDQWdjM1J2WTJzNlxuSURNNExBb2dJQ0FnWkdWelkzSnBjSFJwYjI0NklD\nSkRiR0Z6YzJsaklHeHBiV1VnY0dsamEyeGxJSGRwXG5kR2dnZEhKaFpHbDBh\nVzl1WVd3Z2RHVnRjR1Z5YVc1bkxpSXNDaUFnSUNCcGJXRm5aVG9nWjJWMFVH\nbGpcbmEyeGxTVzFoWjJVb0lteGxiVzl1SWlrS0lDQjlDbDA3Q2dwbGVIQnZj\nblFnWTI5dWMzUWdZMkYwWldkdlxuY21sbGN5QTlJSHNLSUNCellYSmxaWE02\nSUZzaVFXeHNJaXdnSWxOcGJHc2lMQ0FpUTI5MGRHOXVJaXdnXG5Ja1JsYzJs\nbmJtVnlJbDBzQ2lBZ2NHbGphMnhsY3pvZ1d5SkJiR3dpTENBaVRXRnVaMjhp\nTENBaVRHVnRcbmIyNGlMQ0FpUjJGeWJHbGpJaXdnSWsxcGVHVmtJaXdnSWtk\ncGJtZGxjaUlzSUNKRGFHbHNiR2tpWFFwOVxuT3dvPVxuIiwKICAiZW5jb2Rp\nbmciOiAiYmFzZTY0IiwKICAiX2xpbmtzIjogewogICAgInNlbGYiOiAiaHR0\ncHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9ZYXRoaW5DaGFuZHJhNjQvc2ly\naS10YXN0ZS1jcmFmdC9jb250ZW50cy9zcmMvZGF0YS9wcm9kdWN0cy5qcz9y\nZWY9bWFpbiIsCiAgICAiZ2l0IjogImh0dHBzOi8vYXBpLmdpdGh1Yi5jb20v\ncmVwb3MvWWF0aGluQ2hhbmRyYTY0L3NpcmktdGFzdGUtY3JhZnQvZ2l0L2Js\nb2JzLzgwNGYwYzI5NDA0ODZmNmRhMDA3OTIxYjNiNzk5ODVlNjA4MjNjMDci\nLAogICAgImh0bWwiOiAiaHR0cHM6Ly9naXRodWIuY29tL1lhdGhpbkNoYW5k\ncmE2NC9zaXJpLXRhc3RlLWNyYWZ0L2Jsb2IvbWFpbi9zcmMvZGF0YS9wcm9k\ndWN0cy5qcyIKICB9Cn0=\n",
-  "encoding": "base64",
-  "_links": {
-    "self": "https://api.github.com/repos/YathinChandra64/siri-taste-craft/contents/src/data/products.js?ref=main",
-    "git": "https://api.github.com/repos/YathinChandra64/siri-taste-craft/git/blobs/72e97ee372623f279a1fbd5ccb9df2824f0aeae3",
-    "html": "https://github.com/YathinChandra64/siri-taste-craft/blob/main/src/data/products.js"
+import { getSareeImage, getPickleImage } from './productImages';
+
+export const sarees = [
+  {
+    id: 1,
+    name: "Royal Silk Saree",
+    category: "Silk",
+    price: 4999,
+    stock: 15,
+    description: "Exquisite pure silk saree with traditional zari work. Perfect for weddings and special occasions.",
+    image: getSareeImage("silk")
+  },
+  {
+    id: 2,
+    name: "Designer Cotton Saree",
+    category: "Cotton",
+    price: 1999,
+    stock: 20,
+    description: "Comfortable cotton saree with elegant prints. Ideal for everyday elegance.",
+    image: getSareeImage("cotton")
+  },
+  {
+    id: 3,
+    name: "Banarasi Silk Saree",
+    category: "Silk",
+    price: 7999,
+    stock: 10,
+    description: "Authentic Banarasi silk with intricate brocade work. A timeless classic.",
+    image: getSareeImage("silk")
+  },
+  {
+    id: 4,
+    name: "Printed Cotton Saree",
+    category: "Cotton",
+    price: 1499,
+    stock: 25,
+    description: "Vibrant printed cotton saree with beautiful color combinations.",
+    image: getSareeImage("cotton")
+  },
+  {
+    id: 5,
+    name: "Wedding Designer Saree",
+    category: "Designer",
+    price: 12999,
+    stock: 8,
+    description: "Stunning designer saree with heavy embellishments and stonework.",
+    image: getSareeImage("designer")
+  },
+  {
+    id: 6,
+    name: "Party Wear Designer Saree",
+    category: "Designer",
+    price: 8999,
+    stock: 12,
+    description: "Contemporary designer saree perfect for parties and celebrations.",
+    image: getSareeImage("designer")
+  },
+  {
+    id: 7,
+    name: "Tussar Silk Saree",
+    category: "Silk",
+    price: 5499,
+    stock: 18,
+    description: "Natural tussar silk with elegant drape and rich texture.",
+    image: getSareeImage("silk")
+  },
+  {
+    id: 8,
+    name: "Handloom Cotton Saree",
+    category: "Cotton",
+    price: 2499,
+    stock: 22,
+    description: "Traditional handloom cotton saree supporting local artisans.",
+    image: getSareeImage("cotton")
   }
-}
+];
+
+export const pickles = [
+  {
+    id: 1,
+    name: "Mango Pickle",
+    category: "Mango",
+    price: 299,
+    stock: 50,
+    description: "Traditional homemade mango pickle with authentic spices. A family recipe passed down through generations.",
+    image: getPickleImage("mango")
+  },
+  {
+    id: 2,
+    name: "Lemon Pickle",
+    category: "Lemon",
+    price: 249,
+    stock: 45,
+    description: "Tangy lemon pickle made with fresh lemons and aromatic spices.",
+    image: getPickleImage("lemon")
+  },
+  {
+    id: 3,
+    name: "Garlic Pickle",
+    category: "Garlic",
+    price: 329,
+    stock: 30,
+    description: "Spicy garlic pickle perfect for adding flavor to any meal.",
+    image: getPickleImage("garlic")
+  },
+  {
+    id: 4,
+    name: "Mixed Vegetable Pickle",
+    category: "Mixed",
+    price: 279,
+    stock: 40,
+    description: "A delightful mix of seasonal vegetables pickled to perfection.",
+    image: getPickleImage("mixed")
+  },
+  {
+    id: 5,
+    name: "Ginger Pickle",
+    category: "Ginger",
+    price: 269,
+    stock: 35,
+    description: "Zesty ginger pickle with a perfect balance of heat and tang.",
+    image: getPickleImage("garlic")
+  },
+  {
+    id: 6,
+    name: "Red Chilli Pickle",
+    category: "Chilli",
+    price: 289,
+    stock: 28,
+    description: "Fiery red chilli pickle for spice lovers.",
+    image: getPickleImage("garlic")
+  },
+  {
+    id: 7,
+    name: "Sweet Mango Pickle",
+    category: "Mango",
+    price: 319,
+    stock: 42,
+    description: "Sweet and tangy mango pickle with jaggery and spices.",
+    image: getPickleImage("mango")
+  },
+  {
+    id: 8,
+    name: "Lime Pickle",
+    category: "Lemon",
+    price: 259,
+    stock: 38,
+    description: "Classic lime pickle with traditional tempering.",
+    image: getPickleImage("lemon")
+  }
+];
+
+export const categories = {
+  sarees: ["All", "Silk", "Cotton", "Designer"],
+  pickles: ["All", "Mango", "Lemon", "Garlic", "Mixed", "Ginger", "Chilli"]
+};
