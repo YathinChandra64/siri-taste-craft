@@ -2,9 +2,11 @@ export interface CartItem {
   id: number;
   name: string;
   price: number;
+  pricePerKg?: number;
   quantity: number;
   type: 'saree' | 'sweet';
   image: string;
+  unit?: string;
 }
 
 const CART_KEY = 'userCart';

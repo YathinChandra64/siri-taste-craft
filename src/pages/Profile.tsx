@@ -151,7 +151,10 @@ const Profile = () => {
                             <div className="flex-1">
                               <h4 className="font-semibold text-foreground">{item.name}</h4>
                               <p className="text-sm text-muted-foreground capitalize">{item.type}</p>
-                              <p className="text-lg font-bold text-primary">₹{item.price.toLocaleString()}</p>
+                              <p className="text-lg font-bold text-primary">
+                                ₹{(item.pricePerKg || item.price).toLocaleString()}
+                                {item.type === 'sweet' && '/kg'}
+                              </p>
                             </div>
                             <div className="flex flex-col items-end justify-between">
                               <Button

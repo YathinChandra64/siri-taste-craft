@@ -1,16 +1,22 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FilterBar from "@/components/FilterBar";
 import ProductCard from "@/components/ProductCard";
 import ProductDetailModal from "@/components/ProductDetailModal";
-import { sweets, categories } from "@/data/products";
+import { sweets } from "@/data/products";
 
 const Sweets = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedProduct, setSelectedProduct] = useState<typeof sweets[0] | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Generate dynamic categories from products
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(sweets.map(sweet => sweet.category))) as string[];
+    return ["All", ...uniqueCategories];
+  }, []);
 
   const filteredSweets = activeCategory === "All"
     ? sweets
@@ -47,7 +53,7 @@ const Sweets = () => {
 
           {/* Filters */}
           <FilterBar
-            categories={categories.sweets}
+            categories={categories}
             activeCategory={activeCategory}
             onCategoryChange={setActiveCategory}
             type="sweet"

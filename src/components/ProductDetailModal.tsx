@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Package } from "lucide-react";
+import { AlertCircle, Package, ShoppingCart, Plus, Minus } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -9,14 +9,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import QRPaymentModal from "./QRPaymentModal";
 import { getProductWithStock } from "@/utils/inventory";
+import { addToCart } from "@/utils/cart";
 
 interface Product {
   id: number;
   name: string;
   category: string;
   price: number;
+  pricePerKg?: number;
   description: string;
   image: string;
+  weight?: number;
+  unit?: string;
 }
 
 interface ProductDetailModalProps {
@@ -28,6 +32,7 @@ interface ProductDetailModalProps {
 
 const ProductDetailModal = ({ product, isOpen, onClose, type }: ProductDetailModalProps) => {
   const [showQR, setShowQR] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -39,6 +44,44 @@ const ProductDetailModal = ({ product, isOpen, onClose, type }: ProductDetailMod
   const inStock = currentStock > 0;
 
   const gradientClass = type === "saree" ? "bg-gradient-saree" : "bg-gradient-sweet";
+
+  const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Please login to add items to cart.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
+    if (!inStock) {
+      toast({
+        title: "Out of Stock",
+        description: "This item is currently unavailable.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      pricePerKg: product.pricePerKg,
+      type,
+      image: product.image,
+      unit: product.unit
+    }, quantity);
+
+    toast({
+      title: "Added to Cart",
+      description: `${quantity} ${product.unit || 'item(s)'} of ${product.name} added to cart.`,
+    });
+
+    setQuantity(1);
+  };
 
   const handleBuyNow = () => {
     if (!isAuthenticated) {
@@ -62,6 +105,22 @@ const ProductDetailModal = ({ product, isOpen, onClose, type }: ProductDetailMod
 
     setShowQR(true);
   };
+
+  const increaseQuantity = () => {
+    if (quantity < currentStock) {
+      setQuantity(quantity + 1);
+    }
+  };
+
+  const decreaseQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
+    }
+  };
+
+  const totalPrice = type === 'sweet' && product.pricePerKg 
+    ? product.pricePerKg * quantity 
+    : product.price * quantity;
 
   return (
     <>
@@ -94,8 +153,13 @@ const ProductDetailModal = ({ product, isOpen, onClose, type }: ProductDetailMod
               <div>
                 <div className="mb-6">
                   <h3 className="text-3xl font-bold text-foreground mb-2">
-                    ₹{product.price.toLocaleString()}
+                    ₹{(product.pricePerKg || product.price).toLocaleString()}{type === 'sweet' ? '/kg' : ''}
                   </h3>
+                  {type === 'sweet' && quantity > 1 && (
+                    <p className="text-lg text-muted-foreground mb-2">
+                      Total: ₹{totalPrice.toLocaleString()} for {quantity} kg
+                    </p>
+                  )}
                   <p className="text-muted-foreground leading-relaxed">
                     {product.description}
                   </p>
@@ -106,6 +170,12 @@ const ProductDetailModal = ({ product, isOpen, onClose, type }: ProductDetailMod
                     <span className="text-muted-foreground">Category</span>
                     <span className="font-medium text-foreground">{product.category}</span>
                   </div>
+                  {type === 'sweet' && (
+                    <div className="flex items-center justify-between py-2 border-b border-border">
+                      <span className="text-muted-foreground">Weight</span>
+                      <span className="font-medium text-foreground">{product.weight} {product.unit}</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between py-2 border-b border-border">
                     <span className="text-muted-foreground">Product ID</span>
                     <span className="font-medium text-foreground">#{product.id}</span>
@@ -119,7 +189,7 @@ const ProductDetailModal = ({ product, isOpen, onClose, type }: ProductDetailMod
                       variant={inStock ? "default" : "destructive"}
                       className={inStock ? "bg-green-500" : ""}
                     >
-                      {inStock ? `${currentStock} Available` : "Out of Stock"}
+                      {inStock ? `${currentStock} ${type === 'sweet' ? 'kg' : ''} Available` : "Out of Stock"}
                     </Badge>
                   </div>
                 </div>
@@ -132,16 +202,59 @@ const ProductDetailModal = ({ product, isOpen, onClose, type }: ProductDetailMod
                     </p>
                   </div>
                 )}
+
+                {type === 'sweet' && (
+                  <div className="mb-6">
+                    <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                      Quantity (kg)
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={decreaseQuantity}
+                        disabled={quantity <= 1}
+                        className="h-10 w-10"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <span className="text-2xl font-bold min-w-[60px] text-center">
+                        {quantity} kg
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={increaseQuantity}
+                        disabled={quantity >= currentStock}
+                        className="h-10 w-10"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <Button
-                onClick={handleBuyNow}
-                size="lg"
-                disabled={!inStock}
-                className={`w-full ${gradientClass} text-white border-0 shadow-hover hover:shadow-soft transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {inStock ? "Buy Now" : "Out of Stock"}
-              </Button>
+              <div className="space-y-3">
+                <Button
+                  onClick={handleAddToCart}
+                  size="lg"
+                  disabled={!inStock}
+                  variant="outline"
+                  className="w-full border-2 hover:bg-muted transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  Add to Cart
+                </Button>
+                <Button
+                  onClick={handleBuyNow}
+                  size="lg"
+                  disabled={!inStock}
+                  className={`w-full ${gradientClass} text-white border-0 shadow-hover hover:shadow-soft transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {inStock ? "Buy Now" : "Out of Stock"}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
