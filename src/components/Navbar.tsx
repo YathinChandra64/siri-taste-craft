@@ -1,8 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Menu, X, LogIn, LogOut, User } from "lucide-react";
+import { Menu, X, LogIn, LogOut, User, Sun, Moon } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 
@@ -10,6 +11,7 @@ const Navbar = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const navLinks = [
     { name: "Home", path: "/" },
@@ -62,6 +64,16 @@ const Navbar = () => {
                 </motion.span>
               </Link>
             ))}
+            
+            {/* Theme Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+            </Button>
             
             {/* Auth Button */}
             {isAuthenticated ? (
@@ -136,6 +148,16 @@ const Navbar = () => {
             
             {/* Mobile Auth */}
             <div className="mt-4 px-4 space-y-3">
+              {/* Theme Toggle */}
+              <Button
+                variant="outline"
+                onClick={toggleTheme}
+                className="w-full gap-2 justify-start"
+              >
+                {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+              </Button>
+
               {isAuthenticated ? (
                 <>
                   <Link to="/profile" onClick={() => setIsOpen(false)}>

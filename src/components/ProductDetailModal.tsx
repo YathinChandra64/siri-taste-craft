@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Package, ShoppingCart, Plus, Minus } from "lucide-react";
+import { AlertCircle, Package, ShoppingCart, Plus, Minus, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -33,7 +33,7 @@ interface ProductDetailModalProps {
 const ProductDetailModal = ({ product, isOpen, onClose, type }: ProductDetailModalProps) => {
   const [showQR, setShowQR] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -180,18 +180,20 @@ const ProductDetailModal = ({ product, isOpen, onClose, type }: ProductDetailMod
                     <span className="text-muted-foreground">Product ID</span>
                     <span className="font-medium text-foreground">#{product.id}</span>
                   </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground flex items-center gap-2">
-                      <Package size={16} />
-                      Stock
-                    </span>
-                    <Badge 
-                      variant={inStock ? "default" : "destructive"}
-                      className={inStock ? "bg-green-500" : ""}
-                    >
-                      {inStock ? `${currentStock} ${type === 'sweet' ? 'kg' : ''} Available` : "Out of Stock"}
-                    </Badge>
-                  </div>
+                  {user?.isAdmin && (
+                    <div className="flex items-center justify-between py-2 border-b border-border bg-primary/5 px-3 rounded-lg">
+                      <span className="text-muted-foreground flex items-center gap-2">
+                        <Shield size={16} className="text-primary" />
+                        Stock (Admin Only)
+                      </span>
+                      <Badge 
+                        variant={inStock ? "default" : "destructive"}
+                        className={inStock ? "bg-green-500" : ""}
+                      >
+                        {inStock ? `${currentStock} ${type === 'sweet' ? 'kg' : ''} Available` : "Out of Stock"}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
 
                 {!isAuthenticated && (

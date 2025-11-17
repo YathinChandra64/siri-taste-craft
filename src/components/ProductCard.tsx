@@ -1,5 +1,9 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Shield } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getProductWithStock } from "@/utils/inventory";
 
 interface ProductCardProps {
   product: {
@@ -7,6 +11,7 @@ interface ProductCardProps {
     name: string;
     category: string;
     price: number;
+    pricePerKg?: number;
     description: string;
     image: string;
   };
@@ -15,6 +20,10 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, type, onViewDetails }: ProductCardProps) => {
+  const { user } = useAuth();
+  const productWithStock = getProductWithStock(product.id, type);
+  const currentStock = productWithStock?.stock ?? 0;
+  const inStock = currentStock > 0;
   const gradientClass = type === "saree" ? "bg-gradient-saree" : "bg-gradient-sweet";
 
   return (
@@ -48,9 +57,9 @@ const ProductCard = ({ product, type, onViewDetails }: ProductCardProps) => {
           {product.description}
         </p>
         
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <span className="text-xl font-bold text-foreground">
-            ₹{product.price.toLocaleString()}
+            ₹{(product.pricePerKg || product.price).toLocaleString()}{type === 'sweet' ? '/kg' : ''}
           </span>
           <Button
             onClick={onViewDetails}
@@ -61,6 +70,19 @@ const ProductCard = ({ product, type, onViewDetails }: ProductCardProps) => {
             View Details
           </Button>
         </div>
+
+        {/* Stock Badge - Admin Only */}
+        {user?.isAdmin && (
+          <div className="flex items-center gap-2 text-sm">
+            <Shield size={14} className="text-primary" />
+            <Badge 
+              variant={inStock ? "default" : "destructive"}
+              className={`text-xs ${inStock ? "bg-green-500" : ""}`}
+            >
+              {inStock ? `${currentStock} ${type === 'sweet' ? 'kg' : ''} in stock` : "Out of Stock"}
+            </Badge>
+          </div>
+        )}
       </div>
     </motion.div>
   );

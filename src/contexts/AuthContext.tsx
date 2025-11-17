@@ -4,6 +4,7 @@ interface User {
   email: string;
   name: string;
   isVerified: boolean;
+  isAdmin: boolean;
 }
 
 interface AuthContextType {
@@ -44,19 +45,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return false;
     }
 
-    // Create new user
+    // Create new user (first user is admin)
     const newUser = {
       name,
       email,
       password, // In production, this should be hashed
-      isVerified: true // Auto-verify for demo purposes
+      isVerified: true, // Auto-verify for demo purposes
+      isAdmin: users.length === 0 // First user is admin
     };
 
     users.push(newUser);
     localStorage.setItem('users', JSON.stringify(users));
     
     // Auto login after signup
-    const loggedInUser = { email: newUser.email, name: newUser.name, isVerified: newUser.isVerified };
+    const loggedInUser = { 
+      email: newUser.email, 
+      name: newUser.name, 
+      isVerified: newUser.isVerified,
+      isAdmin: newUser.isAdmin
+    };
     setUser(loggedInUser);
     localStorage.setItem('currentUser', JSON.stringify(loggedInUser));
     
@@ -68,7 +75,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const user = users.find((u: any) => u.email === email && u.password === password);
     
     if (user) {
-      const loggedInUser = { email: user.email, name: user.name, isVerified: user.isVerified };
+      const loggedInUser = { 
+        email: user.email, 
+        name: user.name, 
+        isVerified: user.isVerified,
+        isAdmin: user.isAdmin || false
+      };
       setUser(loggedInUser);
       localStorage.setItem('currentUser', JSON.stringify(loggedInUser));
       return true;

@@ -1,16 +1,22 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FilterBar from "@/components/FilterBar";
 import ProductCard from "@/components/ProductCard";
 import ProductDetailModal from "@/components/ProductDetailModal";
-import { sarees, categories } from "@/data/products";
+import { sarees } from "@/data/products";
 
 const Sarees = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedProduct, setSelectedProduct] = useState<typeof sarees[0] | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Generate dynamic categories from products
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(sarees.map(saree => saree.category))) as string[];
+    return ["All", ...uniqueCategories];
+  }, []);
 
   const filteredSarees = activeCategory === "All"
     ? sarees
@@ -47,7 +53,7 @@ const Sarees = () => {
 
           {/* Filters */}
           <FilterBar
-            categories={categories.sarees}
+            categories={categories}
             activeCategory={activeCategory}
             onCategoryChange={setActiveCategory}
             type="saree"
