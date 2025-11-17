@@ -32,7 +32,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-            <Routes>
+              <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/sarees" element={<Sarees />} />
               <Route path="/sweets" element={<Sweets />} />
@@ -42,11 +42,11 @@ const App = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };
