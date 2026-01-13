@@ -17,7 +17,6 @@ const Navbar = () => {
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Sarees", path: "/sarees" },
-    { name: "Sweets", path: "/sweets" },
     { name: "Our Story", path: "/our-story" },
     { name: "Contact", path: "/contact" },
   ];
@@ -38,7 +37,7 @@ const Navbar = () => {
               >
                 <motion.img 
                   src={logo} 
-                  alt="Vasthram & Madhuram" 
+                  alt="Siri Sarees and Collections" 
                   className="h-10 w-10 object-contain"
                   animate={{ rotate: [0, 5, -5, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -50,7 +49,7 @@ const Navbar = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
                   >
-                    Vasthram
+                    Siri Sarees
                   </motion.span>
                   <motion.span
                     initial={{ opacity: 0, scale: 0 }}
@@ -60,12 +59,12 @@ const Navbar = () => {
                     <Sparkles size={14} className="text-accent-gold" />
                   </motion.span>
                   <motion.span 
-                    className="bg-gradient-sweet bg-clip-text text-transparent"
+                    className="bg-gradient-saree bg-clip-text text-transparent"
                     initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 }}
                   >
-                    Madhuram
+                    Collections
                   </motion.span>
                 </div>
               </motion.div>

@@ -2,40 +2,42 @@ import { motion } from "framer-motion";
 import { Heart, Users, Award, Sparkles } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import AnimatedBackground from "@/components/AnimatedBackground";
 
 const OurStory = () => {
   const values = [
     {
       icon: Heart,
       title: "Made with Love",
-      description: "Every saree we curate and every sweet we prepare is crafted with genuine care and attention to detail.",
+      description: "Every saree we curate is selected with genuine care and attention to detail.",
       gradient: "bg-gradient-saree",
     },
     {
       icon: Users,
       title: "Family Tradition",
-      description: "A family business that has been preserving traditional recipes and ethnic wear for generations.",
-      gradient: "bg-gradient-sweet",
+      description: "A family business that has been preserving traditional ethnic wear for generations.",
+      gradient: "bg-gradient-saree",
     },
     {
       icon: Award,
       title: "Quality First",
-      description: "We never compromise on quality - from the finest fabrics to the freshest ingredients.",
+      description: "We never compromise on quality - from the finest silk to elegant cotton weaves.",
       gradient: "bg-gradient-saree",
     },
     {
       icon: Sparkles,
       title: "Authentic Experience",
-      description: "Bringing you the authentic taste of homemade sweets and the elegance of traditional sarees.",
-      gradient: "bg-gradient-sweet",
+      description: "Bringing you the elegance and grace of traditional Indian sarees.",
+      gradient: "bg-gradient-saree",
     },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative">
+      <AnimatedBackground />
       <Navbar />
 
-      <main className="flex-1">
+      <main className="flex-1 relative z-10">
         {/* Hero Section */}
         <section className="bg-gradient-hero py-16 px-4">
           <div className="container mx-auto max-w-4xl">
@@ -49,7 +51,7 @@ const OurStory = () => {
                 Our Story
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-                Where Heritage Meets Heart
+                Where Heritage Meets Elegance
               </p>
             </motion.div>
           </div>
@@ -66,23 +68,22 @@ const OurStory = () => {
               className="space-y-6 text-muted-foreground text-lg leading-relaxed"
             >
               <p>
-                <span className="text-foreground font-semibold">Siri Collections & Pickles</span> is more than just a business — 
-                it's a labor of love that brings together two beautiful traditions passed down through generations.
+                <span className="text-foreground font-semibold">Siri Sarees and Collections</span> is more than just a business — 
+                it's a labor of love that brings the beautiful tradition of Indian ethnic wear to modern families.
               </p>
               <p>
-                Our journey began with a simple vision: to share the elegance of traditional ethnic wear and the authentic 
-                flavors of homemade pickles with families across our community. What started as a small family initiative 
-                has blossomed into a trusted name, known for quality, authenticity, and genuine care.
+                Our journey began with a simple vision: to share the elegance of traditional sarees with families across our community. 
+                What started as a small family initiative has blossomed into a trusted name, known for quality, authenticity, and genuine care.
               </p>
               <p>
-                On one hand, we handpick exquisite sarees — from vibrant silk weaves to elegant cotton designs — each piece 
-                carefully selected to celebrate the grace and beauty of Indian tradition. On the other hand, we prepare 
-                pickles using time-honored recipes, fresh ingredients, and the same love that goes into a grandmother's kitchen.
+                We handpick exquisite sarees — from vibrant silk weaves to elegant cotton designs — each piece 
+                carefully selected to celebrate the grace and beauty of Indian tradition. Whether it's a grand wedding, 
+                a festive celebration, or everyday elegance, we have the perfect saree for every occasion.
               </p>
               <p>
                 Every product we offer carries a piece of our heritage, made with dedication to preserve the essence of our 
-                culture while serving the modern family. When you choose Siri Collections & Pickles, you're not just buying 
-                a product — you're becoming part of our story.
+                culture while serving the modern family. When you choose Siri Sarees and Collections, you're not just buying 
+                a saree — you're becoming part of our story.
               </p>
             </motion.div>
           </div>
@@ -145,7 +146,7 @@ const OurStory = () => {
                 Experience the Tradition
               </h2>
               <p className="text-muted-foreground text-lg mb-8">
-                We invite you to explore our collections and taste the authenticity we bring to every product. 
+                We invite you to explore our collections and discover the elegance we bring to every saree. 
                 Join our family today!
               </p>
             </motion.div>
