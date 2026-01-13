@@ -1,26 +1,18 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import FilterBar from "@/components/FilterBar";
+import AdvancedFilterBar from "@/components/AdvancedFilterBar";
 import ProductCard from "@/components/ProductCard";
 import ProductDetailModal from "@/components/ProductDetailModal";
+import AnimatedBackground from "@/components/AnimatedBackground";
+import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
 import { sweets } from "@/data/products";
 
 const Sweets = () => {
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [filteredProducts, setFilteredProducts] = useState(sweets);
   const [selectedProduct, setSelectedProduct] = useState<typeof sweets[0] | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Generate dynamic categories from products
-  const categories = useMemo(() => {
-    const uniqueCategories = Array.from(new Set(sweets.map(sweet => sweet.category))) as string[];
-    return ["All", ...uniqueCategories];
-  }, []);
-
-  const filteredSweets = activeCategory === "All"
-    ? sweets
-    : sweets.filter(sweet => sweet.category === activeCategory);
 
   const handleViewDetails = (product: typeof sweets[0]) => {
     setSelectedProduct(product);
@@ -28,10 +20,11 @@ const Sweets = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative">
+      <AnimatedBackground />
       <Navbar />
 
-      <main className="flex-1 py-12 px-4">
+      <main className="flex-1 py-12 px-4 relative z-10">
         <div className="container mx-auto">
           {/* Header */}
           <motion.div
@@ -40,57 +33,56 @@ const Sweets = () => {
             transition={{ duration: 0.5 }}
             className="text-center mb-12"
           >
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <motion.h1 
+              className="text-4xl md:text-5xl font-bold mb-4"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, type: "spring" }}
+            >
               <span className="bg-gradient-sweet bg-clip-text text-transparent">
                 Traditional Sweets
               </span>
-            </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            </motion.h1>
+            <motion.p 
+              className="text-muted-foreground text-lg max-w-2xl mx-auto"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
               Authentic homemade sweets crafted with traditional recipes and 
               the finest ingredients
-            </p>
+            </motion.p>
           </motion.div>
 
-          {/* Filters */}
-          <FilterBar
-            categories={categories}
-            activeCategory={activeCategory}
-            onCategoryChange={setActiveCategory}
+          {/* Advanced Filters */}
+          <AdvancedFilterBar
+            products={sweets}
             type="sweet"
+            onFilterChange={setFilteredProducts}
           />
 
           {/* Product Grid */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-          >
-            {filteredSweets.map((sweet, index) => (
-              <motion.div
-                key={sweet.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
-              >
+          <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((sweet) => (
+              <StaggerItem key={sweet.id}>
                 <ProductCard
                   product={sweet}
                   type="sweet"
                   onViewDetails={() => handleViewDetails(sweet)}
                 />
-              </motion.div>
+              </StaggerItem>
             ))}
-          </motion.div>
+          </StaggerContainer>
 
           {/* No Results */}
-          {filteredSweets.length === 0 && (
+          {filteredProducts.length === 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="text-center py-16"
             >
               <p className="text-muted-foreground text-lg">
-                No sweets found in this category
+                No sweets found matching your filters
               </p>
             </motion.div>
           )}
