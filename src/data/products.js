@@ -1,4 +1,4 @@
-import { getSareeImage, getSweetImage } from './productImages';
+import { getSareeImage } from './productImages';
 
 export const sarees = [
   {
@@ -75,106 +75,6 @@ export const sarees = [
   }
 ];
 
-export const sweets = [
-  {
-    id: 1,
-    name: "Besan Ladoo",
-    category: "Ladoo",
-    price: 399,
-    pricePerKg: 399,
-    stock: 50,
-    weight: 1,
-    unit: "kg",
-    description: "Traditional homemade besan ladoo made with pure ghee and authentic spices. A family recipe passed down through generations.",
-    image: getSweetImage("ladoo")
-  },
-  {
-    id: 2,
-    name: "Kaju Barfi",
-    category: "Barfi",
-    price: 599,
-    pricePerKg: 599,
-    stock: 45,
-    weight: 1,
-    unit: "kg",
-    description: "Rich cashew barfi with silver leaf, perfect for gifting on special occasions.",
-    image: getSweetImage("barfi")
-  },
-  {
-    id: 3,
-    name: "Gulab Jamun",
-    category: "Gulab",
-    price: 329,
-    pricePerKg: 329,
-    stock: 60,
-    weight: 1,
-    unit: "kg",
-    description: "Soft and spongy gulab jamun soaked in aromatic sugar syrup.",
-    image: getSweetImage("gulab")
-  },
-  {
-    id: 4,
-    name: "Mysore Pak",
-    category: "Mysore",
-    price: 449,
-    pricePerKg: 449,
-    stock: 40,
-    weight: 1,
-    unit: "kg",
-    description: "Traditional Mysore pak with perfect ghee texture and sweetness.",
-    image: getSweetImage("mysore")
-  },
-  {
-    id: 5,
-    name: "Coconut Ladoo",
-    category: "Ladoo",
-    price: 349,
-    pricePerKg: 349,
-    stock: 55,
-    weight: 1,
-    unit: "kg",
-    description: "Fresh coconut ladoo with cardamom and condensed milk.",
-    image: getSweetImage("ladoo")
-  },
-  {
-    id: 6,
-    name: "Pista Barfi",
-    category: "Barfi",
-    price: 649,
-    pricePerKg: 649,
-    stock: 35,
-    weight: 1,
-    unit: "kg",
-    description: "Premium pistachio barfi with a melt-in-mouth texture.",
-    image: getSweetImage("barfi")
-  },
-  {
-    id: 7,
-    name: "Kala Jamun",
-    category: "Gulab",
-    price: 359,
-    pricePerKg: 359,
-    stock: 48,
-    weight: 1,
-    unit: "kg",
-    description: "Rich dark jamuns with a unique flavor profile and soft texture.",
-    image: getSweetImage("gulab")
-  },
-  {
-    id: 8,
-    name: "Milk Mysore Pak",
-    category: "Mysore",
-    price: 479,
-    pricePerKg: 479,
-    stock: 38,
-    weight: 1,
-    unit: "kg",
-    description: "Special milk-based Mysore pak with authentic taste.",
-    image: getSweetImage("mysore")
-  }
-];
-
 export const categories = {
-  sarees: ["All", "Silk", "Cotton", "Designer"],
-  sweets: ["All", "Ladoo", "Barfi", "Gulab", "Mysore"]
+  sarees: ["All", "Silk", "Cotton", "Designer"]
 };

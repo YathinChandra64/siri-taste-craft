@@ -13,7 +13,7 @@ const Footer = () => {
           transition={{ duration: 8, repeat: Infinity }}
         />
         <motion.div
-          className="absolute w-40 h-40 rounded-full bg-secondary/5 blur-2xl"
+          className="absolute w-40 h-40 rounded-full bg-primary/5 blur-2xl"
           style={{ bottom: "10%", right: "15%" }}
           animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 10, repeat: Infinity }}
@@ -35,11 +35,11 @@ const Footer = () => {
               whileHover={{ scale: 1.02 }}
             >
               <p className="font-bold text-lg bg-gradient-saree bg-clip-text text-transparent">
-                Vasthram
+                Siri Sarees
               </p>
               <Sparkles size={12} className="text-accent-gold" />
-              <p className="font-bold text-lg bg-gradient-sweet bg-clip-text text-transparent">
-                Madhuram
+              <p className="font-bold text-lg bg-gradient-saree bg-clip-text text-transparent">
+                Collections
               </p>
             </motion.div>
             <p className="text-sm text-muted-foreground">
