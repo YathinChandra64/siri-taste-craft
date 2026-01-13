@@ -1,33 +1,46 @@
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ShoppingBag, Leaf, Heart, Star, Users, Sparkles } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import AnimatedBackground from "@/components/AnimatedBackground";
+import RippleEffect from "@/components/RippleEffect";
+import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
 import heroMain from "@/assets/hero-main.jpg";
 import sareesHero from "@/assets/sarees-hero.jpg";
 import sweetsHero from "@/assets/sweets-hero.jpg";
 
 const Home = () => {
+  const { scrollYProgress } = useScroll();
+  const heroScale = useTransform(scrollYProgress, [0, 0.3], [1, 1.1]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0.5]);
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative">
+      <AnimatedBackground />
       <Navbar />
 
       {/* Hero Section */}
       <section className="relative min-h-[70vh] md:min-h-[80vh] flex items-center justify-center overflow-hidden">
-        {/* Background Image */}
+        {/* Background Image with Parallax */}
         <motion.div 
-          initial={{ scale: 1.1 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 1.5 }}
           className="absolute inset-0"
+          style={{ scale: heroScale, opacity: heroOpacity }}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60 z-10" />
-          <img 
-            src={heroMain} 
-            alt="Siri Collections & Pickles" 
-            className="w-full h-full object-cover"
-          />
+          <motion.div 
+            initial={{ scale: 1.2, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1.5 }}
+            className="absolute inset-0"
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60 z-10" />
+            <img 
+              src={heroMain} 
+              alt="Vasthram & Madhuram" 
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
         </motion.div>
 
         {/* Content */}
@@ -37,41 +50,80 @@ const Home = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <motion.h1 
-              className="text-5xl md:text-7xl font-bold mb-6 text-white drop-shadow-lg"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-            >
-              <span className="inline-block bg-gradient-to-r from-purple-300 via-pink-300 to-purple-300 bg-clip-text text-transparent">
-                Siri Collections
-              </span>
-              <span className="text-white"> & </span>
-              <span className="inline-block bg-gradient-to-r from-orange-300 via-yellow-300 to-orange-300 bg-clip-text text-transparent">
-                Sweets
-              </span>
-            </motion.h1>
+            {/* Animated Brand Name */}
+            <motion.div className="mb-6">
+              <motion.h1 
+                className="text-5xl md:text-7xl font-bold text-white drop-shadow-lg"
+              >
+                <motion.span 
+                  className="inline-block bg-gradient-to-r from-purple-300 via-pink-300 to-purple-300 bg-clip-text text-transparent"
+                  initial={{ opacity: 0, x: -50, rotateY: -90 }}
+                  animate={{ opacity: 1, x: 0, rotateY: 0 }}
+                  transition={{ duration: 0.8, delay: 0.3, type: "spring" }}
+                >
+                  Vasthram
+                </motion.span>
+                <motion.span
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
+                  className="inline-block mx-3"
+                >
+                  <Sparkles className="w-8 h-8 md:w-12 md:h-12 text-yellow-400" />
+                </motion.span>
+                <motion.span 
+                  className="inline-block bg-gradient-to-r from-orange-300 via-yellow-300 to-orange-300 bg-clip-text text-transparent"
+                  initial={{ opacity: 0, x: 50, rotateY: 90 }}
+                  animate={{ opacity: 1, x: 0, rotateY: 0 }}
+                  transition={{ duration: 0.8, delay: 0.4, type: "spring" }}
+                >
+                  Madhuram
+                </motion.span>
+              </motion.h1>
+            </motion.div>
+
             <motion.p 
               className="text-xl md:text-3xl text-white/95 mb-10 max-w-3xl mx-auto font-medium drop-shadow-md"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.7 }}
             >
-              From Tradition to Taste — Crafted with Love
+              <motion.span
+                animate={{ 
+                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                }}
+                transition={{ duration: 5, repeat: Infinity }}
+                className="bg-gradient-to-r from-white via-yellow-200 to-white bg-clip-text text-transparent bg-[length:200%_auto]"
+              >
+                Where Tradition Weaves with Sweetness
+              </motion.span>
             </motion.p>
+
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.8, duration: 0.5 }}
+              transition={{ delay: 0.9, duration: 0.5 }}
             >
               <Link to="/contact">
-                <Button
-                  size="lg"
-                  className="bg-white text-purple-900 hover:bg-white/90 shadow-2xl text-lg px-8 py-6 font-bold"
-                >
-                  Contact Us
-                  <ArrowRight className="ml-2" size={24} />
-                </Button>
+                <RippleEffect>
+                  <motion.div
+                    whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button
+                      size="lg"
+                      className="bg-white text-purple-900 hover:bg-white/90 shadow-2xl text-lg px-8 py-6 font-bold"
+                    >
+                      Contact Us
+                      <motion.div
+                        animate={{ x: [0, 5, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        <ArrowRight className="ml-2" size={24} />
+                      </motion.div>
+                    </Button>
+                  </motion.div>
+                </RippleEffect>
               </Link>
             </motion.div>
           </motion.div>
@@ -89,92 +141,120 @@ const Home = () => {
             transition={{ duration: 1.5, repeat: Infinity }}
             className="w-6 h-10 border-2 border-white/50 rounded-full flex items-start justify-center p-2"
           >
-            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+            <motion.div 
+              className="w-1.5 h-1.5 bg-white rounded-full"
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
           </motion.div>
         </motion.div>
       </section>
 
       {/* Category Cards Section */}
-      <section className="py-16 px-4">
+      <section className="py-16 px-4 relative z-10">
         <div className="container mx-auto">
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <StaggerContainer className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* Saree Card */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
+            <StaggerItem>
               <Link to="/sarees">
                 <motion.div
-                  whileHover={{ scale: 1.03, y: -8 }}
+                  whileHover={{ scale: 1.03, y: -8, rotateY: 5 }}
+                  whileTap={{ scale: 0.98 }}
                   transition={{ duration: 0.3 }}
-                  className="relative rounded-2xl overflow-hidden shadow-card hover:shadow-hover transition-all duration-300 group"
+                  className="relative rounded-2xl overflow-hidden shadow-card hover:shadow-hover transition-all duration-300 group perspective-1000"
+                  style={{ transformStyle: "preserve-3d" }}
                 >
                   <div className="relative aspect-[4/3] overflow-hidden">
-                    <img 
+                    <motion.img 
                       src={sareesHero} 
                       alt="Sarees Collection" 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-cover"
+                      whileHover={{ scale: 1.15 }}
+                      transition={{ duration: 0.6 }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <div className="absolute inset-0 p-8 flex flex-col items-center justify-end text-white">
-                      <ShoppingBag size={48} className="mb-3 group-hover:scale-110 transition-transform duration-300" />
+                      <motion.div
+                        animate={{ rotate: [0, 10, -10, 0] }}
+                        transition={{ duration: 4, repeat: Infinity }}
+                      >
+                        <ShoppingBag size={48} className="mb-3" />
+                      </motion.div>
                       <h2 className="text-3xl font-bold mb-2">Explore Sarees</h2>
                       <p className="text-white/90 text-center mb-4 text-sm">
                         Discover our exquisite collection of traditional and designer sarees
                       </p>
-                      <div className="flex items-center gap-2 text-sm font-medium bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
+                      <motion.div 
+                        className="flex items-center gap-2 text-sm font-medium bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full"
+                        whileHover={{ backgroundColor: "rgba(255,255,255,0.3)" }}
+                      >
                         <span>Shop Now</span>
-                        <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform duration-300" />
-                      </div>
+                        <motion.div
+                          animate={{ x: [0, 5, 0] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          <ArrowRight size={16} />
+                        </motion.div>
+                      </motion.div>
                     </div>
                   </div>
                 </motion.div>
               </Link>
-            </motion.div>
+            </StaggerItem>
 
             {/* Sweets Card */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
+            <StaggerItem>
               <Link to="/sweets">
                 <motion.div
-                  whileHover={{ scale: 1.03, y: -8 }}
+                  whileHover={{ scale: 1.03, y: -8, rotateY: -5 }}
+                  whileTap={{ scale: 0.98 }}
                   transition={{ duration: 0.3 }}
-                  className="relative rounded-2xl overflow-hidden shadow-card hover:shadow-hover transition-all duration-300 group"
+                  className="relative rounded-2xl overflow-hidden shadow-card hover:shadow-hover transition-all duration-300 group perspective-1000"
+                  style={{ transformStyle: "preserve-3d" }}
                 >
                   <div className="relative aspect-[4/3] overflow-hidden">
-                    <img 
+                    <motion.img 
                       src={sweetsHero} 
                       alt="Sweets Collection" 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-cover"
+                      whileHover={{ scale: 1.15 }}
+                      transition={{ duration: 0.6 }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <div className="absolute inset-0 p-8 flex flex-col items-center justify-end text-white">
-                      <Leaf size={48} className="mb-3 group-hover:scale-110 transition-transform duration-300" />
+                      <motion.div
+                        animate={{ rotate: [0, -10, 10, 0] }}
+                        transition={{ duration: 4, repeat: Infinity }}
+                      >
+                        <Leaf size={48} className="mb-3" />
+                      </motion.div>
                       <h2 className="text-3xl font-bold mb-2">Explore Sweets</h2>
                       <p className="text-white/90 text-center mb-4 text-sm">
                         Taste our authentic homemade sweets made with traditional recipes
                       </p>
-                      <div className="flex items-center gap-2 text-sm font-medium bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
+                      <motion.div 
+                        className="flex items-center gap-2 text-sm font-medium bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full"
+                        whileHover={{ backgroundColor: "rgba(255,255,255,0.3)" }}
+                      >
                         <span>Shop Now</span>
-                        <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform duration-300" />
-                      </div>
+                        <motion.div
+                          animate={{ x: [0, 5, 0] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          <ArrowRight size={16} />
+                        </motion.div>
+                      </motion.div>
                     </div>
                   </div>
                 </motion.div>
               </Link>
-            </motion.div>
-          </div>
+            </StaggerItem>
+          </StaggerContainer>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16 px-4">
+      <section className="py-16 px-4 relative z-10">
         <div className="container mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -183,69 +263,73 @@ const Home = () => {
             transition={{ duration: 0.6 }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Why Choose Us</h2>
-            <p className="text-muted-foreground text-lg">
+            <motion.h2 
+              className="text-3xl md:text-4xl font-bold text-foreground mb-4"
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+            >
+              Why Choose Us
+            </motion.h2>
+            <motion.p 
+              className="text-muted-foreground text-lg"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
               Experience the perfect blend of tradition and quality
-            </p>
+            </motion.p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1, duration: 0.5 }}
-              whileHover={{ scale: 1.05, y: -8 }}
-              className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-hover transition-all duration-300"
-            >
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-saree flex items-center justify-center">
-                <Heart size={40} className="text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-foreground mb-3">Handcrafted with Love</h3>
-              <p className="text-muted-foreground">
-                Every product is made with genuine care and attention to detail, preserving traditional methods.
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-              whileHover={{ scale: 1.05, y: -8 }}
-              className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-hover transition-all duration-300"
-            >
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-sweet flex items-center justify-center">
-                <Star size={40} className="text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-foreground mb-3">Premium Quality</h3>
-              <p className="text-muted-foreground">
-                We source the finest fabrics and freshest ingredients to ensure exceptional quality in every product.
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              whileHover={{ scale: 1.05, y: -8 }}
-              className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-hover transition-all duration-300"
-            >
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-saree flex items-center justify-center">
-                <Users size={40} className="text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-foreground mb-3">Family Tradition</h3>
-              <p className="text-muted-foreground">
-                A trusted family business bringing generations of expertise and authentic recipes to your home.
-              </p>
-            </motion.div>
-          </div>
+          <StaggerContainer className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: Heart,
+                title: "Handcrafted with Love",
+                description: "Every product is made with genuine care and attention to detail, preserving traditional methods.",
+                gradient: "bg-gradient-saree",
+                delay: 0.1,
+              },
+              {
+                icon: Star,
+                title: "Premium Quality",
+                description: "We source the finest fabrics and freshest ingredients to ensure exceptional quality in every product.",
+                gradient: "bg-gradient-sweet",
+                delay: 0.2,
+              },
+              {
+                icon: Users,
+                title: "Family Tradition",
+                description: "A trusted family business bringing generations of expertise and authentic recipes to your home.",
+                gradient: "bg-gradient-saree",
+                delay: 0.3,
+              },
+            ].map((feature, index) => (
+              <StaggerItem key={feature.title}>
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -10, rotateX: 5 }}
+                  className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-hover transition-all duration-300"
+                  style={{ transformStyle: "preserve-3d" }}
+                >
+                  <motion.div 
+                    className={`w-20 h-20 mx-auto mb-6 rounded-full ${feature.gradient} flex items-center justify-center`}
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <feature.icon size={40} className="text-white" />
+                  </motion.div>
+                  <h3 className="text-xl font-bold text-foreground mb-3">{feature.title}</h3>
+                  <p className="text-muted-foreground">{feature.description}</p>
+                </motion.div>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
         </div>
       </section>
 
       {/* About Snippet */}
-      <section className="py-16 px-4 bg-muted/30">
+      <section className="py-16 px-4 bg-muted/30 relative z-10">
         <div className="container mx-auto max-w-3xl text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -253,23 +337,38 @@ const Home = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <Sparkles className="w-12 h-12 mx-auto mb-6 text-primary" />
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            >
+              <Sparkles className="w-12 h-12 mx-auto mb-6 text-primary" />
+            </motion.div>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">Our Story</h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              At Siri Collections & Sweets, we bring together two beautiful traditions — 
+              At <span className="font-semibold text-primary">Vasthram & Madhuram</span>, we bring together two beautiful traditions — 
               the elegance of handpicked ethnic wear and the authentic taste of homemade sweets. 
               Each product is crafted with love and dedication, preserving the essence of our heritage 
               while serving the modern family.
             </p>
             <Link to="/our-story">
-              <Button
-                variant="outline"
-                size="lg"
-                className="group"
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                Read Our Full Story
-                <ArrowRight className="ml-2 group-hover:translate-x-2 transition-transform duration-300" size={20} />
-              </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="group"
+                >
+                  Read Our Full Story
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <ArrowRight className="ml-2" size={20} />
+                  </motion.div>
+                </Button>
+              </motion.div>
             </Link>
           </motion.div>
         </div>
