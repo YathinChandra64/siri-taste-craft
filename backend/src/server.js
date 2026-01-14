@@ -17,10 +17,10 @@ app.get("/", (req, res) => {
   res.json({ message: "Backend is running 🚀" });
 });
 
-// 🔹 Product routes
+// ✅ ROUTES MUST COME BEFORE listen
 app.use("/api/products", productRoutes);
 
-// 🚀 Start server (ALWAYS LAST)
+// ✅ LISTEN MUST BE LAST
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
