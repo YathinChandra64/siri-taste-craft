@@ -1,4 +1,4 @@
-import { sarees, sweets } from '@/data/products';
+import { sarees } from '@/data/products';
 
 export interface ProductWithStock {
   id: number;
@@ -17,8 +17,7 @@ export const initializeInventory = () => {
   const existing = localStorage.getItem(INVENTORY_KEY);
   if (!existing) {
     const inventory = {
-      sarees: sarees.map(s => ({ id: s.id, stock: s.stock })),
-      sweets: sweets.map(p => ({ id: p.id, stock: p.stock }))
+      sarees: sarees.map(s => ({ id: s.id, stock: s.stock }))
     };
     localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
   }
