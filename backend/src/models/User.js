@@ -1,21 +1,29 @@
 import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true
+      required: true,
+      trim: true,
+      minlength: 2
     },
+
     email: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/, "Invalid email format"]
     },
+
     password: {
       type: String,
-      required: true
+      required: true,
+      minlength: 6
     },
+
     role: {
       type: String,
       enum: ["admin", "customer"],
@@ -25,13 +33,4 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ Mongoose 7+ compatible (NO next)
-userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
-
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-});
-
-const User = mongoose.model("User", userSchema);
-export default User;
+export default mongoose.model("User", userSchema);

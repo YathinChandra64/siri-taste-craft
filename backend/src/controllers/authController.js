@@ -2,47 +2,51 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-// 📝 Register
+// ================= REGISTER =================
 export const register = async (req, res) => {
   try {
     let { name, email, password, role } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields required" });
+      return res.status(400).json({ message: "All fields are required" });
     }
 
     email = email.trim().toLowerCase();
 
-    const exists = await User.findOne({ email });
-    if (exists) {
-      return res.status(400).json({ message: "User already exists" });
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ message: "Email already registered" });
+    }
 
-    const user = await User.create({
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    await User.create({
       name,
       email,
       password: hashedPassword,
-      role: role || "customer"
+      role: role === "admin" ? "admin" : "customer"
     });
 
     res.status(201).json({
-      message: "Registered successfully"
+      message: "Registration successful"
     });
 
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: "Registration failed" });
   }
 };
 
-// 🔐 Login
+// ================= LOGIN =================
 export const login = async (req, res) => {
   try {
     let { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password required" });
+      return res.status(400).json({ message: "Email and password are required" });
     }
 
     email = email.trim().toLowerCase();
@@ -58,12 +62,15 @@ export const login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      {
+        id: user._id,
+        role: user.role
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    res.json({
+    res.status(200).json({
       message: "Login successful",
       token,
       user: {
@@ -74,6 +81,6 @@ export const login = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Login failed" });
   }
 };
