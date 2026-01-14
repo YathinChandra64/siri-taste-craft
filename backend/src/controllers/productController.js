@@ -57,4 +57,22 @@ export const updateProduct = async (req, res) => {
   }
 };
 
+// 🗑️ Soft Delete Product (Admin)
+export const deleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { isActive: false },
+      { new: true }
+    );
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json({ message: "Product deactivated successfully", product });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
 

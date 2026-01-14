@@ -2,7 +2,9 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
+
 import productRoutes from "./routes/productRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -17,10 +19,13 @@ app.get("/", (req, res) => {
   res.json({ message: "Backend is running 🚀" });
 });
 
-// ✅ ROUTES MUST COME BEFORE listen
+// 🔐 Auth routes
+app.use("/api/auth", authRoutes);
+
+// 📦 Product routes
 app.use("/api/products", productRoutes);
 
-// ✅ LISTEN MUST BE LAST
+// 🚀 Start server (ALWAYS LAST)
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
