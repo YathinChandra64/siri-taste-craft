@@ -1,110 +1,84 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState } from "react";
+import API from "../lib/api";
 
-interface User {
+type User = {
+  id: string;
   email: string;
-  name: string;
-  isVerified: boolean;
-  isAdmin: boolean;
-}
-
-interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string) => boolean;
-  signup: (name: string, email: string, password: string) => boolean;
-  logout: () => void;
-  isAuthenticated: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
+  role: string;
 };
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+type AuthContextType = {
+  user: User | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+};
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
+  // 🔄 Restore user on refresh
   useEffect(() => {
-    // Check if user is already logged in
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    API.get("/auth/me")
+      .then((res) => setUser(res.data.user))
+      .catch(() => {
+        localStorage.removeItem("token");
+        setUser(null);
+      });
   }, []);
 
-  const signup = (name: string, email: string, password: string): boolean => {
-    // Get existing users
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // Check if user already exists
-    if (users.some((u: any) => u.email === email)) {
+  // 🔐 LOGIN
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const res = await API.post("/auth/login", { email, password });
+
+      localStorage.setItem("token", res.data.token);
+      setUser(res.data.user);
+
+      return true;
+    } catch (error) {
+      console.error("Login failed:", error);
       return false;
     }
-
-    // Create new user (first user is admin)
-    const newUser = {
-      name,
-      email,
-      password, // In production, this should be hashed
-      isVerified: true, // Auto-verify for demo purposes
-      isAdmin: users.length === 0 // First user is admin
-    };
-
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-    
-    // Auto login after signup
-    const loggedInUser = { 
-      email: newUser.email, 
-      name: newUser.name, 
-      isVerified: newUser.isVerified,
-      isAdmin: newUser.isAdmin
-    };
-    setUser(loggedInUser);
-    localStorage.setItem('currentUser', JSON.stringify(loggedInUser));
-    
-    return true;
   };
 
-  const login = (email: string, password: string): boolean => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u: any) => u.email === email && u.password === password);
-    
-    if (user) {
-      const loggedInUser = { 
-        email: user.email, 
-        name: user.name, 
-        isVerified: user.isVerified,
-        isAdmin: user.isAdmin || false
-      };
-      setUser(loggedInUser);
-      localStorage.setItem('currentUser', JSON.stringify(loggedInUser));
+  // 📝 SIGNUP
+  const signup = async (
+    name: string,
+    email: string,
+    password: string
+  ): Promise<boolean> => {
+    try {
+      await API.post("/auth/register", { name, email, password });
       return true;
+    } catch (error) {
+      console.error("Signup failed:", error);
+      return false;
     }
-    
-    return false;
   };
 
+  // 🚪 LOGOUT
   const logout = () => {
+    localStorage.removeItem("token");
     setUser(null);
-    localStorage.removeItem('currentUser');
   };
 
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        login, 
-        signup, 
-        logout, 
-        isAuthenticated: !!user 
-      }}
-    >
+    <AuthContext.Provider value={{ user, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
+  return ctx;
 };

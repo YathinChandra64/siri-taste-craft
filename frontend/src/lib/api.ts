@@ -7,7 +7,7 @@ const API = axios.create({
   },
 });
 
-// 🔐 Attach JWT token automatically
+// 🔐 Attach JWT automatically
 API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -19,7 +19,7 @@ API.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// 🚨 Global error handling
+// 🚨 Handle expired token
 API.interceptors.response.use(
   (response) => response,
   (error) => {
