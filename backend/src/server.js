@@ -3,11 +3,12 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 
+import sareeRoutes from "./routes/sareeRoutes.js"; // ✅ NEW
 import productRoutes from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
-import contactRoutes from "./routes/contactRoutes.js"; // ✅ NEW
+import contactRoutes from "./routes/contactRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -30,6 +31,9 @@ app.get("/", (req, res) => {
 // 🔐 Auth routes
 app.use("/api/auth", authRoutes);
 
+// 👚 Saree routes (NEW)
+app.use("/api/sarees", sareeRoutes);
+
 // 📦 Product routes
 app.use("/api/products", productRoutes);
 
@@ -39,7 +43,7 @@ app.use("/api/orders", orderRoutes);
 // 👥 User management routes
 app.use("/api/users", userRoutes);
 
-// 📨 Contact routes (NEW)
+// 📨 Contact routes
 app.use("/api/contact", contactRoutes);
 
 // 🚀 Start server (ALWAYS LAST)

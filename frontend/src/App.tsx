@@ -17,6 +17,7 @@ import AdminUsers from "./pages/admin/Users";
 import { useEffect } from "react";
 import { initializeInventory } from "./utils/inventory";
 import AdminMessages from "./pages/admin/Messages";
+import AdminSarees from "./pages/admin/Sarees";
 
 const App = () => {
   useEffect(() => {
@@ -71,6 +72,14 @@ const App = () => {
   element={
     <ProtectedRoute requiredRole="admin">
       <AdminMessages />
+    </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/admin/sarees" 
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <AdminSarees />
     </ProtectedRoute>
   } 
 />

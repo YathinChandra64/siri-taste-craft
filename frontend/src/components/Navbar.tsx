@@ -308,7 +308,8 @@ const Navbar = () => {
   <>
     <Link to="/admin/dashboard">Dashboard</Link>
     <Link to="/admin/users">Users</Link>
-    <Link to="/admin/messages">Messages</Link>  {/* ← Add this */}
+    <Link to="/admin/messages">Messages</Link>
+    <Link to="/admin/sarees">Sarees</Link>
   </>
 )}
                       <User size={18} />
