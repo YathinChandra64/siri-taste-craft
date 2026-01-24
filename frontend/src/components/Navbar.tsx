@@ -303,6 +303,14 @@ const Navbar = () => {
                           : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
+
+                    {user?.role === "admin" && (
+  <>
+    <Link to="/admin/dashboard">Dashboard</Link>
+    <Link to="/admin/users">Users</Link>
+    <Link to="/admin/messages">Messages</Link>  {/* ← Add this */}
+  </>
+)}
                       <User size={18} />
                       Users
                     </div>

@@ -16,6 +16,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
 import { useEffect } from "react";
 import { initializeInventory } from "./utils/inventory";
+import AdminMessages from "./pages/admin/Messages";
 
 const App = () => {
   useEffect(() => {
@@ -64,6 +65,15 @@ const App = () => {
               </ProtectedRoute>
             } 
           />
+
+          <Route 
+  path="/admin/messages" 
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <AdminMessages />
+    </ProtectedRoute>
+  } 
+/>
 
           {/* 404 - Always Last */}
           <Route path="*" element={<NotFound />} />

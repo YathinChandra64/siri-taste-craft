@@ -65,12 +65,12 @@ const Footer = () => {
             <h4 className="font-semibold text-foreground mb-3 text-sm">Quick Contact</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <motion.a 
-                href="tel:+919248627327" 
+                href="tel:+919398806893" 
                 className="flex items-center gap-2 justify-center md:justify-start hover:text-primary transition-colors duration-300"
                 whileHover={{ x: 5 }}
               >
                 <Phone size={14} />
-                <span>+91 9248627327</span>
+                <span>+91 9398806893</span>
               </motion.a>
               <motion.a 
                 href="https://maps.app.goo.gl/hDfn9uqtwvty9Gf49"

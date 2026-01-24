@@ -4,18 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 const Contact = () => {
   const { toast } = useToast();
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    toast({
-      title: "Message Sent!",
-      description: "Thank you for contacting us. We'll get back to you soon.",
-    });
-    (e.target as HTMLFormElement).reset();
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    message: ""
+  });
 
   const contactInfo = [
     {
@@ -28,8 +26,8 @@ const Contact = () => {
     {
       icon: Phone,
       title: "Phone",
-      content: "+91 9248627327",
-      link: "tel:+919248627327",
+      content: "+91 9398806893",
+      link: "tel:+919398806893",
       gradient: "bg-gradient-sweet",
     },
     {
@@ -40,6 +38,85 @@ const Contact = () => {
       gradient: "bg-gradient-saree",
     },
   ];
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // Validate fields
+      if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all fields.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Email validation
+      const emailRegex = /^\S+@\S+\.\S+$/;
+      if (!emailRegex.test(formData.email)) {
+        toast({
+          title: "Invalid Email",
+          description: "Please enter a valid email address.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Send to backend
+      const response = await fetch("http://localhost:5000/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to send message");
+      }
+
+      // Success
+      toast({
+        title: "Message Sent! ✅",
+        description: "Thank you for contacting us. We'll get back to you soon.",
+      });
+
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        message: ""
+      });
+      (e.target as HTMLFormElement).reset();
+
+    } catch (error) {
+      console.error("Send message error:", error);
+      toast({
+        title: "Failed to Send",
+        description: error instanceof Error ? error.message : "Failed to send your message. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -121,6 +198,9 @@ const Contact = () => {
                     id="name"
                     type="text"
                     placeholder="Enter your name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
                     required
                     className="w-full"
                   />
@@ -134,6 +214,9 @@ const Contact = () => {
                     id="email"
                     type="email"
                     placeholder="your.email@example.com"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
                     required
                     className="w-full"
                   />
@@ -147,6 +230,9 @@ const Contact = () => {
                     id="message"
                     placeholder="How can we help you?"
                     rows={5}
+                    value={formData.message}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
                     required
                     className="w-full resize-none"
                   />
@@ -155,9 +241,18 @@ const Contact = () => {
                 <Button
                   type="submit"
                   size="lg"
-                  className="w-full bg-gradient-saree text-white border-0 shadow-hover hover:shadow-soft transition-all duration-300"
+                  disabled={isLoading}
+                  className="w-full bg-gradient-saree text-white border-0 shadow-hover hover:shadow-soft transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Send Message
+                  {isLoading ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                    />
+                  ) : (
+                    "Send Message"
+                  )}
                 </Button>
               </form>
             </motion.div>
