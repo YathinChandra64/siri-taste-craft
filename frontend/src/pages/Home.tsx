@@ -16,11 +16,9 @@ const Home = () => {
   return (
     <div className="min-h-screen flex flex-col relative">
       <AnimatedBackground />
-      {/* REMOVED: <Navbar /> - Now in App.tsx */}
 
-      {/* Hero Section */}
-      <section className="relative min-h-[70vh] md:min-h-[80vh] flex items-center justify-center overflow-hidden">
-        {/* Rest of your Home component code stays the same */}
+      {/* Hero Section - Image Height 70vh */}
+      <section className="relative h-[120vh] flex items-end justify-center overflow-hidden pt-20">
         {/* Background Image with Parallax */}
         <motion.div 
           className="absolute inset-0"
@@ -32,98 +30,43 @@ const Home = () => {
             transition={{ duration: 1.5 }}
             className="absolute inset-0"
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60 z-10" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70 z-10" />
             <img 
               src={heroMain} 
               alt="Siri Sarees and Collections" 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-top"
             />
           </motion.div>
         </motion.div>
 
-        {/* Content */}
-        <div className="container mx-auto px-4 text-center relative z-20">
+        {/* Button at Bottom - Minimal Text */}
+        <div className="relative z-20 mb-16 px-4 w-full flex justify-center">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.8, duration: 0.5 }}
           >
-            {/* Animated Brand Name */}
-            <motion.div className="mb-6">
-              <motion.h1 
-                className="text-5xl md:text-7xl font-bold text-white drop-shadow-lg"
-              >
-                <motion.span 
-                  className="inline-block bg-gradient-to-r from-purple-300 via-pink-300 to-purple-300 bg-clip-text text-transparent"
-                  initial={{ opacity: 0, x: -50, rotateY: -90 }}
-                  animate={{ opacity: 1, x: 0, rotateY: 0 }}
-                  transition={{ duration: 0.8, delay: 0.3, type: "spring" }}
+            <Link to="/sarees">
+              <RippleEffect>
+                <motion.div
+                  whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  Siri Sarees
-                </motion.span>
-                <motion.span
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
-                  className="inline-block mx-3"
-                >
-                  <Sparkles className="w-8 h-8 md:w-12 md:h-12 text-yellow-400" />
-                </motion.span>
-                <motion.span 
-                  className="inline-block bg-gradient-to-r from-pink-300 via-purple-300 to-pink-300 bg-clip-text text-transparent"
-                  initial={{ opacity: 0, x: 50, rotateY: 90 }}
-                  animate={{ opacity: 1, x: 0, rotateY: 0 }}
-                  transition={{ duration: 0.8, delay: 0.4, type: "spring" }}
-                >
-                  Collections
-                </motion.span>
-              </motion.h1>
-            </motion.div>
-
-            <motion.p 
-              className="text-xl md:text-3xl text-white/95 mb-10 max-w-3xl mx-auto font-medium drop-shadow-md"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.7 }}
-            >
-              <motion.span
-                animate={{ 
-                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                }}
-                transition={{ duration: 5, repeat: Infinity }}
-                className="bg-gradient-to-r from-white via-yellow-200 to-white bg-clip-text text-transparent bg-[length:200%_auto]"
-              >
-                Where Tradition Meets Elegance
-              </motion.span>
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.9, duration: 0.5 }}
-            >
-              <Link to="/sarees">
-                <RippleEffect>
-                  <motion.div
-                    whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-                    whileTap={{ scale: 0.95 }}
+                  <Button
+                    size="lg"
+                    className="bg-gradient-saree text-white hover:opacity-90 shadow-2xl text-lg px-10 py-6 font-bold rounded-full"
                   >
-                    <Button
-                      size="lg"
-                      className="bg-gradient-saree text-white hover:opacity-90 shadow-2xl text-lg px-8 py-6 font-bold"
+                    Explore Collection
+                    <motion.div
+                      animate={{ x: [0, 5, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
                     >
-                      Explore Collection
-                      <motion.div
-                        animate={{ x: [0, 5, 0] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                      >
-                        <ArrowRight className="ml-2" size={24} />
-                      </motion.div>
-                    </Button>
-                  </motion.div>
-                </RippleEffect>
-              </Link>
-            </motion.div>
+                      <ArrowRight className="ml-2" size={24} />
+                    </motion.div>
+                  </Button>
+                </motion.div>
+              </RippleEffect>
+            </Link>
           </motion.div>
         </div>
 
@@ -132,7 +75,7 @@ const Home = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2, duration: 0.8 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20"
         >
           <motion.div
             animate={{ y: [0, 10, 0] }}
@@ -319,7 +262,6 @@ const Home = () => {
           </motion.div>
         </div>
       </section>
-      {/* REMOVED: <Footer /> - Now in App.tsx */}
     </div>
   );
 };

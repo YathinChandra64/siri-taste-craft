@@ -92,9 +92,16 @@ const Sarees = () => {
   };
 
   const handleAddToCart = (saree: Saree) => {
-    const cartId = saree._id ? parseInt(saree._id.slice(-4)) || Math.floor(Math.random() * 10000) : Math.floor(Math.random() * 10000);
+    const cartItem = {
+      id: saree._id ? parseInt(saree._id.slice(-4)) || Math.floor(Math.random() * 10000) : Math.floor(Math.random() * 10000),
+      name: saree.name,
+      price: saree.price,
+      image: saree.imageUrl,
+      type: "saree" as const,
+      quantity: 1
+    };
     
-    addToCart(cartId, "saree");
+    addToCart(cartItem);
     setCartItems(getCart());
     setAddedItems(prev => new Set(prev).add(saree._id));
 

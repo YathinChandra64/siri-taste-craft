@@ -15,13 +15,11 @@ import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
 import { useEffect } from "react";
-import { initializeInventory } from "./utils/inventory";
 import AdminMessages from "./pages/admin/Messages";
 import AdminSarees from "./pages/admin/Sarees";
 
 const App = () => {
   useEffect(() => {
-    initializeInventory();
   }, []);
 
   return (
