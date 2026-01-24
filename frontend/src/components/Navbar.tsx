@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Menu, X, LogIn, LogOut, User, Sun, Moon, Sparkles } from "lucide-react";
+import { Menu, X, LogIn, LogOut, User, Sun, Moon, Sparkles, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -98,6 +98,61 @@ const Navbar = () => {
                 </motion.span>
               </Link>
             ))}
+
+            {/* Admin Links - Only show to admins */}
+            {user?.role === "admin" && (
+              <>
+                <div className="w-px h-6 bg-border" />
+                <Link to="/admin/dashboard">
+                  <motion.span
+                    className={`font-medium transition-colors relative flex items-center gap-2 ${
+                      isActive("/admin/dashboard")
+                        ? "text-purple-600 dark:text-purple-400"
+                        : "text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400"
+                    }`}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    whileHover={{ y: -2 }}
+                  >
+                    <LayoutDashboard size={18} />
+                    Dashboard
+                    {isActive("/admin/dashboard") && (
+                      <motion.div
+                        layoutId="activeNav"
+                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full"
+                        initial={false}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                  </motion.span>
+                </Link>
+                <Link to="/admin/users">
+                  <motion.span
+                    className={`font-medium transition-colors relative flex items-center gap-2 ${
+                      isActive("/admin/users")
+                        ? "text-purple-600 dark:text-purple-400"
+                        : "text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400"
+                    }`}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    whileHover={{ y: -2 }}
+                  >
+                    <User size={18} />
+                    Users
+                    {isActive("/admin/users") && (
+                      <motion.div
+                        layoutId="activeNav"
+                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full"
+                        initial={false}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                  </motion.span>
+                </Link>
+              </>
+            )}
             
             {/* Theme Toggle */}
             <motion.div whileHover={{ rotate: 180 }} transition={{ duration: 0.3 }}>
@@ -122,6 +177,11 @@ const Navbar = () => {
                   >
                     <User size={16} className="text-primary" />
                     <span className="text-sm font-medium text-foreground">{user?.name}</span>
+                    {user?.role === "admin" && (
+                      <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 font-semibold">
+                        ADMIN
+                      </span>
+                    )}
                   </motion.div>
                 </Link>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -201,6 +261,55 @@ const Navbar = () => {
                 </Link>
               </motion.div>
             ))}
+
+            {/* Mobile Admin Links - Only show to admins */}
+            {user?.role === "admin" && (
+              <>
+                <div className="my-3 border-t border-border" />
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: isOpen ? 1 : 0, x: isOpen ? 0 : -20 }}
+                  transition={{ delay: navLinks.length * 0.05 }}
+                >
+                  <Link
+                    to="/admin/dashboard"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <div
+                      className={`py-3 px-4 rounded-md transition-colors flex items-center gap-2 ${
+                        isActive("/admin/dashboard")
+                          ? "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 font-medium"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <LayoutDashboard size={18} />
+                      Dashboard
+                    </div>
+                  </Link>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: isOpen ? 1 : 0, x: isOpen ? 0 : -20 }}
+                  transition={{ delay: (navLinks.length + 1) * 0.05 }}
+                >
+                  <Link
+                    to="/admin/users"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <div
+                      className={`py-3 px-4 rounded-md transition-colors flex items-center gap-2 ${
+                        isActive("/admin/users")
+                          ? "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 font-medium"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <User size={18} />
+                      Users
+                    </div>
+                  </Link>
+                </motion.div>
+              </>
+            )}
             
             {/* Mobile Auth */}
             <div className="mt-4 px-4 space-y-3">
@@ -220,6 +329,11 @@ const Navbar = () => {
                     <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 cursor-pointer hover:bg-primary/20 transition-colors duration-200">
                       <User size={18} className="text-primary" />
                       <span className="text-sm font-medium text-foreground">{user?.name}</span>
+                      {user?.role === "admin" && (
+                        <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 font-semibold">
+                          ADMIN
+                        </span>
+                      )}
                     </div>
                   </Link>
                   <Button

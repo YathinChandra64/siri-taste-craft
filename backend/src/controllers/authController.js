@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 // ================= REGISTER =================
 export const register = async (req, res) => {
   try {
-    let { name, email, password, role } = req.body;
+    let { name, email, password } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
@@ -24,18 +24,35 @@ export const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    await User.create({
+    const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
-      role: role === "admin" ? "admin" : "customer"
+      role: "customer" // ✅ ALWAYS default to customer, NEVER from request body
     });
 
+    const token = jwt.sign(
+      {
+        id: newUser._id,
+        role: newUser.role
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "10m" }
+    );
+
     res.status(201).json({
-      message: "Registration successful"
+      message: "Registration successful",
+      token,
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        name: newUser.name,
+        role: newUser.role
+      }
     });
 
   } catch (error) {
+    console.error("Register error:", error);
     res.status(500).json({ message: "Registration failed" });
   }
 };
@@ -67,7 +84,7 @@ export const login = async (req, res) => {
         role: user.role
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "10m" }
     );
 
     res.status(200).json({
@@ -76,11 +93,35 @@ export const login = async (req, res) => {
       user: {
         id: user._id,
         email: user.email,
+        name: user.name,
         role: user.role
       }
     });
 
   } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({ message: "Login failed" });
+  }
+};
+
+// ================= GET CURRENT USER =================
+export const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role
+    });
+
+  } catch (error) {
+    console.error("Get user error:", error);
+    res.status(500).json({ message: "Failed to get user" });
   }
 };

@@ -3,14 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCart, removeFromCart, getCartTotal, clearCart, updateCartQuantity } from "@/utils/cart";
 import { getOrders, addOrder } from "@/utils/orders";
-import { updateStock } from "@/utils/inventory";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { ShoppingCart, Package, User as UserIcon, Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -45,7 +42,7 @@ const Profile = () => {
     refreshCart();
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) {
       toast({
         title: "Cart is empty",
@@ -55,31 +52,67 @@ const Profile = () => {
       return;
     }
 
-    // Update stock for all items
-    let allSuccess = true;
-    for (const item of cart) {
-      const success = updateStock(item.id, item.type, item.quantity);
-      if (!success) {
-        allSuccess = false;
+    try {
+      const token = localStorage.getItem("authToken");
+      
+      if (!token) {
         toast({
-          title: "Checkout Failed",
-          description: `${item.name} is out of stock.`,
+          title: "Authentication Error",
+          description: "Please login to place an order.",
           variant: "destructive",
         });
-        break;
+        navigate('/login');
+        return;
       }
-    }
 
-    if (allSuccess) {
-      const total = getCartTotal();
-      addOrder(cart, total);
+      // Prepare order items for backend
+      const orderItems = cart.map(item => ({
+        product: item.id, // This should be the product ID from backend
+        quantity: item.quantity,
+        price: item.pricePerKg || item.price
+      }));
+
+      const totalAmount = getCartTotal();
+
+      // Send order to backend
+      const response = await fetch("http://localhost:5000/api/orders", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          items: orderItems,
+          totalAmount: totalAmount
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to place order");
+      }
+
+      // Order successful
       clearCart();
       refreshCart();
       setOrders(getOrders());
       
       toast({
-        title: "Order Placed Successfully!",
-        description: `Your order of ₹${total.toLocaleString()} has been confirmed.`,
+        title: "Order Placed Successfully! 🎉",
+        description: `Your order of ₹${totalAmount.toLocaleString()} has been confirmed.`,
+      });
+
+      // Optionally redirect to home after a delay
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast({
+        title: "Checkout Failed",
+        description: error instanceof Error ? error.message : "An error occurred while placing your order.",
+        variant: "destructive",
       });
     }
   };
@@ -90,8 +123,6 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
-
       <main className="flex-1 py-12 px-4">
         <div className="container mx-auto max-w-6xl">
           {/* Header */}
@@ -108,6 +139,9 @@ const Profile = () => {
               Welcome, {user.name}!
             </h1>
             <p className="text-muted-foreground">{user.email}</p>
+            <p className="text-sm text-muted-foreground mt-2 capitalize">
+              Role: <span className="font-semibold">{user.role}</span>
+            </p>
           </motion.div>
 
           <div className="grid lg:grid-cols-2 gap-8">
@@ -286,8 +320,6 @@ const Profile = () => {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 };

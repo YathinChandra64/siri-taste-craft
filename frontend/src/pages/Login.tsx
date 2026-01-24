@@ -6,8 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { Lock, Mail } from 'lucide-react';
 
 const Login = () => {
@@ -37,7 +35,6 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
       
       <main className="flex-1 flex items-center justify-center px-4 py-16 bg-gradient-to-br from-background via-primary/5 to-secondary/5">
         <motion.div
@@ -115,8 +112,6 @@ const Login = () => {
           </div>
         </motion.div>
       </main>
-
-      <Footer />
     </div>
   );
 };

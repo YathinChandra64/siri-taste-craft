@@ -2,8 +2,6 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ShoppingBag, Heart, Star, Users, Sparkles } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import RippleEffect from "@/components/RippleEffect";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
@@ -18,10 +16,11 @@ const Home = () => {
   return (
     <div className="min-h-screen flex flex-col relative">
       <AnimatedBackground />
-      <Navbar />
+      {/* REMOVED: <Navbar /> - Now in App.tsx */}
 
       {/* Hero Section */}
       <section className="relative min-h-[70vh] md:min-h-[80vh] flex items-center justify-center overflow-hidden">
+        {/* Rest of your Home component code stays the same */}
         {/* Background Image with Parallax */}
         <motion.div 
           className="absolute inset-0"
@@ -240,23 +239,20 @@ const Home = () => {
                 title: "Handcrafted with Love",
                 description: "Every saree is selected with genuine care and attention to detail, preserving traditional craftsmanship.",
                 gradient: "bg-gradient-saree",
-                delay: 0.1,
               },
               {
                 icon: Star,
                 title: "Premium Quality",
                 description: "We source the finest fabrics to ensure exceptional quality in every piece of our collection.",
                 gradient: "bg-gradient-saree",
-                delay: 0.2,
               },
               {
                 icon: Users,
                 title: "Family Tradition",
                 description: "A trusted family business bringing generations of expertise and authentic products to your home.",
                 gradient: "bg-gradient-saree",
-                delay: 0.3,
               },
-            ].map((feature, index) => (
+            ].map((feature) => (
               <StaggerItem key={feature.title}>
                 <motion.div
                   whileHover={{ scale: 1.05, y: -10, rotateX: 5 }}
@@ -323,8 +319,7 @@ const Home = () => {
           </motion.div>
         </div>
       </section>
-
-      <Footer />
+      {/* REMOVED: <Footer /> - Now in App.tsx */}
     </div>
   );
 };

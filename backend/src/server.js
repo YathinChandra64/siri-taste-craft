@@ -6,13 +6,19 @@ import connectDB from "./config/db.js";
 import productRoutes from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import userRoutes from "./routes/userRoutes.js"; // ✅ NEW
 
 dotenv.config();
 connectDB();
 
 const app = express();
 
-app.use(cors());
+// ✅ CORS with credentials enabled
+app.use(cors({
+  origin: "http://localhost:8080",
+  credentials: true
+}));
+
 app.use(express.json());
 
 // Base route
@@ -26,7 +32,11 @@ app.use("/api/auth", authRoutes);
 // 📦 Product routes
 app.use("/api/products", productRoutes);
 
+// 📋 Order routes
 app.use("/api/orders", orderRoutes);
+
+// 👥 User management routes (Admin only)
+app.use("/api/users", userRoutes); // ✅ NEW
 
 // 🚀 Start server (ALWAYS LAST)
 const PORT = process.env.PORT || 5000;

@@ -1,7 +1,5 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import AdvancedFilterBar from "@/components/AdvancedFilterBar";
 import ProductCard from "@/components/ProductCard";
 import ProductDetailModal from "@/components/ProductDetailModal";
@@ -22,8 +20,6 @@ const Sarees = () => {
   return (
     <div className="min-h-screen flex flex-col relative">
       <AnimatedBackground />
-      <Navbar />
-
       <main className="flex-1 py-12 px-4 relative z-10">
         <div className="container mx-auto">
           {/* Header */}
@@ -95,8 +91,6 @@ const Sarees = () => {
         onClose={() => setIsModalOpen(false)}
         type="saree"
       />
-
-      <Footer />
     </div>
   );
 };

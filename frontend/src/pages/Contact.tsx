@@ -1,7 +1,5 @@
 import { motion } from "framer-motion";
 import { MapPin, Phone, Mail } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,7 +43,6 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
 
       <main className="flex-1 py-12 px-4">
         <div className="container mx-auto max-w-6xl">
@@ -167,8 +164,6 @@ const Contact = () => {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 };

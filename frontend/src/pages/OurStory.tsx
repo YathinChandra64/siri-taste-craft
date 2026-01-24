@@ -1,7 +1,5 @@
 import { motion } from "framer-motion";
 import { Heart, Users, Award, Sparkles } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
 const OurStory = () => {
@@ -35,7 +33,6 @@ const OurStory = () => {
   return (
     <div className="min-h-screen flex flex-col relative">
       <AnimatedBackground />
-      <Navbar />
 
       <main className="flex-1 relative z-10">
         {/* Hero Section */}
@@ -153,8 +150,6 @@ const OurStory = () => {
           </div>
         </section>
       </main>
-
-      <Footer />
     </div>
   );
 };
