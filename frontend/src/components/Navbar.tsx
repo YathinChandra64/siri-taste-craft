@@ -7,6 +7,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import MagneticButton from "@/components/MagneticButton";
 import logo from "@/assets/logo.png";
+import AdminMenu from "@/components/AdminMenu";
 
 const Navbar = () => {
   const location = useLocation();
@@ -101,58 +102,11 @@ const Navbar = () => {
 
             {/* Admin Links - Only show to admins */}
             {user?.role === "admin" && (
-              <>
-                <div className="w-px h-6 bg-border" />
-                <Link to="/admin/dashboard">
-                  <motion.span
-                    className={`font-medium transition-colors relative flex items-center gap-2 ${
-                      isActive("/admin/dashboard")
-                        ? "text-purple-600 dark:text-purple-400"
-                        : "text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400"
-                    }`}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    whileHover={{ y: -2 }}
-                  >
-                    <LayoutDashboard size={18} />
-                    Dashboard
-                    {isActive("/admin/dashboard") && (
-                      <motion.div
-                        layoutId="activeNav"
-                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full"
-                        initial={false}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                      />
-                    )}
-                  </motion.span>
-                </Link>
-                <Link to="/admin/users">
-                  <motion.span
-                    className={`font-medium transition-colors relative flex items-center gap-2 ${
-                      isActive("/admin/users")
-                        ? "text-purple-600 dark:text-purple-400"
-                        : "text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400"
-                    }`}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    whileHover={{ y: -2 }}
-                  >
-                    <User size={18} />
-                    Users
-                    {isActive("/admin/users") && (
-                      <motion.div
-                        layoutId="activeNav"
-                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full"
-                        initial={false}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                      />
-                    )}
-                  </motion.span>
-                </Link>
-              </>
-            )}
+  <>
+    <div className="w-px h-6 bg-border" />
+    <AdminMenu />
+  </>
+)}
             
             {/* Theme Toggle */}
             <motion.div whileHover={{ rotate: 180 }} transition={{ duration: 0.3 }}>

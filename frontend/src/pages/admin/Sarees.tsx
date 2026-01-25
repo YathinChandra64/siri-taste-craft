@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Upload, Edit, Trash2, Eye, Search } from "lucide-react";
+import { Plus, Upload, Edit, Trash2, Eye, Search, FileDown } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -20,6 +20,51 @@ type Saree = {
   isActive: boolean;
 };
 
+interface SareeFormData {
+  name: string;
+  description: string;
+  price: string;
+  category: string;
+  material: string;
+  color: string;
+  stock: string;
+  imageUrl: string;
+  sku: string;
+}
+
+interface ParsedSaree {
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category: string;
+  material: string;
+  color: string;
+  imageUrl: string;
+  sku: string;
+}
+
+interface ExcelRow {
+  name?: string;
+  Name?: string;
+  description?: string;
+  Description?: string;
+  price?: number | string;
+  Price?: number | string;
+  stock?: number | string;
+  Stock?: number | string;
+  category?: string;
+  Category?: string;
+  material?: string;
+  Material?: string;
+  color?: string;
+  Color?: string;
+  imageUrl?: string;
+  ImageUrl?: string;
+  sku?: string;
+  SKU?: string;
+}
+
 const AdminSarees = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -30,8 +75,9 @@ const AdminSarees = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [bulkData, setBulkData] = useState("");
-  const [formData, setFormData] = useState({
+  const [fileError, setFileError] = useState("");
+  const [parsedSarees, setParsedSarees] = useState<ParsedSaree[]>([]);
+  const [formData, setFormData] = useState<SareeFormData>({
     name: "",
     description: "",
     price: "",
@@ -43,11 +89,7 @@ const AdminSarees = () => {
     sku: ""
   });
 
-  useEffect(() => {
-    fetchSarees();
-  }, []);
-
-  const fetchSarees = async () => {
+  const fetchSarees = useCallback(async () => {
     try {
       const response = await fetch("http://localhost:5000/api/sarees");
       if (response.ok) {
@@ -64,7 +106,11 @@ const AdminSarees = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchSarees();
+  }, [fetchSarees]);
 
   const handleAddSaree = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +149,13 @@ const AdminSarees = () => {
           sku: ""
         });
         fetchSarees();
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to add saree",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Failed to add saree:", error);
@@ -116,19 +169,109 @@ const AdminSarees = () => {
     }
   };
 
+  // ✅ FIXED: Parse Excel file and extract data with proper typing
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFileError("");
+    setParsedSarees([]);
+
+    try {
+      // Validate file type
+      if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
+        setFileError("Please upload a valid Excel file (.xlsx or .xls)");
+        return;
+      }
+
+      // Read file as array buffer
+      const fileReader = new FileReader();
+      fileReader.onload = async (event) => {
+        try {
+          const data = event.target?.result;
+          if (!data) {
+            setFileError("Failed to read file");
+            return;
+          }
+
+          // ✅ FIXED: Use dynamic import to handle xlsx properly
+          const { read, utils } = await import("xlsx");
+          
+          // Parse Excel file
+          const workbook = read(data, { type: "array" });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          
+          if (!worksheet) {
+            setFileError("No data found in Excel file");
+            return;
+          }
+
+          // Convert to JSON
+          const jsonData: ExcelRow[] = utils.sheet_to_json(worksheet);
+
+          if (jsonData.length === 0) {
+            setFileError("Excel file is empty");
+            return;
+          }
+
+          // ✅ FIXED: Validate required fields with proper typing
+          const validatedData: ParsedSaree[] = jsonData.map((row: ExcelRow, index: number) => {
+            const saree: ParsedSaree = {
+              name: row.name || row.Name || "",
+              description: row.description || row.Description || "",
+              price: parseFloat(String(row.price || row.Price || 0)),
+              stock: parseInt(String(row.stock || row.Stock || 0)),
+              category: row.category || row.Category || "Traditional",
+              material: row.material || row.Material || "",
+              color: row.color || row.Color || "",
+              imageUrl: row.imageUrl || row.ImageUrl || "",
+              sku: row.sku || row.SKU || ""
+            };
+
+            // Validate required fields
+            if (!saree.name || !saree.description || !saree.price || !saree.stock) {
+              throw new Error(
+                `Row ${index + 2}: Missing required fields (name, description, price, stock)`
+              );
+            }
+
+            return saree;
+          });
+
+          setParsedSarees(validatedData);
+          toast({
+            title: "Success",
+            description: `${validatedData.length} sarees loaded from Excel file`,
+          });
+
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : "Failed to parse Excel file";
+          setFileError(errorMsg);
+          toast({
+            title: "Error",
+            description: errorMsg,
+            variant: "destructive",
+          });
+        }
+      };
+
+      fileReader.readAsArrayBuffer(file);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Failed to read file";
+      setFileError(errorMsg);
+    }
+  };
+
+  // ✅ FIXED: Upload parsed sarees to backend
   const handleBulkUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Parse CSV or JSON data
-      let sareeList = [];
-      try {
-        sareeList = JSON.parse(bulkData);
-      } catch {
+      if (parsedSarees.length === 0) {
         toast({
-          title: "Invalid Format",
-          description: "Please paste valid JSON array",
+          title: "Error",
+          description: "Please upload and parse an Excel file first",
           variant: "destructive",
         });
         setIsSubmitting(false);
@@ -142,7 +285,7 @@ const AdminSarees = () => {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(sareeList)
+        body: JSON.stringify(parsedSarees)
       });
 
       if (response.ok) {
@@ -152,14 +295,22 @@ const AdminSarees = () => {
           description: `${result.count} sarees uploaded successfully`,
         });
         setShowBulkDialog(false);
-        setBulkData("");
+        setParsedSarees([]);
+        setFileError("");
         fetchSarees();
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Upload Failed",
+          description: error.message || "Failed to upload sarees",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Failed to bulk upload:", error);
       toast({
         title: "Error",
-        description: "Failed to upload sarees",
+        description: error instanceof Error ? error.message : "Failed to upload sarees",
         variant: "destructive",
       });
     } finally {
@@ -191,6 +342,55 @@ const AdminSarees = () => {
       toast({
         title: "Error",
         description: "Failed to delete saree",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // ✅ FIXED: Download Excel template with proper typing
+  const downloadTemplate = async () => {
+    try {
+      const { utils, writeFile } = await import("xlsx");
+      
+      const templateData: ParsedSaree[] = [
+        {
+          name: "Silk Saree",
+          description: "Beautiful silk saree with traditional design",
+          price: 5000,
+          stock: 10,
+          category: "Silk",
+          material: "Silk",
+          color: "Red",
+          imageUrl: "https://example.com/image.jpg",
+          sku: "SAR-001"
+        },
+        {
+          name: "Cotton Saree",
+          description: "Comfortable cotton saree for daily wear",
+          price: 2000,
+          stock: 20,
+          category: "Cotton",
+          material: "Cotton",
+          color: "Blue",
+          imageUrl: "https://example.com/image.jpg",
+          sku: "SAR-002"
+        }
+      ];
+
+      const worksheet = utils.json_to_sheet(templateData);
+      const workbook = utils.book_new();
+      utils.book_append_sheet(workbook, worksheet, "Sarees");
+      writeFile(workbook, "saree_template.xlsx");
+
+      toast({
+        title: "Template Downloaded",
+        description: "Fill in the template and upload it back",
+      });
+    } catch (error) {
+      console.error("Failed to download template:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download template",
         variant: "destructive",
       });
     }
@@ -445,30 +645,82 @@ const AdminSarees = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Bulk Upload Dialog */}
+        {/* Bulk Upload Dialog - Excel File */}
         <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Bulk Upload Sarees</DialogTitle>
-              <DialogDescription>Paste JSON array of sarees</DialogDescription>
+              <DialogTitle>Bulk Upload Sarees from Excel</DialogTitle>
+              <DialogDescription>Upload an Excel file (.xlsx) with saree details</DialogDescription>
             </DialogHeader>
 
             <form onSubmit={handleBulkUpload} className="space-y-4">
-              <textarea
-                value={bulkData}
-                onChange={(e) => setBulkData(e.target.value)}
-                placeholder={'[{"name":"Silk Saree","price":5000,"category":"Silk","stock":10,"description":"Beautiful silk saree"}]'}
-                className="w-full p-3 border rounded text-sm font-mono"
-                rows={10}
-              />
-
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded text-sm text-blue-700 dark:text-blue-300">
-                <p className="font-semibold mb-1">Required fields:</p>
-                <p>name, description, price, stock, category</p>
+              {/* Download Template Button */}
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={downloadTemplate}
+                >
+                  <FileDown size={18} className="mr-2" />
+                  Download Excel Template
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Download the template to see the required format
+                </p>
               </div>
 
-              <Button type="submit" disabled={isSubmitting} className="w-full bg-green-600 hover:bg-green-700">
-                {isSubmitting ? "Uploading..." : "Upload Sarees"}
+              {/* File Upload */}
+              <div>
+                <label className="text-sm font-medium block mb-2">Upload Excel File *</label>
+                <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    <Upload size={32} className="mx-auto mb-2 text-muted-foreground" />
+                    <p className="font-semibold">Click to upload or drag and drop</p>
+                    <p className="text-xs text-muted-foreground">Excel files (.xlsx, .xls)</p>
+                  </label>
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {fileError && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-sm">
+                  {fileError}
+                </div>
+              )}
+
+              {/* Preview of Parsed Data */}
+              {parsedSarees.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium mb-2">
+                    Preview: {parsedSarees.length} sarees ready to upload
+                  </p>
+                  <div className="max-h-64 overflow-y-auto border rounded p-3 space-y-2">
+                    {parsedSarees.map((saree, idx) => (
+                      <div key={idx} className="text-xs p-2 bg-muted rounded">
+                        <p className="font-semibold">{saree.name}</p>
+                        <p className="text-muted-foreground">
+                          ₹{saree.price} | Stock: {saree.stock} | {saree.category}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={isSubmitting || parsedSarees.length === 0}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                {isSubmitting ? "Uploading..." : `Upload ${parsedSarees.length} Sarees`}
               </Button>
             </form>
           </DialogContent>

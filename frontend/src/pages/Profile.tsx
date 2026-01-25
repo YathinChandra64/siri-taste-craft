@@ -11,12 +11,30 @@ import { useToast } from "@/hooks/use-toast";
 import { ShoppingCart, Package, User as UserIcon, Trash2, Plus, Minus, ShoppingBag, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import NotificationsPanel from "@/components/NotificationsPanel";
+
+interface CartItem {
+  id: number;
+  name: string;
+  type: 'saree' | 'sweet';
+  image?: string;
+  price?: number;
+  pricePerKg?: number;
+  quantity: number;
+}
+
+interface OrderItem {
+  product: number;
+  name: string;
+  quantity: number;
+  price: number;
+}
 
 const Profile = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [cart, setCart] = useState(getCart());
+  const [cart, setCart] = useState<CartItem[]>(getCart());
   const [orders, setOrders] = useState(getOrders());
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
@@ -83,14 +101,14 @@ const Profile = () => {
       }
 
       // ✅ FIX 2: Include product name and use nullish coalescing
-      const orderItems = cart.map(item => ({
+      const orderItems: OrderItem[] = cart.map(item => ({
         product: item.id,
-        name: item.name,                           // ✅ ADD THIS
+        name: item.name,
         quantity: item.quantity,
-        price: item.pricePerKg ?? item.price ?? 0  // ✅ SAFE FALLBACK
+        price: item.pricePerKg ?? item.price ?? 0
       }));
 
-      const totalAmount = cartTotal ?? 0;
+      const cartTotal = getCartTotal() ?? 0;
 
       // Send order to backend
       const response = await fetch("http://localhost:5000/api/orders", {
@@ -101,7 +119,7 @@ const Profile = () => {
         },
         body: JSON.stringify({
           items: orderItems,
-          totalAmount: totalAmount
+          totalAmount: cartTotal
         })
       });
 
@@ -117,7 +135,7 @@ const Profile = () => {
       
       toast({
         title: "Order Placed Successfully! 🎉",
-        description: `Your order of ₹${formatPrice(totalAmount)} has been confirmed.`,
+        description: `Your order of ₹${formatPrice(cartTotal)} has been confirmed.`,
       });
 
       // Redirect to home after a delay
@@ -155,20 +173,26 @@ const Profile = () => {
               transition={{ duration: 0.5 }}
               className="mb-12"
             >
-              <div className="flex items-center gap-6 mb-6">
-                <div className="w-24 h-24 rounded-full bg-gradient-saree flex items-center justify-center flex-shrink-0">
-                  <UserIcon className="w-12 h-12 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold text-foreground mb-2">
-                    Welcome, {user.name}!
-                  </h1>
-                  <div className="space-y-1 text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Mail size={16} />
-                      <span>{user.email}</span>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-6 flex-1">
+                  <div className="w-24 h-24 rounded-full bg-gradient-saree flex items-center justify-center flex-shrink-0">
+                    <UserIcon className="w-12 h-12 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold text-foreground mb-2">
+                      Welcome, {user.name}!
+                    </h1>
+                    <div className="space-y-1 text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Mail size={16} />
+                        <span>{user.email}</span>
+                      </div>
                     </div>
                   </div>
+                </div>
+                {/* Notifications Panel */}
+                <div className="flex-shrink-0">
+                  <NotificationsPanel />
                 </div>
               </div>
             </motion.div>

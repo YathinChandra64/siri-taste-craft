@@ -5,13 +5,17 @@ import {
   getAllContacts,
   getContactById,
   replyToContact,
-  deleteContact
+  deleteContact,
+  getCustomerNotifications // ✅ NEW
 } from "../controllers/contactController.js";
 
 const router = express.Router();
 
 // Public route - submit contact form (NO authentication needed)
 router.post("/", submitContact);
+
+// ✅ NEW: Customer route - get their own notifications/replies (Protected)
+router.get("/notifications", protect, getCustomerNotifications);
 
 // Admin only routes (Protected)
 router.get("/", protect, adminOnly, getAllContacts);

@@ -46,6 +46,29 @@ export const submitContact = async (req, res) => {
   }
 };
 
+// ✅ NEW: Get notifications for logged-in customer (their own messages with replies)
+export const getCustomerNotifications = async (req, res) => {
+  try {
+    const userEmail = req.user.email; // From auth middleware
+
+    if (!userEmail) {
+      return res.status(400).json({ message: "User email not found" });
+    }
+
+    // Find all messages from this customer that have replies
+    const notifications = await Contact.find({
+      email: userEmail,
+      reply: { $ne: null } // Only messages with replies
+    }).sort({ repliedAt: -1 });
+
+    res.json(notifications);
+
+  } catch (error) {
+    console.error("Get customer notifications error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // 👥 Get all contacts (Admin only)
 export const getAllContacts = async (req, res) => {
   try {
