@@ -10,6 +10,9 @@ import orderRoutes from "./routes/orderRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 
+import cartRoutes from "./routes/cartRoutes.js";
+import profileRoutes from "./routes/profileRoutes.js";
+
 dotenv.config();
 connectDB();
 
@@ -45,6 +48,9 @@ app.use("/api/users", userRoutes);
 
 // 📨 Contact routes
 app.use("/api/contact", contactRoutes);
+
+app.use("/api/cart", cartRoutes);
+app.use("/api/profile", profileRoutes);
 
 // 🚀 Start server (ALWAYS LAST)
 const PORT = process.env.PORT || 5000;

@@ -28,7 +28,34 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["admin", "customer"],
       default: "customer"
-    }
+    },
+
+    // ADD to userSchema:
+
+phone: {
+  type: String,
+  default: ""
+},
+address: {
+  type: String,
+  default: ""
+},
+city: {
+  type: String,
+  default: ""
+},
+state: {
+  type: String,
+  default: ""
+},
+zipCode: {
+  type: String,
+  default: ""
+},
+profileImage: {
+  type: String,
+  default: null
+}
   },
   { timestamps: true }
 );
