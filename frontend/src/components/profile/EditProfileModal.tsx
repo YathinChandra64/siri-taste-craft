@@ -10,7 +10,7 @@ interface EditProfileModalProps {
   user: User;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: Partial<User>) => Promise<void>;
+  onSave: (data: Partial<User>) => Promise<User>;
   isLoading?: boolean;
 }
 

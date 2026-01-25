@@ -9,7 +9,7 @@ import OurStory from "./pages/OurStory";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import Profile from "./pages/Profile";
+import Profile from "./pages/Profile.tsx";
 import Sarees from "./pages/Sarees";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/Dashboard";

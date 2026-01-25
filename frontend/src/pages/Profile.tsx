@@ -8,8 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Package, User as UserIcon, Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
+import { ShoppingCart, Package, User as UserIcon, Trash2, Plus, Minus, ShoppingBag, MapPin, Phone, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
+import AnimatedBackground from "@/components/AnimatedBackground";
 
 const Profile = () => {
   const { user, isAuthenticated } = useAuth();
@@ -17,12 +18,19 @@ const Profile = () => {
   const { toast } = useToast();
   const [cart, setCart] = useState(getCart());
   const [orders, setOrders] = useState(getOrders());
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
     }
   }, [isAuthenticated, navigate]);
+
+  // Refresh cart every time page loads
+  useEffect(() => {
+    const refreshedCart = getCart();
+    setCart(refreshedCart);
+  }, []);
 
   const refreshCart = () => {
     setCart(getCart());
@@ -38,6 +46,7 @@ const Profile = () => {
   };
 
   const handleUpdateQuantity = (id: number, type: 'saree' | 'sweet', newQuantity: number) => {
+    if (newQuantity < 1) return;
     updateCartQuantity(id, type, newQuantity);
     refreshCart();
   };
@@ -52,6 +61,8 @@ const Profile = () => {
       return;
     }
 
+    setIsCheckingOut(true);
+
     try {
       const token = localStorage.getItem("authToken");
       
@@ -62,12 +73,13 @@ const Profile = () => {
           variant: "destructive",
         });
         navigate('/login');
+        setIsCheckingOut(false);
         return;
       }
 
       // Prepare order items for backend
       const orderItems = cart.map(item => ({
-        product: item.id, // This should be the product ID from backend
+        product: item.id,
         quantity: item.quantity,
         price: item.pricePerKg || item.price
       }));
@@ -102,7 +114,7 @@ const Profile = () => {
         description: `Your order of ₹${totalAmount.toLocaleString()} has been confirmed.`,
       });
 
-      // Optionally redirect to home after a delay
+      // Redirect to home after a delay
       setTimeout(() => {
         navigate('/');
       }, 2000);
@@ -114,6 +126,8 @@ const Profile = () => {
         description: error instanceof Error ? error.message : "An error occurred while placing your order.",
         variant: "destructive",
       });
+    } finally {
+      setIsCheckingOut(false);
     }
   };
 
@@ -122,204 +136,368 @@ const Profile = () => {
   const cartTotal = getCartTotal();
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-1 py-12 px-4">
-        <div className="container mx-auto max-w-6xl">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-12"
-          >
-            <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-saree flex items-center justify-center">
-              <UserIcon className="w-12 h-12 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">
-              Welcome, {user.name}!
-            </h1>
-            <p className="text-muted-foreground">{user.email}</p>
-            <p className="text-sm text-muted-foreground mt-2 capitalize">
-              Role: <span className="font-semibold">{user.role}</span>
-            </p>
-          </motion.div>
-
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Shopping Cart */}
+    <div className="min-h-screen relative">
+      <AnimatedBackground />
+      
+      <div className="relative z-10">
+        <main className="flex-1 py-12 px-4">
+          <div className="container mx-auto max-w-7xl">
+            {/* Header */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mb-12"
             >
-              <Card className="shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ShoppingCart className="w-6 h-6" />
-                    Shopping Cart
-                  </CardTitle>
-                  <CardDescription>
-                    {cart.length} {cart.length === 1 ? 'item' : 'items'} in your cart
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {cart.length === 0 ? (
-                    <div className="text-center py-12">
-                      <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                      <p className="text-muted-foreground">Your cart is empty</p>
+              <div className="flex items-center gap-6 mb-6">
+                <div className="w-24 h-24 rounded-full bg-gradient-saree flex items-center justify-center flex-shrink-0">
+                  <UserIcon className="w-12 h-12 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold text-foreground mb-2">
+                    Welcome, {user.name}!
+                  </h1>
+                  <div className="space-y-1 text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Mail size={16} />
+                      <span>{user.email}</span>
                     </div>
-                  ) : (
-                    <>
-                      <div className="space-y-4 mb-6">
-                        {cart.map((item) => (
-                          <motion.div
-                            key={`${item.type}-${item.id}`}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex gap-4 p-4 rounded-lg bg-muted/50"
-                          >
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-20 h-20 object-cover rounded-lg"
-                            />
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-foreground">{item.name}</h4>
-                              <p className="text-sm text-muted-foreground capitalize">{item.type}</p>
-                              <p className="text-lg font-bold text-primary">
-                                ₹{(item.pricePerKg || item.price).toLocaleString()}
-                                {item.type === 'sweet' && '/kg'}
-                              </p>
-                            </div>
-                            <div className="flex flex-col items-end justify-between">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRemoveFromCart(item.id, item.type)}
-                              >
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleUpdateQuantity(item.id, item.type, item.quantity - 1)}
-                                  disabled={item.quantity <= 1}
-                                >
-                                  <Minus className="w-3 h-3" />
-                                </Button>
-                                <span className="w-8 text-center font-medium">{item.quantity}</span>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleUpdateQuantity(item.id, item.type, item.quantity + 1)}
-                                >
-                                  <Plus className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                      
-                      <Separator className="my-6" />
-                      
-                      <div className="space-y-3">
-                        <div className="flex justify-between text-lg">
-                          <span className="font-semibold">Total:</span>
-                          <span className="font-bold text-primary">₹{cartTotal.toLocaleString()}</span>
-                        </div>
-                        <Button
-                          onClick={handleCheckout}
-                          className="w-full bg-gradient-saree text-white shadow-hover hover:shadow-soft transition-all duration-300"
-                          size="lg"
-                        >
-                          Proceed to Checkout
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+                  </div>
+                </div>
+              </div>
             </motion.div>
 
-            {/* Order History */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <Card className="shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="w-6 h-6" />
-                    Order History
-                  </CardTitle>
-                  <CardDescription>
-                    Your past {orders.length} {orders.length === 1 ? 'order' : 'orders'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {orders.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                      <p className="text-muted-foreground">No orders yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                      {orders.map((order) => (
-                        <motion.div
-                          key={order.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="p-4 rounded-lg border border-border bg-card"
-                        >
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <p className="font-semibold text-sm text-muted-foreground">Order #{order.id}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(order.date).toLocaleDateString('en-IN', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </p>
-                            </div>
-                            <Badge variant="default" className="bg-green-500">
-                              {order.status}
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-2 mb-3">
-                            {order.items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">
-                                  {item.name} x{item.quantity}
-                                </span>
-                                <span className="font-medium">₹{(item.price * item.quantity).toLocaleString()}</span>
-                              </div>
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* Main Content - Cart & Orders */}
+              <div className="lg:col-span-2 space-y-8">
+                {/* Shopping Cart - Amazon Style */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                  <Card className="shadow-card">
+                    <CardHeader className="bg-muted/50 border-b">
+                      <CardTitle className="flex items-center gap-2 text-2xl">
+                        <ShoppingCart className="w-6 h-6" />
+                        Shopping Cart
+                      </CardTitle>
+                      <CardDescription>
+                        {cart.length} {cart.length === 1 ? 'item' : 'items'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      {cart.length === 0 ? (
+                        <div className="text-center py-16">
+                          <ShoppingBag className="w-20 h-20 mx-auto mb-4 text-muted-foreground opacity-30" />
+                          <p className="text-lg text-muted-foreground mb-2">Your cart is empty</p>
+                          <p className="text-sm text-muted-foreground mb-6">Add some beautiful sarees to get started!</p>
+                          <Button 
+                            onClick={() => navigate('/sarees')}
+                            className="bg-gradient-saree text-white"
+                          >
+                            Continue Shopping
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="space-y-6">
+                            {cart.map((item) => (
+                              <motion.div
+                                key={`${item.type}-${item.id}`}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex gap-4 pb-6 border-b last:border-b-0"
+                              >
+                                {/* Product Image */}
+                                <div className="flex-shrink-0">
+                                  <img
+                                    src={item.image}
+                                    alt={item.name}
+                                    className="w-32 h-40 object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                                  />
+                                </div>
+
+                                {/* Product Details */}
+                                <div className="flex-1 flex flex-col justify-between">
+                                  <div>
+                                    <h3 className="text-lg font-bold text-foreground mb-1">
+                                      {item.name}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground capitalize mb-3">
+                                      Type: {item.type === 'saree' ? 'Saree' : 'Sweet'}
+                                    </p>
+                                    
+                                    {/* Price */}
+                                    <div className="mb-3">
+                                      <p className="text-2xl font-bold text-primary">
+                                        ₹{(item.pricePerKg || item.price).toLocaleString()}
+                                      </p>
+                                      {item.type === 'sweet' && (
+                                        <p className="text-xs text-muted-foreground">/kg</p>
+                                      )}
+                                    </div>
+
+                                    {/* Total for this item */}
+                                    <p className="text-sm font-semibold text-foreground">
+                                      Subtotal: ₹{((item.pricePerKg || item.price) * item.quantity).toLocaleString()}
+                                    </p>
+                                  </div>
+
+                                  {/* Quantity & Action */}
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3 bg-muted/50 rounded-lg p-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                        onClick={() => handleUpdateQuantity(item.id, item.type, item.quantity - 1)}
+                                        disabled={item.quantity <= 1}
+                                      >
+                                        <Minus className="w-4 h-4" />
+                                      </Button>
+                                      <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                        onClick={() => handleUpdateQuantity(item.id, item.type, item.quantity + 1)}
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                      onClick={() => handleRemoveFromCart(item.id, item.type)}
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </div>
+                              </motion.div>
                             ))}
                           </div>
-                          
-                          <Separator className="my-2" />
-                          
-                          <div className="flex justify-between font-bold">
-                            <span>Total:</span>
-                            <span className="text-primary">₹{order.total.toLocaleString()}</span>
+
+                          {/* Divider */}
+                          <Separator className="my-6" />
+
+                          {/* Save For Later Section */}
+                          <div className="mb-6">
+                            <Button
+                              variant="outline"
+                              className="w-full text-center"
+                              onClick={() => navigate('/sarees')}
+                            >
+                              Continue Shopping
+                            </Button>
                           </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Order History */}
+                {/* Order History */}
+<motion.div
+  initial={{ opacity: 0, x: -20 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ duration: 0.5, delay: 0.2 }}
+>
+  <Card className="shadow-card">
+    <CardHeader className="bg-muted/50 border-b">
+      <CardTitle className="flex items-center gap-2 text-2xl">
+        <Package className="w-6 h-6" />
+        Order History
+      </CardTitle>
+      <CardDescription>
+        {orders && orders.length ? orders.length : 0} {(orders && orders.length === 1) ? 'order' : 'orders'} placed
+      </CardDescription>
+    </CardHeader>
+    <CardContent className="pt-6">
+      {!orders || orders.length === 0 ? (
+        <div className="text-center py-12">
+          <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-30" />
+          <p className="text-muted-foreground">No orders yet</p>
+          <p className="text-sm text-muted-foreground mt-1">Start shopping to create your first order!</p>
         </div>
-      </main>
+      ) : (
+        <div className="space-y-4 max-h-[600px] overflow-y-auto">
+          {orders.map((order) => {
+            // Safety check for order
+            if (!order) return null;
+
+            const orderTotal = order.total || 0;
+            const orderStatus = order.status || 'pending';
+            const orderDate = order.date ? new Date(order.date) : new Date();
+
+            return (
+              <motion.div
+                key={order.id || Math.random()}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <p className="font-bold text-foreground">Order #{order.id || 'N/A'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {orderDate.toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                  <Badge 
+                    className={`${
+                      orderStatus === 'completed' 
+                        ? 'bg-green-500' 
+                        : orderStatus === 'pending'
+                        ? 'bg-blue-500'
+                        : 'bg-yellow-500'
+                    }`}
+                  >
+                    {orderStatus.toUpperCase()}
+                  </Badge>
+                </div>
+                
+                <div className="bg-muted/50 p-3 rounded mb-3 max-h-20 overflow-y-auto">
+                  {order.items && Array.isArray(order.items) && order.items.length > 0 ? (
+                    order.items.map((item, idx) => {
+                      // Safety check for item
+                      if (!item) return null;
+
+                      const itemName = item.name || 'Product';
+                      const itemQty = item.quantity || 1;
+                      const itemPrice = item.price || 0;
+                      const itemSubtotal = itemPrice * itemQty;
+
+                      return (
+                        <div key={idx} className="text-sm flex justify-between mb-1">
+                          <span className="text-muted-foreground">
+                            {itemName} x{itemQty}
+                          </span>
+                          <span className="font-medium">
+                            ₹{itemSubtotal.toLocaleString()}
+                          </span>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No items in this order</p>
+                  )}
+                </div>
+                
+                <div className="flex justify-between font-bold pt-2 border-t">
+                  <span>Total:</span>
+                  <span className="text-primary">₹{orderTotal.toLocaleString()}</span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+    </CardContent>
+  </Card>
+</motion.div>
+              </div>
+
+              {/* Sidebar - Price Summary & Checkout (Amazon Style) */}
+              
+              {/* Sidebar - Price Summary & Checkout (Amazon Style) */}
+<motion.div
+  initial={{ opacity: 0, x: 20 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ duration: 0.5, delay: 0.3 }}
+  className="lg:col-span-1"
+>
+  <Card className="shadow-card sticky top-20 border-orange-200">
+    <CardContent className="pt-6">
+      {cart && cart.length > 0 ? (
+        <div className="space-y-4">
+          {/* Price Breakdown */}
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Subtotal ({cart.length} items):</span>
+              <span className="font-medium">₹{(cartTotal || 0).toLocaleString()}</span>
+            </div>
+            
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Shipping:</span>
+              <span className="font-medium text-green-600">FREE</span>
+            </div>
+
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Tax:</span>
+              <span className="font-medium">₹0</span>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Total */}
+          <div className="flex justify-between items-center">
+            <span className="font-bold text-lg">Total:</span>
+            <span className="text-2xl font-bold text-primary">₹{(cartTotal || 0).toLocaleString()}</span>
+          </div>
+
+          <Separator />
+
+          {/* Checkout Button */}
+          <Button
+            onClick={handleCheckout}
+            disabled={isCheckingOut || !cart || cart.length === 0}
+            className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+            size="lg"
+          >
+            {isCheckingOut ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity }}
+                className="w-5 h-5 border-2 border-white border-t-transparent rounded-full inline-block mr-2"
+              />
+            ) : (
+              "Proceed to Buy"
+            )}
+          </Button>
+
+          {/* Message */}
+          <p className="text-xs text-center text-muted-foreground">
+            Secure checkout with encrypted payment
+          </p>
+
+          {/* Continue Shopping */}
+          <Button
+            variant="outline"
+            onClick={() => navigate('/sarees')}
+            className="w-full"
+          >
+            Continue Shopping
+          </Button>
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground mb-4">Your cart is empty</p>
+          <Button
+            onClick={() => navigate('/sarees')}
+            className="w-full bg-gradient-saree text-white"
+          >
+            Start Shopping
+          </Button>
+        </div>
+      )}
+    </CardContent>
+  </Card>
+</motion.div>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

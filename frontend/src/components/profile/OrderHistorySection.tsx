@@ -5,7 +5,7 @@ import { Order } from "@/types/profile";
 import { Package, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import OrderDetailModal from "./OrderDetailModal";
+import {OrderDetailModal} from "./OrderDetailModal.tsx";
 
 interface OrderHistorySectionProps {
   orders: Order[];
