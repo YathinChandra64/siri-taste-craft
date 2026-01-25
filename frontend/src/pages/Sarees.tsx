@@ -310,17 +310,15 @@ const Sarees = () => {
 
                             {/* Stock Badge */}
                             <div className="absolute top-4 right-4">
-                              <motion.span
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className={`px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm ${
-                                  saree.stock > 0
-                                    ? "bg-green-500/80 text-white"
-                                    : "bg-red-500/80 text-white"
-                                }`}
-                              >
-                                {saree.stock > 0 ? `${saree.stock} in stock` : "Out of stock"}
-                              </motion.span>
+                              {saree.stock === 0 && (
+  <motion.span
+    initial={{ scale: 0 }}
+    animate={{ scale: 1 }}
+    className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/80 text-white absolute top-4 right-4"
+  >
+    Out of Stock
+  </motion.span>
+)}
                             </div>
 
                             {/* Category Badge */}

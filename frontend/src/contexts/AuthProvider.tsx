@@ -1,8 +1,8 @@
 import { useState, useEffect, ReactNode } from "react";
-import { AuthContext, AuthContextType } from "./AuthContext";
+import { AuthContext, AuthContextType, User } from "./AuthContext";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   // ✅ Check if user is already logged in (on app load/refresh)
@@ -24,15 +24,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (response.ok) {
-          const userData = await response.json();
+          const userData: User = await response.json();
           setUser(userData);
+          // ✅ FIX: Store user info in localStorage for cart purposes
+          localStorage.setItem("user", JSON.stringify(userData));
         } else {
           localStorage.removeItem("authToken");
+          localStorage.removeItem("user");
           setUser(null);
         }
       } catch (error) {
         console.error("Auth check failed:", error);
         localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
         setUser(null);
       } finally {
         setLoading(false);
@@ -64,7 +68,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem("authToken", data.token);
       }
 
-      setUser(data.user);
+      // ✅ FIX: Store user info in localStorage for cart purposes
+      const userData: User = data.user;
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      setUser(userData);
       return true;
     } catch (error) {
       console.error("Login error:", error);
@@ -94,7 +102,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem("authToken", data.token);
       }
 
-      setUser(data.user);
+      // ✅ FIX: Store user info in localStorage for cart purposes
+      const userData: User = data.user;
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      setUser(userData);
       return true;
     } catch (error) {
       console.error("Signup error:", error);
@@ -104,6 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
     setUser(null);
   };
 

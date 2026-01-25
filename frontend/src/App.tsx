@@ -17,6 +17,7 @@ import AdminUsers from "./pages/admin/Users";
 import { useEffect } from "react";
 import AdminMessages from "./pages/admin/Messages";
 import AdminSarees from "./pages/admin/Sarees";
+import AdminProfile from "./pages/admin/AdminProfile";
 
 const App = () => {
   useEffect(() => {
@@ -78,6 +79,24 @@ const App = () => {
   element={
     <ProtectedRoute requiredRole="admin">
       <AdminSarees />
+    </ProtectedRoute>
+  } 
+/>
+
+<Route 
+  path="/profile" 
+  element={
+    <ProtectedRoute requiredRole="customer">
+      <Profile />
+    </ProtectedRoute>
+  } 
+/>
+
+<Route 
+  path="/admin/profile" 
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <AdminProfile />
     </ProtectedRoute>
   } 
 />

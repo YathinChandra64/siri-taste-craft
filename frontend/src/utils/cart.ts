@@ -1,57 +1,143 @@
-export interface CartItem {
+// ✅ Define proper types instead of 'any'
+interface CartItem {
   id: number;
   name: string;
   price: number;
   pricePerKg?: number;
-  quantity: number;
-  type: 'saree' | 'sweet';
   image: string;
+  type: "saree" | "sweet";
   unit?: string;
+  quantity: number;
 }
 
-const CART_KEY = 'userCart';
+interface StoredUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
+// User-specific cart key based on logged-in user
+const getCartKey = (): string => {
+  try {
+    const userJson = localStorage.getItem("user");
+    if (!userJson) {
+      return "cart_guest";
+    }
+    const user: StoredUser = JSON.parse(userJson);
+    return `cart_${user.id || "guest"}`;
+  } catch {
+    return "cart_guest";
+  }
+};
 
 export const getCart = (): CartItem[] => {
-  const cart = localStorage.getItem(CART_KEY);
-  return cart ? JSON.parse(cart) : [];
-};
-
-export const addToCart = (item: Omit<CartItem, 'quantity'>, quantity: number = 1): void => {
-  const cart = getCart();
-  const existingItem = cart.find(i => i.id === item.id && i.type === item.type);
-  
-  if (existingItem) {
-    existingItem.quantity += quantity;
-  } else {
-    cart.push({ ...item, quantity });
+  try {
+    const cartKey = getCartKey();
+    const cart = localStorage.getItem(cartKey);
+    return cart ? JSON.parse(cart) : [];
+  } catch {
+    return [];
   }
-  
-  localStorage.setItem(CART_KEY, JSON.stringify(cart));
 };
 
-export const removeFromCart = (id: number, type: 'saree' | 'sweet'): void => {
-  const cart = getCart().filter(item => !(item.id === id && item.type === type));
-  localStorage.setItem(CART_KEY, JSON.stringify(cart));
-};
+export const addToCart = (
+  item: {
+    id: number;
+    name: string;
+    price: number;
+    image: string;
+    type: "saree" | "sweet";
+    unit?: string;
+    quantity?: number;
+  },
+  quantity: number = 1
+): boolean => {
+  try {
+    const cartKey = getCartKey();
+    const cart = getCart();
+    
+    // ✅ FIX: Check if item already exists, merge quantities instead of duplicating
+    const existingItemIndex: number = cart.findIndex(
+      (cartItem: CartItem) => cartItem.id === item.id && cartItem.type === item.type
+    );
 
-export const updateCartQuantity = (id: number, type: 'saree' | 'sweet', quantity: number): void => {
-  const cart = getCart();
-  const item = cart.find(i => i.id === id && i.type === type);
-  
-  if (item) {
-    if (quantity <= 0) {
-      removeFromCart(id, type);
+    if (existingItemIndex > -1) {
+      // Item exists, increase quantity
+      cart[existingItemIndex].quantity += quantity;
     } else {
-      item.quantity = quantity;
-      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+      // New item
+      const newItem: CartItem = {
+        ...item,
+        quantity: quantity || 1,
+        pricePerKg: item.type === "sweet" ? item.price : undefined
+      };
+      cart.push(newItem);
     }
+
+    localStorage.setItem(cartKey, JSON.stringify(cart));
+    return true;
+  } catch {
+    return false;
   }
 };
 
-export const clearCart = (): void => {
-  localStorage.removeItem(CART_KEY);
+export const removeFromCart = (id: number, type: "saree" | "sweet"): boolean => {
+  try {
+    const cartKey = getCartKey();
+    const cart = getCart();
+    const filtered: CartItem[] = cart.filter(
+      (item: CartItem) => !(item.id === id && item.type === type)
+    );
+    localStorage.setItem(cartKey, JSON.stringify(filtered));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const updateCartQuantity = (
+  id: number,
+  type: "saree" | "sweet",
+  quantity: number
+): boolean => {
+  try {
+    const cartKey = getCartKey();
+    const cart = getCart();
+    const item: CartItem | undefined = cart.find(
+      (i: CartItem) => i.id === id && i.type === type
+    );
+    
+    if (item) {
+      item.quantity = Math.max(1, quantity);
+    }
+    
+    localStorage.setItem(cartKey, JSON.stringify(cart));
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export const getCartTotal = (): number => {
-  return getCart().reduce((total, item) => total + (item.price * item.quantity), 0);
+  try {
+    const cart = getCart();
+    return cart.reduce(
+      (total: number, item: CartItem) =>
+        total + ((item.pricePerKg || item.price || 0) * (item.quantity || 1)),
+      0
+    );
+  } catch {
+    return 0;
+  }
+};
+
+export const clearCart = (): boolean => {
+  try {
+    const cartKey = getCartKey();
+    localStorage.removeItem(cartKey);
+    return true;
+  } catch {
+    return false;
+  }
 };
