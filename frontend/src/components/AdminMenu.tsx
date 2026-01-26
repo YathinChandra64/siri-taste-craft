@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Settings,
   ChevronDown,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -44,12 +45,20 @@ const AdminMenu = () => {
       color: "text-pink-600",
       bgColor: "bg-pink-100 dark:bg-pink-900",
     },
+    // ✅ NEW: Payment Verification
+    {
+      label: "Payment Verification",
+      icon: CreditCard,
+      path: "/admin/payments",
+      color: "text-green-600",
+      bgColor: "bg-green-100 dark:bg-green-900",
+    },
     {
       label: "Admin Profile",
       icon: Settings,
       path: "/admin/profile",
-      color: "text-green-600",
-      bgColor: "bg-green-100 dark:bg-green-900",
+      color: "text-gray-600",
+      bgColor: "bg-gray-100 dark:bg-gray-900",
     },
   ];
 
