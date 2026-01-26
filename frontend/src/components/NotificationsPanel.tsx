@@ -1,31 +1,35 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, X, MessageCircle } from "lucide-react";
+import { Bell, X, CheckCircle, AlertCircle, Info, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
-interface MessageNotification {
+interface Notification {
   _id: string;
-  name: string;
-  email: string;
+  type: "payment_received" | "order_confirmed" | "payment_rejected" | "order_shipped" | "order_delivered" | "message_reply" | "general";
+  title: string;
   message: string;
-  reply: string;
-  repliedAt: string;
-  status: "new" | "read" | "replied";
+  isRead: boolean;
+  createdAt: string;
+  orderId?: string;
 }
 
 const NotificationsPanel = () => {
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<MessageNotification[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // ✅ Fetch notifications on mount and periodically
   useEffect(() => {
     fetchNotifications();
-    // Refresh notifications every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    
+    // Refresh every 10 seconds
+    const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("authToken");
@@ -35,28 +39,105 @@ const NotificationsPanel = () => {
         return;
       }
 
-      // ✅ FIXED: Use the new customer notifications endpoint
-      const response = await fetch("http://localhost:5000/api/contact/notifications", {
+      const response = await fetch("http://localhost:5000/api/payments/notifications", {
         headers: {
           "Authorization": `Bearer ${token}`
         }
       });
 
       if (response.ok) {
-        const messages: MessageNotification[] = await response.json();
-        setNotifications(messages);
+        const data: Notification[] = await response.json();
+        setNotifications(data);
       }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      const token = localStorage.getItem("authToken");
+
+      const response = await fetch(
+        `http://localhost:5000/api/payments/notifications/${notificationId}/read`,
+        {
+          method: "PUT",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        setNotifications(prev =>
+          prev.map(n => n._id === notificationId ? { ...n, isRead: true } : n)
+        );
+      }
+    } catch (error) {
+      console.error("Failed to mark as read:", error);
+    }
   };
 
-  const unreadCount = notifications.length;
+  const handleDeleteNotification = async (notificationId: string) => {
+    setNotifications(prev => prev.filter(n => n._id !== notificationId));
+  };
 
-  const handleDismiss = (id: string) => {
-    setNotifications(prev => prev.filter(n => n._id !== id));
+  const handleClearAll = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+
+      const response = await fetch(
+        "http://localhost:5000/api/payments/notifications/clear",
+        {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        setNotifications([]);
+        toast({
+          title: "Cleared",
+          description: "All notifications cleared",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to clear notifications:", error);
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // Get icon based on notification type
+  const getIcon = (type: string) => {
+    switch(type) {
+      case "order_confirmed":
+        return <CheckCircle size={18} className="text-green-600" />;
+      case "payment_rejected":
+        return <AlertCircle size={18} className="text-red-600" />;
+      case "payment_received":
+        return <Info size={18} className="text-blue-600" />;
+      default:
+        return <Bell size={18} className="text-primary" />;
+    }
+  };
+
+  // Get color based on notification type
+  const getColor = (type: string) => {
+    switch(type) {
+      case "order_confirmed":
+        return "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
+      case "payment_rejected":
+        return "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
+      case "payment_received":
+        return "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800";
+      default:
+        return "bg-primary/10 border-primary/50";
+    }
   };
 
   return (
@@ -96,9 +177,9 @@ const NotificationsPanel = () => {
             {/* Header */}
             <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-foreground">Admin Replies</h3>
+                <h3 className="font-bold text-foreground">Notifications</h3>
                 <p className="text-xs text-muted-foreground">
-                  {unreadCount} {unreadCount === 1 ? "reply" : "replies"}
+                  {unreadCount} unread {unreadCount === 1 ? "notification" : "notifications"}
                 </p>
               </div>
               <button
@@ -123,8 +204,8 @@ const NotificationsPanel = () => {
               ) : notifications.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
                   <Bell size={32} className="mx-auto mb-3 opacity-50" />
-                  <p>No replies yet</p>
-                  <p className="text-xs mt-2">When admin replies to your message, you'll see it here</p>
+                  <p>No notifications yet</p>
+                  <p className="text-xs mt-2">You'll see updates here</p>
                 </div>
               ) : (
                 <div className="space-y-2 p-3">
@@ -134,36 +215,26 @@ const NotificationsPanel = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="p-4 rounded-lg border border-primary/50 bg-primary/10 transition-all hover:border-primary/80"
+                      className={`p-4 rounded-lg border transition-all ${getColor(notification.type)} ${!notification.isRead ? "ring-2 ring-primary/30" : ""}`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900 flex-shrink-0">
-                          <MessageCircle size={18} className="text-blue-600 dark:text-blue-400" />
+                        <div className="flex-shrink-0 mt-1">
+                          {getIcon(notification.type)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          {/* Your Original Message */}
-                          <div className="mb-3">
-                            <p className="font-semibold text-sm text-foreground mb-1">
-                              Your Message
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-semibold text-sm text-foreground">
+                              {notification.title}
                             </p>
-                            <p className="text-sm text-muted-foreground line-clamp-2 bg-muted/50 p-2 rounded">
-                              {notification.message}
-                            </p>
+                            {!notification.isRead && (
+                              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                            )}
                           </div>
-
-                          {/* Admin Reply */}
-                          <div>
-                            <p className="font-semibold text-sm text-primary mb-1">
-                              Admin Reply ✓
-                            </p>
-                            <p className="text-sm text-foreground line-clamp-3 bg-primary/5 p-2 rounded border-l-2 border-primary">
-                              {notification.reply}
-                            </p>
-                          </div>
-
-                          {/* Reply Date */}
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {notification.message}
+                          </p>
                           <p className="text-xs text-muted-foreground mt-2">
-                            {new Date(notification.repliedAt).toLocaleDateString("en-IN", {
+                            {new Date(notification.createdAt).toLocaleDateString("en-IN", {
                               year: "numeric",
                               month: "short",
                               day: "numeric",
@@ -173,13 +244,21 @@ const NotificationsPanel = () => {
                           </p>
                         </div>
                         <button
-                          onClick={() => handleDismiss(notification._id)}
+                          onClick={() => handleDeleteNotification(notification._id)}
                           className="p-1 hover:bg-muted rounded transition-colors flex-shrink-0"
-                          title="Dismiss"
+                          title="Delete"
                         >
                           <X size={14} />
                         </button>
                       </div>
+                      {!notification.isRead && (
+                        <button
+                          onClick={() => handleMarkAsRead(notification._id)}
+                          className="mt-2 text-xs text-primary hover:underline"
+                        >
+                          Mark as read
+                        </button>
+                      )}
                     </motion.div>
                   ))}
                 </div>
@@ -190,12 +269,10 @@ const NotificationsPanel = () => {
             {notifications.length > 0 && (
               <div className="sticky bottom-0 bg-muted border-t border-border p-3 text-center">
                 <button
-                  onClick={() => {
-                    setNotifications([]);
-                  }}
+                  onClick={handleClearAll}
                   className="text-xs text-primary hover:underline"
                 >
-                  Clear all
+                  Clear all notifications
                 </button>
               </div>
             )}

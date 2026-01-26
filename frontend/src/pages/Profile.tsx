@@ -2,17 +2,20 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCart, removeFromCart, getCartTotal, clearCart, updateCartQuantity } from "@/utils/cart";
-import { getOrders, addOrder } from "@/utils/orders";
+import { getOrders } from "@/utils/orders";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Package, User as UserIcon, Trash2, Plus, Minus, ShoppingBag, Mail } from "lucide-react";
+import { ShoppingCart, Package, User as UserIcon, Trash2, Plus, Minus, ShoppingBag, Mail, QrCode, CheckCircle, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import NotificationsPanel from "@/components/NotificationsPanel";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
+// ✅ Type Definitions
 interface CartItem {
   id: number;
   name: string;
@@ -30,15 +33,58 @@ interface OrderItem {
   price: number;
 }
 
+interface BackendOrder {
+  _id: string;
+  totalAmount: number;
+  status: string;
+  paymentReference?: string;
+  paymentProof?: string;
+  createdAt: string;
+  items?: OrderItem[];
+}
+
+// ✅ Old/Local Order format (from localStorage)
+interface LocalOrder {
+  id?: string;
+  _id?: string;
+  total?: number;
+  totalAmount?: number;
+  date?: string;
+  createdAt?: string;
+  status?: string;
+  items?: OrderItem[];
+  paymentReference?: string;
+  paymentProof?: string;
+}
+
+// ✅ MAPPER: Convert old Order format to BackendOrder format
+const mapOrderToBackendOrder = (order: LocalOrder): BackendOrder => ({
+  _id: order._id ?? order.id ?? `order-${Date.now()}`,
+  totalAmount: order.totalAmount ?? order.total ?? 0,
+  status: order.status ?? "pending",
+  createdAt: order.createdAt ?? order.date ?? new Date().toISOString(),
+  items: order.items ?? [],
+  paymentReference: order.paymentReference ?? undefined,
+  paymentProof: order.paymentProof ?? undefined
+});
+
 const Profile = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [cart, setCart] = useState<CartItem[]>(getCart());
-  const [orders, setOrders] = useState(getOrders());
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [orders, setOrders] = useState<BackendOrder[]>(getOrders().map(mapOrderToBackendOrder));
+  const [upiQrCode, setUpiQrCode] = useState<string | null>(null);
+  const [upiId, setUpiId] = useState<string | null>(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showProofDialog, setShowProofDialog] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [paymentProofData, setPaymentProofData] = useState({
+    reference: "",
+    proofUrl: ""
+  });
 
-  // ✅ FIX 1: Safe price formatter helper
   const formatPrice = (value?: number): string => {
     return typeof value === "number" ? value.toLocaleString() : "0";
   };
@@ -49,11 +95,28 @@ const Profile = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Refresh cart every time page loads
   useEffect(() => {
     const refreshedCart = getCart();
     setCart(refreshedCart);
   }, []);
+
+  // Fetch UPI QR code
+  useEffect(() => {
+    fetchUpiQrCode();
+  }, []);
+
+  const fetchUpiQrCode = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/payments/upi-qr");
+      if (response.ok) {
+        const data = await response.json();
+        setUpiQrCode(data.upiQrCode);
+        setUpiId(data.upiId);
+      }
+    } catch (error) {
+      console.error("Failed to fetch UPI QR:", error);
+    }
+  };
 
   const refreshCart = () => {
     setCart(getCart());
@@ -74,7 +137,7 @@ const Profile = () => {
     refreshCart();
   };
 
-  const handleCheckout = async () => {
+  const handleProceedToCheckout = async () => {
     if (!cart || cart.length === 0) {
       toast({
         title: "Cart is empty",
@@ -84,7 +147,7 @@ const Profile = () => {
       return;
     }
 
-    setIsCheckingOut(true);
+    setIsSubmittingOrder(true);
 
     try {
       const token = localStorage.getItem("authToken");
@@ -96,11 +159,10 @@ const Profile = () => {
           variant: "destructive",
         });
         navigate('/login');
-        setIsCheckingOut(false);
+        setIsSubmittingOrder(false);
         return;
       }
 
-      // ✅ FIX 2: Include product name and use nullish coalescing
       const orderItems: OrderItem[] = cart.map(item => ({
         product: item.id,
         name: item.name,
@@ -110,8 +172,8 @@ const Profile = () => {
 
       const cartTotal = getCartTotal() ?? 0;
 
-      // Send order to backend
-      const response = await fetch("http://localhost:5000/api/orders", {
+      // ✅ Create order (awaiting payment)
+      const response = await fetch("http://localhost:5000/api/payments/create-order", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -125,23 +187,17 @@ const Profile = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to place order");
+        throw new Error(errorData.message || "Failed to create order");
       }
 
-      // Order successful
-      clearCart();
-      refreshCart();
-      setOrders(getOrders());
-      
-      toast({
-        title: "Order Placed Successfully! 🎉",
-        description: `Your order of ₹${formatPrice(cartTotal)} has been confirmed.`,
-      });
+      const { order } = await response.json();
+      setPendingOrderId(order._id);
+      setShowPaymentDialog(true);
 
-      // Redirect to home after a delay
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
+      toast({
+        title: "Order Created",
+        description: "Now please proceed with payment",
+      });
 
     } catch (error) {
       console.error("Checkout error:", error);
@@ -151,7 +207,75 @@ const Profile = () => {
         variant: "destructive",
       });
     } finally {
-      setIsCheckingOut(false);
+      setIsSubmittingOrder(false);
+    }
+  };
+
+  const handleSubmitPaymentProof = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingOrder(true);
+
+    try {
+      const token = localStorage.getItem("authToken");
+
+      if (!paymentProofData.reference) {
+        toast({
+          title: "Error",
+          description: "Please enter payment reference number",
+          variant: "destructive",
+        });
+        setIsSubmittingOrder(false);
+        return;
+      }
+
+      const response = await fetch("http://localhost:5000/api/payments/submit-proof", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId: pendingOrderId,
+          paymentReference: paymentProofData.reference,
+          paymentProofUrl: paymentProofData.proofUrl
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to submit payment proof");
+      }
+
+      toast({
+        title: "Payment Submitted! ✅",
+        description: "Admin will verify your payment shortly. Check notifications for updates.",
+      });
+
+      // Clear cart
+      clearCart();
+      refreshCart();
+      setShowPaymentDialog(false);
+      setShowProofDialog(false);
+      setPaymentProofData({ reference: "", proofUrl: "" });
+      setPendingOrderId(null);
+
+      // Refresh orders using mapper
+      setOrders(getOrders().map(mapOrderToBackendOrder));
+
+      // Redirect after delay
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+
+    } catch (error) {
+      console.error("Submit proof error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to submit payment proof",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingOrder(false);
     }
   };
 
@@ -190,7 +314,6 @@ const Profile = () => {
                     </div>
                   </div>
                 </div>
-                {/* Notifications Panel */}
                 <div className="flex-shrink-0">
                   <NotificationsPanel />
                 </div>
@@ -200,7 +323,7 @@ const Profile = () => {
             <div className="grid lg:grid-cols-3 gap-8">
               {/* Main Content - Cart & Orders */}
               <div className="lg:col-span-2 space-y-8">
-                {/* Shopping Cart - Amazon Style */}
+                {/* Shopping Cart */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -233,7 +356,6 @@ const Profile = () => {
                         <>
                           <div className="space-y-6">
                             {cart.map((item) => {
-                              // ✅ Safe price calculation
                               const itemPrice = item.pricePerKg ?? item.price ?? 0;
                               const itemQuantity = item.quantity ?? 1;
                               const itemSubtotal = itemPrice * itemQuantity;
@@ -245,7 +367,6 @@ const Profile = () => {
                                   animate={{ opacity: 1, y: 0 }}
                                   className="flex gap-4 pb-6 border-b last:border-b-0"
                                 >
-                                  {/* Product Image */}
                                   <div className="flex-shrink-0">
                                     <img
                                       src={item.image || "https://via.placeholder.com/128x160"}
@@ -254,7 +375,6 @@ const Profile = () => {
                                     />
                                   </div>
 
-                                  {/* Product Details */}
                                   <div className="flex-1 flex flex-col justify-between">
                                     <div>
                                       <h3 className="text-lg font-bold text-foreground mb-1">
@@ -264,7 +384,6 @@ const Profile = () => {
                                         Type: {item.type === 'saree' ? 'Saree' : 'Sweet'}
                                       </p>
                                       
-                                      {/* Price */}
                                       <div className="mb-3">
                                         <p className="text-2xl font-bold text-primary">
                                           ₹{formatPrice(itemPrice)}
@@ -274,13 +393,11 @@ const Profile = () => {
                                         )}
                                       </div>
 
-                                      {/* Total for this item */}
                                       <p className="text-sm font-semibold text-foreground">
                                         Subtotal: ₹{formatPrice(itemSubtotal)}
                                       </p>
                                     </div>
 
-                                    {/* Quantity & Action */}
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-3 bg-muted/50 rounded-lg p-2">
                                         <Button
@@ -319,10 +436,8 @@ const Profile = () => {
                             })}
                           </div>
 
-                          {/* Divider */}
                           <Separator className="my-6" />
 
-                          {/* Continue Shopping Button */}
                           <div className="mb-6">
                             <Button
                               variant="outline"
@@ -363,24 +478,44 @@ const Profile = () => {
                         </div>
                       ) : (
                         <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                          {orders.map((order) => {
-                            // ✅ Safety checks for order
+                          {orders.map((order: BackendOrder) => {
                             if (!order) return null;
 
-                            const orderTotal = order.total ?? 0;
+                            const orderTotal = order.totalAmount ?? 0;
                             const orderStatus = order.status || 'pending';
-                            const orderDate = order.date ? new Date(order.date) : new Date();
+                            const orderDate = order.createdAt ? new Date(order.createdAt) : new Date();
+
+                            const getStatusColor = (status: string) => {
+                              switch(status) {
+                                case 'confirmed': return 'bg-green-500';
+                                case 'payment_submitted': return 'bg-yellow-500';
+                                case 'pending_payment': return 'bg-orange-500';
+                                case 'payment_rejected': return 'bg-red-500';
+                                case 'shipped': return 'bg-blue-500';
+                                case 'delivered': return 'bg-green-600';
+                                default: return 'bg-gray-500';
+                              }
+                            };
+
+                            const getStatusIcon = (status: string) => {
+                              switch(status) {
+                                case 'confirmed': return <CheckCircle size={16} />;
+                                case 'payment_submitted': return <Clock size={16} />;
+                                case 'pending_payment': return <QrCode size={16} />;
+                                default: return <Package size={16} />;
+                              }
+                            };
 
                             return (
                               <motion.div
-                                key={order.id || Math.random()}
+                                key={order._id}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
                               >
                                 <div className="flex justify-between items-start mb-3">
                                   <div>
-                                    <p className="font-bold text-foreground">Order #{order.id || 'N/A'}</p>
+                                    <p className="font-bold text-foreground">Order #{order._id.slice(-8).toUpperCase()}</p>
                                     <p className="text-sm text-muted-foreground">
                                       {orderDate.toLocaleDateString('en-IN', {
                                         year: 'numeric',
@@ -389,49 +524,17 @@ const Profile = () => {
                                       })}
                                     </p>
                                   </div>
-                                  <Badge 
-                                    className={`${
-                                      orderStatus === 'completed' 
-                                        ? 'bg-green-500' 
-                                        : orderStatus === 'pending'
-                                        ? 'bg-blue-500'
-                                        : 'bg-yellow-500'
-                                    }`}
-                                  >
+                                  <Badge className={`${getStatusColor(orderStatus)} flex items-center gap-1`}>
+                                    {getStatusIcon(orderStatus)}
                                     {orderStatus.toUpperCase()}
                                   </Badge>
                                 </div>
                                 
-                                <div className="bg-muted/50 p-3 rounded mb-3 max-h-20 overflow-y-auto">
-                                  {order.items && Array.isArray(order.items) && order.items.length > 0 ? (
-                                    order.items.map((item, idx) => {
-                                      // ✅ Safety check for item
-                                      if (!item) return null;
-
-                                      const itemName = item.name || 'Product';
-                                      const itemQty = item.quantity ?? 1;
-                                      const itemPrice = item.price ?? 0;
-                                      const itemSubtotal = itemPrice * itemQty;
-
-                                      return (
-                                        <div key={idx} className="text-sm flex justify-between mb-1">
-                                          <span className="text-muted-foreground">
-                                            {itemName} x{itemQty}
-                                          </span>
-                                          <span className="font-medium">
-                                            ₹{formatPrice(itemSubtotal)}
-                                          </span>
-                                        </div>
-                                      );
-                                    })
-                                  ) : (
-                                    <p className="text-sm text-muted-foreground">No items in this order</p>
-                                  )}
-                                </div>
-                                
                                 <div className="flex justify-between font-bold pt-2 border-t">
-                                  <span>Total:</span>
-                                  <span className="text-primary">₹{formatPrice(orderTotal)}</span>
+                                  <span>Total: ₹{formatPrice(orderTotal)}</span>
+                                  {orderStatus === 'pending_payment' && (
+                                    <span className="text-xs text-orange-600">Awaiting payment</span>
+                                  )}
                                 </div>
                               </motion.div>
                             );
@@ -443,7 +546,7 @@ const Profile = () => {
                 </motion.div>
               </div>
 
-              {/* Sidebar - Price Summary & Checkout (Amazon Style) */}
+              {/* Sidebar - Price Summary & Checkout */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -454,7 +557,6 @@ const Profile = () => {
                   <CardContent className="pt-6">
                     {cart && cart.length > 0 ? (
                       <div className="space-y-4">
-                        {/* Price Breakdown */}
                         <div className="space-y-3">
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Subtotal ({cart.length} items):</span>
@@ -474,7 +576,6 @@ const Profile = () => {
 
                         <Separator />
 
-                        {/* Total */}
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-lg">Total:</span>
                           <span className="text-2xl font-bold text-primary">₹{formatPrice(cartTotal)}</span>
@@ -482,30 +583,30 @@ const Profile = () => {
 
                         <Separator />
 
-                        {/* Checkout Button */}
                         <Button
-                          onClick={handleCheckout}
-                          disabled={isCheckingOut || !cart || cart.length === 0}
+                          onClick={handleProceedToCheckout}
+                          disabled={isSubmittingOrder || !cart || cart.length === 0}
                           className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
                           size="lg"
                         >
-                          {isCheckingOut ? (
+                          {isSubmittingOrder ? (
                             <motion.div
                               animate={{ rotate: 360 }}
                               transition={{ duration: 1, repeat: Infinity }}
                               className="w-5 h-5 border-2 border-white border-t-transparent rounded-full inline-block mr-2"
                             />
                           ) : (
-                            "Proceed to Buy"
+                            <>
+                              <QrCode size={18} className="mr-2" />
+                              Proceed to Pay
+                            </>
                           )}
                         </Button>
 
-                        {/* Message */}
                         <p className="text-xs text-center text-muted-foreground">
-                          Secure checkout with encrypted payment
+                          Secure payment via UPI
                         </p>
 
-                        {/* Continue Shopping */}
                         <Button
                           variant="outline"
                           onClick={() => navigate('/sarees')}
@@ -532,6 +633,109 @@ const Profile = () => {
           </div>
         </main>
       </div>
+
+      {/* Payment Dialog - Show UPI QR Code */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Complete Your Payment</DialogTitle>
+            <DialogDescription>Scan the QR code or enter UPI ID to pay</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Amount */}
+            <div className="text-center p-4 bg-primary/10 rounded-lg">
+              <p className="text-sm text-muted-foreground mb-1">Amount to Pay</p>
+              <p className="text-3xl font-bold text-primary">₹{formatPrice(cartTotal)}</p>
+            </div>
+
+            {/* QR Code */}
+            {upiQrCode && (
+              <div className="flex flex-col items-center">
+                <p className="text-sm font-semibold mb-3">Scan QR Code</p>
+                <img 
+                  src={upiQrCode} 
+                  alt="UPI QR Code" 
+                  className="w-64 h-64 border-2 border-primary rounded-lg"
+                />
+              </div>
+            )}
+
+            {/* UPI ID */}
+            {upiId && (
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-2">Or pay directly to:</p>
+                <p className="text-lg font-semibold font-mono bg-muted p-2 rounded">{upiId}</p>
+              </div>
+            )}
+
+            {/* Submit Proof Button */}
+            <Button
+              onClick={() => {
+                setShowPaymentDialog(false);
+                setShowProofDialog(true);
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              I've Paid - Submit Receipt
+            </Button>
+
+            <p className="text-xs text-muted-foreground text-center">
+              After paying, click the button above to submit your payment proof
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Proof Dialog */}
+      <Dialog open={showProofDialog} onOpenChange={setShowProofDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Submit Payment Proof</DialogTitle>
+            <DialogDescription>Enter your transaction details</DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmitPaymentProof} className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">UPI Transaction Reference *</label>
+              <p className="text-xs text-muted-foreground mb-2">
+                (You'll find this in your UPI app after payment - usually "Ref #" or "Txn ID")
+              </p>
+              <Input
+                value={paymentProofData.reference}
+                onChange={(e) => setPaymentProofData({...paymentProofData, reference: e.target.value})}
+                placeholder="e.g., 123456789ABC"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Payment Screenshot URL (Optional)</label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Upload screenshot to a free hosting site (imgur, etc) and paste URL
+              </p>
+              <Input
+                value={paymentProofData.proofUrl}
+                onChange={(e) => setPaymentProofData({...paymentProofData, proofUrl: e.target.value})}
+                placeholder="https://imgur.com/..."
+                type="url"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isSubmittingOrder || !paymentProofData.reference}
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              {isSubmittingOrder ? "Submitting..." : "Submit Payment Proof"}
+            </Button>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Admin will verify your payment and an in-app notification will be sent
+            </p>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
