@@ -18,6 +18,7 @@ import { useEffect } from "react";
 import AdminMessages from "./pages/admin/Messages";
 import AdminSarees from "./pages/admin/Sarees";
 import AdminProfile from "./pages/admin/AdminProfile";
+import AdminPayments from "@/pages/admin/AdminPayments";
 
 const App = () => {
   useEffect(() => {
@@ -65,41 +66,39 @@ const App = () => {
               </ProtectedRoute>
             } 
           />
-
           <Route 
-  path="/admin/messages" 
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <AdminMessages />
-    </ProtectedRoute>
-  } 
-/>
-<Route 
-  path="/admin/sarees" 
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <AdminSarees />
-    </ProtectedRoute>
-  } 
-/>
-
-<Route 
-  path="/profile" 
-  element={
-    <ProtectedRoute requiredRole="customer">
-      <Profile />
-    </ProtectedRoute>
-  } 
-/>
-
-<Route 
-  path="/admin/profile" 
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <AdminProfile />
-    </ProtectedRoute>
-  } 
-/>
+            path="/admin/messages" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminMessages />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/sarees" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminSarees />
+              </ProtectedRoute>
+            } 
+          />
+          {/* ✅ NEW: Payment Verification Route */}
+          <Route 
+            path="/admin/payments" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminPayments />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/profile" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminProfile />
+              </ProtectedRoute>
+            } 
+          />
 
           {/* 404 - Always Last */}
           <Route path="*" element={<NotFound />} />

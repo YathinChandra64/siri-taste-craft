@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, Upload, Eye } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Upload, Eye, Image as ImageIcon } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -42,6 +42,7 @@ const AdminPayments = () => {
     upiQrCode: "",
     upiId: ""
   });
+  const [qrCodePreview, setQrCodePreview] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPendingOrders();
@@ -79,10 +80,52 @@ const AdminPayments = () => {
       if (response.ok) {
         const data = await response.json();
         setUpiSettings(data);
+        if (data.upiQrCode) {
+          setQrCodePreview(data.upiQrCode);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch UPI settings:", error);
     }
+  };
+
+  // ✅ Handle QR Code File Upload
+  const handleQrFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Error",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "File size must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64String = event.target?.result as string;
+      setUpiSettings({ ...upiSettings, upiQrCode: base64String });
+      setQrCodePreview(base64String);
+      toast({
+        title: "Success",
+        description: "QR code image loaded successfully",
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleUploadQr = async (e: React.FormEvent) => {
@@ -90,6 +133,26 @@ const AdminPayments = () => {
     setIsSubmitting(true);
 
     try {
+      if (!upiSettings.upiQrCode) {
+        toast({
+          title: "Error",
+          description: "Please upload a QR code image",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!upiSettings.upiId) {
+        toast({
+          title: "Error",
+          description: "Please enter your UPI ID",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       const token = localStorage.getItem("authToken");
       const response = await fetch("http://localhost:5000/api/payments/upload-qr", {
         method: "POST",
@@ -231,13 +294,13 @@ const AdminPayments = () => {
           <Card className="mb-8 p-6 shadow-card">
             <h2 className="text-xl font-bold mb-4">Current UPI Settings</h2>
             <div className="grid md:grid-cols-2 gap-6">
-              {upiSettings.upiQrCode && (
+              {qrCodePreview && (
                 <div>
                   <p className="text-sm font-semibold mb-2">QR Code:</p>
                   <img 
-                    src={upiSettings.upiQrCode} 
+                    src={qrCodePreview} 
                     alt="UPI QR" 
-                    className="w-48 h-48 border rounded-lg"
+                    className="w-48 h-48 border rounded-lg object-cover"
                   />
                 </div>
               )}
@@ -345,31 +408,51 @@ const AdminPayments = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Update UPI Payment Details</DialogTitle>
-            <DialogDescription>Upload your UPI QR code and ID</DialogDescription>
+            <DialogDescription>Upload your UPI QR code image and enter your UPI ID</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleUploadQr} className="space-y-4">
+            {/* QR Code File Upload */}
             <div>
-              <label className="text-sm font-medium">UPI QR Code URL *</label>
-              <Input
-                value={upiSettings.upiQrCode}
-                onChange={(e) => setUpiSettings({...upiSettings, upiQrCode: e.target.value})}
-                placeholder="https://imgur.com/..."
-                required
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Upload QR code image to imgur or similar and paste URL
-              </p>
+              <label className="text-sm font-medium block mb-2">UPI QR Code Image *</label>
+              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleQrFileUpload}
+                  className="hidden"
+                  id="qr-upload"
+                />
+                <label htmlFor="qr-upload" className="cursor-pointer flex flex-col items-center gap-2">
+                  <ImageIcon size={32} className="text-muted-foreground" />
+                  <p className="font-semibold">Click to upload QR code</p>
+                  <p className="text-xs text-muted-foreground">PNG, JPG (Max 5MB)</p>
+                </label>
+              </div>
+              {qrCodePreview && (
+                <div className="mt-4">
+                  <p className="text-sm font-semibold mb-2">Preview:</p>
+                  <img 
+                    src={qrCodePreview} 
+                    alt="QR Preview" 
+                    className="w-full max-w-xs h-auto rounded-lg border"
+                  />
+                </div>
+              )}
             </div>
 
+            {/* UPI ID */}
             <div>
               <label className="text-sm font-medium">UPI ID *</label>
               <Input
                 value={upiSettings.upiId}
                 onChange={(e) => setUpiSettings({...upiSettings, upiId: e.target.value})}
-                placeholder="yourname@upi"
+                placeholder="yourname@upi or yourname@googleplay"
                 required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Your UPI ID where customers will send payment
+              </p>
             </div>
 
             <Button
