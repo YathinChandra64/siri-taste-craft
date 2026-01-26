@@ -32,20 +32,25 @@ export interface Saree {
   color?: string;
 }
 
+// ✅ FIXED: OrderItem now correctly uses string for product (MongoDB ObjectId)
+export interface OrderItem {
+  product: string; // ✅ MongoDB ObjectId as string
+  name: string;
+  quantity: number;
+  price: number;
+}
+
 export interface Order {
   _id: string;
   user: string | User;
   items: OrderItem[];
   totalAmount: number;
-  status: "pending" | "confirmed" | "shipped" | "delivered";
+  status: "pending_payment" | "payment_submitted" | "confirmed" | "payment_rejected" | "shipped" | "delivered" | "cancelled";
+  paymentReference?: string;
+  paymentProof?: string;
+  paymentMethod?: "upi" | "card" | "net_banking";
   createdAt: string;
   updatedAt: string;
-}
-
-export interface OrderItem {
-  product: Saree;
-  quantity: number;
-  price: number;
 }
 
 export interface CartSummary {

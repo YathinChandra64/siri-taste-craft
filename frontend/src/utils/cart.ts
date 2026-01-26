@@ -1,6 +1,7 @@
-// ✅ Define proper types instead of 'any'
+// ✅ FIXED: Define proper types with MongoDB ObjectId strings
+
 interface CartItem {
-  id: number;
+  id: string; // ✅ FIXED: Changed from number to string (MongoDB ObjectId)
   name: string;
   price: number;
   pricePerKg?: number;
@@ -43,7 +44,7 @@ export const getCart = (): CartItem[] => {
 
 export const addToCart = (
   item: {
-    id: number;
+    id: string; // ✅ FIXED: Changed from number to string (MongoDB ObjectId)
     name: string;
     price: number;
     image: string;
@@ -82,7 +83,7 @@ export const addToCart = (
   }
 };
 
-export const removeFromCart = (id: number, type: "saree" | "sweet"): boolean => {
+export const removeFromCart = (id: string, type: "saree" | "sweet"): boolean => {
   try {
     const cartKey = getCartKey();
     const cart = getCart();
@@ -97,7 +98,7 @@ export const removeFromCart = (id: number, type: "saree" | "sweet"): boolean => 
 };
 
 export const updateCartQuantity = (
-  id: number,
+  id: string,
   type: "saree" | "sweet",
   quantity: number
 ): boolean => {

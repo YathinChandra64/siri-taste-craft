@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 
 // ✅ Type Definitions
 interface CartItem {
-  id: number;
+  id: string; // ✅ FIXED: Changed from number to string (MongoDB ObjectId)
   name: string;
   type: 'saree' | 'sweet';
   image?: string;
@@ -27,7 +27,7 @@ interface CartItem {
 }
 
 interface OrderItem {
-  product: number;
+  product: string; // ✅ FIXED: Changed from number to string (MongoDB ObjectId)
   name: string;
   quantity: number;
   price: number;
@@ -122,7 +122,7 @@ const Profile = () => {
     setCart(getCart());
   };
 
-  const handleRemoveFromCart = (id: number, type: 'saree' | 'sweet') => {
+  const handleRemoveFromCart = (id: string, type: 'saree' | 'sweet') => {
     removeFromCart(id, type);
     refreshCart();
     toast({
@@ -131,7 +131,7 @@ const Profile = () => {
     });
   };
 
-  const handleUpdateQuantity = (id: number, type: 'saree' | 'sweet', newQuantity: number) => {
+  const handleUpdateQuantity = (id: string, type: 'saree' | 'sweet', newQuantity: number) => {
     if (newQuantity < 1) return;
     updateCartQuantity(id, type, newQuantity);
     refreshCart();
@@ -163,8 +163,9 @@ const Profile = () => {
         return;
       }
 
+      // ✅ FIXED: Send items with product as MongoDB ObjectId string
       const orderItems: OrderItem[] = cart.map(item => ({
-        product: item.id,
+        product: item.id, // ✅ Already a MongoDB ObjectId string from cart
         name: item.name,
         quantity: item.quantity,
         price: item.pricePerKg ?? item.price ?? 0
@@ -172,8 +173,10 @@ const Profile = () => {
 
       const cartTotal = getCartTotal() ?? 0;
 
-      // ✅ Create order (awaiting payment)
-      const response = await fetch("http://localhost:5000/api/payments/create-order", {
+      console.log("📤 Sending order items:", orderItems);
+
+      // ✅ Create order
+      const response = await fetch("http://localhost:5000/api/orders", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -187,15 +190,22 @@ const Profile = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("❌ Order creation failed:", errorData);
         throw new Error(errorData.message || "Failed to create order");
       }
 
-      const { order } = await response.json();
-      setPendingOrderId(order._id);
+      const orderData = await response.json();
+      const orderId = orderData._id || orderData.order?._id;
+
+      if (!orderId) {
+        throw new Error("No order ID returned from server");
+      }
+
+      setPendingOrderId(orderId);
       setShowPaymentDialog(true);
 
       toast({
-        title: "Order Created",
+        title: "Order Created ✅",
         description: "Now please proceed with payment",
       });
 
