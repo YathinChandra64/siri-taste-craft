@@ -1,8 +1,8 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Menu, X, LogIn, LogOut, User, Sun, Moon, Sparkles, LayoutDashboard } from "lucide-react";
+import { Menu, X, LogIn, LogOut, User, Sun, Moon, Sparkles } from "lucide-react";
 import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/useAuth"; // ✅ Fixed import
 import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import MagneticButton from "@/components/MagneticButton";
@@ -11,6 +11,7 @@ import AdminMenu from "@/components/AdminMenu";
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate(); // ✅ Added useNavigate
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -77,7 +78,7 @@ const Navbar = () => {
             {navLinks.map((link, index) => (
               <Link key={link.path} to={link.path}>
                 <motion.span
-                  className={`font-medium transition-colors relative ${
+                  className={`font-medium transition-colors relative cursor-pointer ${
                     isActive(link.path)
                       ? "text-primary"
                       : "text-muted-foreground hover:text-foreground"
@@ -100,13 +101,13 @@ const Navbar = () => {
               </Link>
             ))}
 
-            {/* Admin Links - Only show to admins */}
+            {/* Admin Menu - Only show to admins */}
             {user?.role === "admin" && (
-  <>
-    <div className="w-px h-6 bg-border" />
-    <AdminMenu />
-  </>
-)}
+              <>
+                <div className="w-px h-6 bg-border" />
+                <AdminMenu />
+              </>
+            )}
             
             {/* Theme Toggle */}
             <motion.div whileHover={{ rotate: 180 }} transition={{ duration: 0.3 }}>
@@ -120,24 +121,25 @@ const Navbar = () => {
               </Button>
             </motion.div>
             
-            {/* Auth Button */}
+            {/* Auth Buttons */}
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
-                <Link to="/profile">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 cursor-pointer hover:bg-primary/20 transition-colors duration-200"
-                  >
-                    <User size={16} className="text-primary" />
-                    <span className="text-sm font-medium text-foreground">{user?.name}</span>
-                    {user?.role === "admin" && (
-                      <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 font-semibold">
-                        ADMIN
-                      </span>
-                    )}
-                  </motion.div>
-                </Link>
+                {/* ✅ FIXED: Use onClick with navigate instead of Link wrapping Button */}
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate("/profile")}
+                  className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 cursor-pointer hover:bg-primary/20 transition-colors duration-200"
+                >
+                  <User size={16} className="text-primary" />
+                  <span className="text-sm font-medium text-foreground">{user?.name}</span>
+                  {user?.role === "admin" && (
+                    <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 font-semibold">
+                      ADMIN
+                    </span>
+                  )}
+                </motion.div>
+
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button
                     onClick={logout}
@@ -151,180 +153,144 @@ const Navbar = () => {
                 </motion.div>
               </div>
             ) : (
-              <Link to="/login">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="bg-gradient-saree text-white gap-2"
-                  >
-                    <LogIn size={16} />
-                    Login
-                  </Button>
-                </motion.div>
-              </Link>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={() => navigate("/login")}
+                  className="bg-gradient-saree text-white gap-2"
+                >
+                  <LogIn size={16} />
+                  Login
+                </Button>
+              </motion.div>
             )}
           </div>
 
           {/* Mobile Menu Button */}
-          <motion.button
-            className="md:hidden p-2 text-foreground"
+          <button
+            className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
             onClick={() => setIsOpen(!isOpen)}
-            whileTap={{ scale: 0.9 }}
           >
-            <motion.div
-              animate={{ rotate: isOpen ? 180 : 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
-            </motion.div>
-          </motion.button>
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
 
         {/* Mobile Navigation */}
-        <motion.div
-          initial={false}
-          animate={{
-            height: isOpen ? "auto" : 0,
-            opacity: isOpen ? 1 : 0,
-          }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-          className="md:hidden overflow-hidden"
-        >
-          <div className="py-4 border-t border-border">
-            {navLinks.map((link, index) => (
-              <motion.div
-                key={link.path}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: isOpen ? 1 : 0, x: isOpen ? 0 : -20 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Link
-                  to={link.path}
-                  onClick={() => setIsOpen(false)}
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="md:hidden border-t border-border py-4 space-y-2"
+          >
+            {navLinks.map((link) => (
+              <Link key={link.path} to={link.path} onClick={() => setIsOpen(false)}>
+                <motion.div
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    isActive(link.path)
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
                 >
-                  <div
-                    className={`py-3 px-4 rounded-md transition-colors ${
-                      isActive(link.path)
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {link.name}
-                  </div>
-                </Link>
-              </motion.div>
+                  {link.name}
+                </motion.div>
+              </Link>
             ))}
 
-            {/* Mobile Admin Links - Only show to admins */}
+            {/* Mobile Admin Links */}
             {user?.role === "admin" && (
               <>
-                <div className="my-3 border-t border-border" />
+                <div className="h-px bg-border my-2" />
+                <div className="text-xs font-semibold text-muted-foreground px-4 py-2">
+                  Admin Menu
+                </div>
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: isOpen ? 1 : 0, x: isOpen ? 0 : -20 }}
-                  transition={{ delay: navLinks.length * 0.05 }}
+                  onClick={() => {
+                    navigate("/admin/dashboard");
+                    setIsOpen(false);
+                  }}
+                  className="px-4 py-2 hover:bg-muted rounded-lg cursor-pointer transition-colors"
                 >
-                  <Link
-                    to="/admin/dashboard"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <div
-                      className={`py-3 px-4 rounded-md transition-colors flex items-center gap-2 ${
-                        isActive("/admin/dashboard")
-                          ? "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 font-medium"
-                          : "text-muted-foreground hover:bg-muted"
-                      }`}
-                    >
-                      <LayoutDashboard size={18} />
-                      Dashboard
-                    </div>
-                  </Link>
+                  Dashboard
                 </motion.div>
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: isOpen ? 1 : 0, x: isOpen ? 0 : -20 }}
-                  transition={{ delay: (navLinks.length + 1) * 0.05 }}
+                  onClick={() => {
+                    navigate("/admin/users");
+                    setIsOpen(false);
+                  }}
+                  className="px-4 py-2 hover:bg-muted rounded-lg cursor-pointer transition-colors"
                 >
-                  <Link
-                    to="/admin/users"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <div
-                      className={`py-3 px-4 rounded-md transition-colors flex items-center gap-2 ${
-                        isActive("/admin/users")
-                          ? "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 font-medium"
-                          : "text-muted-foreground hover:bg-muted"
-                      }`}
-                    >
-
-                    {user?.role === "admin" && (
-  <>
-    <Link to="/admin/dashboard">Dashboard</Link>
-    <Link to="/admin/users">Users</Link>
-    <Link to="/admin/messages">Messages</Link>
-    <Link to="/admin/sarees">Sarees</Link>
-  </>
-)}
-                      <User size={18} />
-                      Users
-                    </div>
-                  </Link>
+                  Users
+                </motion.div>
+                <motion.div
+                  onClick={() => {
+                    navigate("/admin/sarees");
+                    setIsOpen(false);
+                  }}
+                  className="px-4 py-2 hover:bg-muted rounded-lg cursor-pointer transition-colors"
+                >
+                  Sarees
+                </motion.div>
+                <motion.div
+                  onClick={() => {
+                    navigate("/admin/messages");
+                    setIsOpen(false);
+                  }}
+                  className="px-4 py-2 hover:bg-muted rounded-lg cursor-pointer transition-colors"
+                >
+                  Messages
+                </motion.div>
+                <motion.div
+                  onClick={() => {
+                    navigate("/admin/payments");
+                    setIsOpen(false);
+                  }}
+                  className="px-4 py-2 hover:bg-muted rounded-lg cursor-pointer transition-colors"
+                >
+                  Payments
                 </motion.div>
               </>
             )}
-            
-            {/* Mobile Auth */}
-            <div className="mt-4 px-4 space-y-3">
-              {/* Theme Toggle */}
-              <Button
-                variant="outline"
-                onClick={toggleTheme}
-                className="w-full gap-2 justify-start"
-              >
-                {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-                {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
-              </Button>
 
-              {isAuthenticated ? (
-                <>
-                  <Link to="/profile" onClick={() => setIsOpen(false)}>
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 cursor-pointer hover:bg-primary/20 transition-colors duration-200">
-                      <User size={18} className="text-primary" />
-                      <span className="text-sm font-medium text-foreground">{user?.name}</span>
-                      {user?.role === "admin" && (
-                        <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 font-semibold">
-                          ADMIN
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                  <Button
-                    onClick={() => {
-                      logout();
-                      setIsOpen(false);
-                    }}
-                    variant="outline"
-                    className="w-full gap-2"
-                  >
-                    <LogOut size={16} />
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <Link to="/login" onClick={() => setIsOpen(false)}>
-                  <Button
-                    variant="default"
-                    className="w-full bg-gradient-saree text-white gap-2"
-                  >
-                    <LogIn size={16} />
-                    Login
-                  </Button>
-                </Link>
-              )}
-            </div>
-          </div>
-        </motion.div>
+            {/* Mobile Auth */}
+            <div className="h-px bg-border my-2" />
+            {isAuthenticated ? (
+              <div className="space-y-2">
+                <motion.div
+                  onClick={() => {
+                    navigate("/profile");
+                    setIsOpen(false);
+                  }}
+                  className="px-4 py-2 rounded-lg hover:bg-muted flex items-center gap-2 cursor-pointer transition-colors"
+                >
+                  <User size={16} />
+                  Profile
+                </motion.div>
+                <Button
+                  onClick={() => {
+                    logout();
+                    setIsOpen(false);
+                  }}
+                  variant="destructive"
+                  className="w-full gap-2"
+                >
+                  <LogOut size={16} />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => {
+                  navigate("/login");
+                  setIsOpen(false);
+                }}
+                className="w-full bg-gradient-saree text-white gap-2"
+              >
+                <LogIn size={16} />
+                Login
+              </Button>
+            )}
+          </motion.div>
+        )}
       </div>
     </nav>
   );

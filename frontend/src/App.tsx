@@ -4,26 +4,27 @@ import { Routes, Route } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+
+// Pages
 import Home from "./pages/Home";
 import OurStory from "./pages/OurStory";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import Profile from "./pages/Profile.tsx";
+import Profile from "./pages/Profile";
 import Sarees from "./pages/Sarees";
 import NotFound from "./pages/NotFound";
+
+// Admin Pages
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
-import { useEffect } from "react";
 import AdminMessages from "./pages/admin/Messages";
 import AdminSarees from "./pages/admin/Sarees";
 import AdminProfile from "./pages/admin/AdminProfile";
-import AdminPayments from "@/pages/admin/AdminPayments";
+import AdminPayments from "./pages/admin/AdminPayments";
+import AdminChat from "./pages/admin/AdminChat"; // ✅ NEW
 
 const App = () => {
-  useEffect(() => {
-  }, []);
-
   return (
     <div className="min-h-screen flex flex-col">
       <Toaster />
@@ -58,6 +59,7 @@ const App = () => {
               </ProtectedRoute>
             } 
           />
+
           <Route 
             path="/admin/users" 
             element={
@@ -66,6 +68,7 @@ const App = () => {
               </ProtectedRoute>
             } 
           />
+
           <Route 
             path="/admin/messages" 
             element={
@@ -74,6 +77,17 @@ const App = () => {
               </ProtectedRoute>
             } 
           />
+
+          {/* ✅ NEW: Admin Chat Route */}
+          <Route 
+            path="/admin/chat" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminChat />
+              </ProtectedRoute>
+            } 
+          />
+
           <Route 
             path="/admin/sarees" 
             element={
@@ -82,7 +96,7 @@ const App = () => {
               </ProtectedRoute>
             } 
           />
-          {/* ✅ NEW: Payment Verification Route */}
+
           <Route 
             path="/admin/payments" 
             element={
@@ -91,6 +105,7 @@ const App = () => {
               </ProtectedRoute>
             } 
           />
+
           <Route 
             path="/admin/profile" 
             element={

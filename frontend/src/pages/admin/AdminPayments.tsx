@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/useAuth"; // ✅ Fixed import
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,7 @@ interface UpiSettings {
 const AdminPayments = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [pendingOrders, setPendingOrders] = useState<PaymentOrder[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<PaymentOrder[]>([]); // ✅ Default empty array
   const [loading, setLoading] = useState(true);
   const [showQrDialog, setShowQrDialog] = useState(false);
   const [showProofDialog, setShowProofDialog] = useState(false);
@@ -49,10 +49,11 @@ const AdminPayments = () => {
     fetchUpiSettings();
   }, []);
 
+  // ✅ Fixed: Ensure data is always an array
   const fetchPendingOrders = async () => {
     try {
-      const token = localStorage.getItem("authToken");
-      const response = await fetch("http://localhost:5000/api/payments/pending-orders", {
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const response = await fetch("http://localhost:5000/api/orders", {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -60,10 +61,17 @@ const AdminPayments = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setPendingOrders(data);
+        // ✅ Ensure data is an array, filter for pending payments
+        const orders = Array.isArray(data) ? data : [];
+        const pending = orders.filter(o => o.status === "pending_payment" || o.status === "payment_submitted");
+        setPendingOrders(pending);
+      } else {
+        console.error("Failed to fetch orders:", response.status);
+        setPendingOrders([]); // ✅ Set empty array on error
       }
     } catch (error) {
       console.error("Failed to fetch pending orders:", error);
+      setPendingOrders([]); // ✅ Set empty array on error
       toast({
         title: "Error",
         description: "Failed to load pending orders",
@@ -74,14 +82,18 @@ const AdminPayments = () => {
     }
   };
 
+  // ✅ Fixed: Fetch UPI config from new endpoint
   const fetchUpiSettings = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/payments/upi-qr");
+      const response = await fetch("http://localhost:5000/api/upi/config");
       if (response.ok) {
         const data = await response.json();
-        setUpiSettings(data);
-        if (data.upiQrCode) {
-          setQrCodePreview(data.upiQrCode);
+        setUpiSettings({
+          upiQrCode: data.qrCodeImage || "",
+          upiId: data.upiId || ""
+        });
+        if (data.qrCodeImage) {
+          setQrCodePreview(data.qrCodeImage);
         }
       }
     } catch (error) {
@@ -104,85 +116,52 @@ const AdminPayments = () => {
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "File size must be less than 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
     // Convert to base64
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64String = event.target?.result as string;
-      setUpiSettings({ ...upiSettings, upiQrCode: base64String });
-      setQrCodePreview(base64String);
-      toast({
-        title: "Success",
-        description: "QR code image loaded successfully",
-      });
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setQrCodePreview(base64);
+      setUpiSettings(prev => ({
+        ...prev,
+        upiQrCode: base64
+      }));
     };
     reader.readAsDataURL(file);
   };
 
-  const handleUploadQr = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
+  // ✅ Save UPI Settings
+  const handleSaveUpiSettings = async () => {
     try {
-      if (!upiSettings.upiQrCode) {
-        toast({
-          title: "Error",
-          description: "Please upload a QR code image",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!upiSettings.upiId) {
-        toast({
-          title: "Error",
-          description: "Please enter your UPI ID",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      const token = localStorage.getItem("authToken");
-      const response = await fetch("http://localhost:5000/api/payments/upload-qr", {
-        method: "POST",
+      setIsSubmitting(true);
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      
+      const response = await fetch("http://localhost:5000/api/upi/admin/config", {
+        method: "PUT",
         headers: {
-          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify(upiSettings)
+        body: JSON.stringify({
+          upiId: upiSettings.upiId,
+          qrCodeImage: upiSettings.upiQrCode
+        })
       });
 
       if (response.ok) {
         toast({
-          title: "Success!",
-          description: "UPI QR code updated successfully",
+          title: "Success",
+          description: "UPI settings saved successfully!",
+          variant: "default",
         });
         setShowQrDialog(false);
-        fetchUpiSettings();
       } else {
-        const error = await response.json();
-        toast({
-          title: "Error",
-          description: error.message || "Failed to upload QR code",
-          variant: "destructive",
-        });
+        throw new Error("Failed to save UPI settings");
       }
     } catch (error) {
-      console.error("Upload QR error:", error);
+      console.error("Error saving UPI settings:", error);
       toast({
         title: "Error",
-        description: "Failed to upload QR code",
+        description: "Failed to save UPI settings",
         variant: "destructive",
       });
     } finally {
@@ -190,43 +169,32 @@ const AdminPayments = () => {
     }
   };
 
-  const handleVerifyPayment = async (orderId: string, isVerified: boolean) => {
-    setIsSubmitting(true);
-
+  // ✅ Handle Payment Verification
+  const handleVerifyPayment = async (orderId: string, status: "confirmed" | "rejected") => {
     try {
-      const token = localStorage.getItem("authToken");
-      const response = await fetch("http://localhost:5000/api/payments/verify-payment", {
+      setIsSubmitting(true);
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+
+      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/verify-payment`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({
-          orderId,
-          isVerified
-        })
+        body: JSON.stringify({ status })
       });
 
       if (response.ok) {
         toast({
-          title: "Success!",
-          description: isVerified 
-            ? "✅ Payment verified! Customer notification sent."
-            : "❌ Payment rejected! Customer notification sent.",
+          title: "Success",
+          description: `Payment ${status === "confirmed" ? "confirmed" : "rejected"}!`,
         });
-        fetchPendingOrders();
+        fetchPendingOrders(); // Refresh list
         setShowProofDialog(false);
         setSelectedOrder(null);
-      } else {
-        const error = await response.json();
-        toast({
-          title: "Error",
-          description: error.message || "Failed to verify payment",
-          variant: "destructive",
-        });
       }
     } catch (error) {
-      console.error("Verify payment error:", error);
+      console.error("Error verifying payment:", error);
       toast({
         title: "Error",
         description: "Failed to verify payment",
@@ -237,295 +205,264 @@ const AdminPayments = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'confirmed': return 'bg-green-100 text-green-700';
-      case 'payment_submitted': return 'bg-yellow-100 text-yellow-700';
-      case 'pending_payment': return 'bg-orange-100 text-orange-700';
-      case 'payment_rejected': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch(status) {
-      case 'confirmed': return <CheckCircle size={16} />;
-      case 'payment_submitted': return <Clock size={16} />;
-      case 'pending_payment': return <Clock size={16} />;
-      case 'payment_rejected': return <XCircle size={16} />;
-      default: return <Clock size={16} />;
-    }
-  };
+  if (!user?.role || user.role !== "admin") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="p-8 text-center">
+          <p className="text-red-600">Access Denied. Admin privileges required.</p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <AnimatedBackground />
-
-      <div className="container mx-auto px-4 py-12 relative z-10">
+      
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-4xl font-bold text-white mb-2">💳 Payment Management</h1>
+          <p className="text-slate-400">Manage pending payments and UPI configuration</p>
+        </motion.div>
+
+        {/* UPI Settings Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ delay: 0.1 }}
           className="mb-8"
         >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="px-4 py-1 rounded-full bg-purple-100 dark:bg-purple-900">
-              <span className="text-sm font-bold text-purple-700 dark:text-purple-200">PAYMENT MANAGEMENT</span>
+          <Card className="bg-slate-800 border-slate-700 p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-white">UPI Configuration</h2>
+              <Button
+                onClick={() => setShowQrDialog(true)}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Configure
+              </Button>
             </div>
-          </div>
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-2">Payment Verification</h1>
-              <p className="text-muted-foreground">Verify customer payments and manage UPI settings</p>
+
+            {/* Current UPI Settings Display */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-slate-400 text-sm">UPI ID</label>
+                <p className="text-white font-mono">{upiSettings.upiId || "Not set"}</p>
+              </div>
+              <div>
+                <label className="text-slate-400 text-sm">QR Code</label>
+                <p className="text-white text-sm">{qrCodePreview ? "✅ Uploaded" : "❌ Not set"}</p>
+              </div>
             </div>
-            <Button
-              onClick={() => setShowQrDialog(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Upload size={18} className="mr-2" />
-              Update UPI QR Code
-            </Button>
-          </div>
+
+            {qrCodePreview && (
+              <div className="mt-4">
+                <p className="text-slate-400 text-sm mb-2">Preview</p>
+                <img src={qrCodePreview} alt="UPI QR Code" className="w-40 h-40 border border-slate-600 rounded" />
+              </div>
+            )}
+          </Card>
         </motion.div>
 
-        {/* Current UPI Settings */}
-        {upiSettings.upiQrCode && (
-          <Card className="mb-8 p-6 shadow-card">
-            <h2 className="text-xl font-bold mb-4">Current UPI Settings</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              {qrCodePreview && (
-                <div>
-                  <p className="text-sm font-semibold mb-2">QR Code:</p>
-                  <img 
-                    src={qrCodePreview} 
-                    alt="UPI QR" 
-                    className="w-48 h-48 border rounded-lg object-cover"
-                  />
-                </div>
-              )}
-              {upiSettings.upiId && (
-                <div className="flex items-center">
-                  <div>
-                    <p className="text-sm font-semibold mb-2">UPI ID:</p>
-                    <p className="text-lg font-mono bg-muted p-3 rounded">{upiSettings.upiId}</p>
-                  </div>
-                </div>
-              )}
+        {/* Pending Orders Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="bg-slate-800 border-slate-700">
+            <div className="p-6 border-b border-slate-700">
+              <h2 className="text-xl font-semibold text-white">
+                Pending Payments ({pendingOrders.length})
+              </h2>
             </div>
+
+            {loading ? (
+              <div className="p-6 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+              </div>
+            ) : pendingOrders.length === 0 ? (
+              <div className="p-6 text-center text-slate-400">
+                No pending payments
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-slate-700 bg-slate-700/50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-white">Customer</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-white">Amount</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-white">Reference</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-white">Status</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-white">Date</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-white">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingOrders.map((order, index) => (
+                      <motion.tr
+                        key={order._id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="border-b border-slate-700 hover:bg-slate-700/50 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="text-white font-medium">{order.user?.name || "N/A"}</div>
+                          <div className="text-slate-400 text-sm">{order.user?.email || "N/A"}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-white font-semibold">₹{order.totalAmount.toLocaleString()}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-slate-300 font-mono text-sm">{order.paymentReference || "—"}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-sm font-medium ${
+                            order.status === "confirmed" ? "bg-green-600/20 text-green-400" :
+                            order.status === "payment_rejected" ? "bg-red-600/20 text-red-400" :
+                            "bg-yellow-600/20 text-yellow-400"
+                          }`}>
+                            {order.status === "confirmed" ? <CheckCircle className="w-4 h-4" /> :
+                             order.status === "payment_rejected" ? <XCircle className="w-4 h-4" /> :
+                             <Clock className="w-4 h-4" />}
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-slate-400 text-sm">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          {order.status === "payment_submitted" && (
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setShowProofDialog(true);
+                              }}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              Review
+                            </Button>
+                          )}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </Card>
-        )}
-
-        {/* Pending Payments */}
-        <Card className="shadow-card">
-          <div className="p-6 border-b">
-            <h2 className="text-2xl font-bold">Pending Payments ({pendingOrders.length})</h2>
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full"
-              />
-            </div>
-          ) : pendingOrders.length === 0 ? (
-            <div className="p-12 text-center">
-              <CheckCircle size={48} className="mx-auto mb-4 text-green-500" />
-              <p className="text-muted-foreground">All payments verified!</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold">Customer</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold">Amount</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold">Reference</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold">Status</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold">Date</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingOrders.map((order, index) => (
-                    <motion.tr
-                      key={order._id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="border-b hover:bg-muted/50 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="font-semibold">{order.user.name}</p>
-                          <p className="text-sm text-muted-foreground">{order.user.email}</p>
-                          <p className="text-sm text-muted-foreground">{order.user.phone}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-lg">₹{order.totalAmount.toLocaleString()}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-mono text-sm bg-muted px-2 py-1 rounded w-fit">
-                          {order.paymentReference}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
-                          {getStatusIcon(order.status)}
-                          {order.status.replace(/_/g, ' ').toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">
-                        {new Date(order.paymentSubmittedAt).toLocaleDateString('en-IN')}
-                      </td>
-                      <td className="px-6 py-4">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setShowProofDialog(true);
-                          }}
-                        >
-                          <Eye size={16} className="mr-1" />
-                          Review
-                        </Button>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+        </motion.div>
       </div>
 
-      {/* Update UPI QR Dialog */}
+      {/* UPI Settings Dialog */}
       <Dialog open={showQrDialog} onOpenChange={setShowQrDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="bg-slate-800 border-slate-700">
           <DialogHeader>
-            <DialogTitle>Update UPI Payment Details</DialogTitle>
-            <DialogDescription>Upload your UPI QR code image and enter your UPI ID</DialogDescription>
+            <DialogTitle className="text-white">Configure UPI Settings</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Update your UPI ID and QR code
+            </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleUploadQr} className="space-y-4">
-            {/* QR Code File Upload */}
+          <div className="space-y-4">
+            {/* UPI ID Input */}
             <div>
-              <label className="text-sm font-medium block mb-2">UPI QR Code Image *</label>
-              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleQrFileUpload}
-                  className="hidden"
-                  id="qr-upload"
-                />
-                <label htmlFor="qr-upload" className="cursor-pointer flex flex-col items-center gap-2">
-                  <ImageIcon size={32} className="text-muted-foreground" />
-                  <p className="font-semibold">Click to upload QR code</p>
-                  <p className="text-xs text-muted-foreground">PNG, JPG (Max 5MB)</p>
-                </label>
-              </div>
-              {qrCodePreview && (
-                <div className="mt-4">
-                  <p className="text-sm font-semibold mb-2">Preview:</p>
-                  <img 
-                    src={qrCodePreview} 
-                    alt="QR Preview" 
-                    className="w-full max-w-xs h-auto rounded-lg border"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* UPI ID */}
-            <div>
-              <label className="text-sm font-medium">UPI ID *</label>
+              <label className="text-white text-sm font-medium block mb-2">UPI ID</label>
               <Input
                 value={upiSettings.upiId}
-                onChange={(e) => setUpiSettings({...upiSettings, upiId: e.target.value})}
-                placeholder="yourname@upi or yourname@googleplay"
-                required
+                onChange={(e) => setUpiSettings(prev => ({
+                  ...prev,
+                  upiId: e.target.value
+                }))}
+                placeholder="e.g., siri@upi"
+                className="bg-slate-700 border-slate-600 text-white"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Your UPI ID where customers will send payment
-              </p>
             </div>
 
+            {/* QR Code Upload */}
+            <div>
+              <label className="text-white text-sm font-medium block mb-2">QR Code Image</label>
+              <div className="flex gap-2">
+                <label className="flex-1 cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleQrFileUpload}
+                    className="hidden"
+                  />
+                  <div className="bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded px-4 py-2 text-white text-center transition">
+                    <ImageIcon className="w-4 h-4 inline mr-2" />
+                    Upload Image
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Preview */}
+            {qrCodePreview && (
+              <div className="p-4 bg-white rounded">
+                <img src={qrCodePreview} alt="QR Code Preview" className="w-full max-w-40 mx-auto" />
+              </div>
+            )}
+
+            {/* Save Button */}
             <Button
-              type="submit"
+              onClick={handleSaveUpiSettings}
               disabled={isSubmitting}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-purple-600 hover:bg-purple-700"
             >
-              {isSubmitting ? "Updating..." : "Update Settings"}
+              {isSubmitting ? "Saving..." : "Save Settings"}
             </Button>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Payment Proof Review Dialog */}
-      {selectedOrder && (
-        <Dialog open={showProofDialog} onOpenChange={setShowProofDialog}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Review Payment Proof</DialogTitle>
-              <DialogDescription>
-                Order: {selectedOrder._id.slice(-8).toUpperCase()} | Customer: {selectedOrder.user.name}
-              </DialogDescription>
-            </DialogHeader>
+      {/* Payment Proof Dialog */}
+      <Dialog open={showProofDialog} onOpenChange={setShowProofDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Review Payment Proof</DialogTitle>
+          </DialogHeader>
 
-            <div className="space-y-6">
-              {/* Customer Details */}
-              <div>
-                <h3 className="font-semibold mb-2">Customer Details</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Name</p>
-                    <p className="font-semibold">{selectedOrder.user.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-semibold">{selectedOrder.user.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-semibold">{selectedOrder.user.phone}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Amount</p>
-                    <p className="font-semibold">₹{selectedOrder.totalAmount.toLocaleString()}</p>
-                  </div>
+          {selectedOrder && (
+            <div className="space-y-4">
+              {/* Order Details */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-slate-400 text-sm">Customer</p>
+                  <p className="text-white font-semibold">{selectedOrder.user?.name}</p>
                 </div>
-              </div>
-
-              {/* Payment Details */}
-              <div>
-                <h3 className="font-semibold mb-2">Payment Details</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Reference Number</p>
-                    <p className="font-mono font-semibold">{selectedOrder.paymentReference}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Submitted</p>
-                    <p className="font-semibold">
-                      {new Date(selectedOrder.paymentSubmittedAt).toLocaleDateString('en-IN')}
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-slate-400 text-sm">Amount</p>
+                  <p className="text-white font-semibold">₹{selectedOrder.totalAmount.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-sm">Reference</p>
+                  <p className="text-white font-mono text-sm">{selectedOrder.paymentReference}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-sm">Date</p>
+                  <p className="text-white">{new Date(selectedOrder.paymentSubmittedAt).toLocaleDateString()}</p>
                 </div>
               </div>
 
               {/* Payment Proof Image */}
               {selectedOrder.paymentProof && (
                 <div>
-                  <h3 className="font-semibold mb-2">Payment Screenshot</h3>
-                  <img 
-                    src={selectedOrder.paymentProof} 
-                    alt="Payment proof" 
-                    className="w-full max-h-96 object-contain border rounded-lg"
+                  <p className="text-slate-400 text-sm mb-2">Payment Proof</p>
+                  <img
+                    src={selectedOrder.paymentProof}
+                    alt="Payment Proof"
+                    className="w-full max-h-80 object-contain border border-slate-600 rounded"
                   />
                 </div>
               )}
@@ -533,31 +470,27 @@ const AdminPayments = () => {
               {/* Action Buttons */}
               <div className="flex gap-3">
                 <Button
-                  onClick={() => handleVerifyPayment(selectedOrder._id, true)}
+                  onClick={() => handleVerifyPayment(selectedOrder._id, "confirmed")}
                   disabled={isSubmitting}
                   className="flex-1 bg-green-600 hover:bg-green-700"
                 >
-                  <CheckCircle size={18} className="mr-2" />
-                  Verify Payment ✅
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Confirm Payment
                 </Button>
                 <Button
-                  onClick={() => handleVerifyPayment(selectedOrder._id, false)}
+                  onClick={() => handleVerifyPayment(selectedOrder._id, "rejected")}
                   disabled={isSubmitting}
                   variant="destructive"
                   className="flex-1"
                 >
-                  <XCircle size={18} className="mr-2" />
-                  Reject Payment ❌
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject Payment
                 </Button>
               </div>
-
-              <p className="text-xs text-muted-foreground text-center">
-                ℹ️ Customer will see an in-app notification after verification
-              </p>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -39,13 +39,12 @@ const AdminMenu = () => {
       bgColor: "bg-orange-100 dark:bg-orange-900",
     },
     {
-      label: "Messages",
+      label: "Customer Chats", // ✅ NEW
       icon: MessageSquare,
-      path: "/admin/messages",
+      path: "/admin/chat",
       color: "text-pink-600",
       bgColor: "bg-pink-100 dark:bg-pink-900",
     },
-    // ✅ NEW: Payment Verification
     {
       label: "Payment Verification",
       icon: CreditCard,
@@ -101,7 +100,7 @@ const AdminMenu = () => {
               <div className="px-4 py-3 border-b border-border">
                 <h3 className="font-bold text-foreground">Admin Controls</h3>
                 <p className="text-xs text-muted-foreground">
-                  Manage your store and users
+                  Manage your store and customers
                 </p>
               </div>
 
@@ -136,7 +135,7 @@ const AdminMenu = () => {
               {/* Footer */}
               <div className="px-4 py-3 border-t border-border">
                 <p className="text-xs text-muted-foreground text-center">
-                  Admin Dashboard v1.0
+                  Admin Dashboard v2.0
                 </p>
               </div>
             </div>
