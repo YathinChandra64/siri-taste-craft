@@ -46,8 +46,12 @@ const NotificationsPanel = () => {
       });
 
       if (response.ok) {
-        const data: Notification[] = await response.json();
-        setNotifications(data);
+        const data = await response.json();
+        // ✅ Handle both array and object responses
+        const notificationsArray = Array.isArray(data) 
+          ? data 
+          : data.notifications || [];
+        setNotifications(notificationsArray);
       }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);

@@ -1,153 +1,160 @@
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CartSummary } from "@/types/profile";
-import { ShoppingCart, Plus, Minus, Trash2 } from "lucide-react";
+import { Trash2, ShoppingCart, Lock } from "lucide-react";
+import { useAuth } from "@/contexts/useAuth";
+import { useCart } from "@/hooks/useCart";
 
-interface CartSectionProps {
-  cart: CartSummary;
-  onRemove: (itemId: string) => void;
-  onUpdateQuantity: (itemId: string, quantity: number) => void;
-  onCheckout: () => void;
-  isLoading?: boolean;
-}
+const CartSection = () => {
+  const { user } = useAuth();
+  const { cartItems, removeFromCart, updateCartQuantity } = useCart();
+  const [loading, setLoading] = useState(false);
 
-export const CartSection = ({
-  cart,
-  onRemove,
-  onUpdateQuantity,
-  onCheckout,
-  isLoading
-}: CartSectionProps) => {
-  // Safety check - make sure cart and items exist
-  if (!cart || !cart.items) {
+  const totalPrice = cartItems.reduce((sum, item) => sum + (item.saree?.price || 0) * item.quantity, 0);
+
+  const handleCheckout = async () => {
+    // ✅ AUTH CHECK for checkout
+    if (!user) {
+      alert("❌ You need to be logged in to proceed with checkout. We'd be happy to have you join us!");
+      window.location.href = "/login";
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      alert("Your cart is empty");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // Proceed to checkout/payment page
+      window.location.href = "/checkout";
+    } catch (error) {
+      console.error("Checkout error:", error);
+      alert("Error processing checkout");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (cartItems.length === 0) {
     return (
-      <Card className="shadow-card">
+      <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="text-white flex items-center gap-2">
             <ShoppingCart className="w-5 h-5" />
-            Shopping Cart (0)
+            Your Cart
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-12">
-            <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground">Your cart is empty</p>
-            <p className="text-sm text-muted-foreground mt-2">Add sarees to get started!</p>
-          </div>
+        <CardContent className="text-center py-12">
+          <ShoppingCart className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+          <p className="text-slate-400 mb-4">Your cart is empty</p>
+          <a href="/sarees" className="text-purple-400 hover:text-purple-300">
+            Continue Shopping →
+          </a>
         </CardContent>
       </Card>
     );
   }
 
-  const itemCount = cart.items?.length || 0;
-  const total = cart.total || 0;
-
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.1 }}
-    >
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5" />
-            Shopping Cart ({itemCount})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {itemCount === 0 ? (
-            <div className="text-center py-12">
-              <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground">Your cart is empty</p>
-              <p className="text-sm text-muted-foreground mt-2">Add sarees to get started!</p>
-            </div>
-          ) : (
-            <>
-              <div className="space-y-4 mb-6">
-                {cart.items.map((item) => {
-                  // Safety check for each item
-                  if (!item || !item.saree) {
-                    return null;
+    <Card className="bg-slate-800 border-slate-700">
+      <CardHeader>
+        <CardTitle className="text-white">Your Cart ({cartItems.length})</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Cart Items */}
+        <div className="space-y-3 max-h-80 overflow-y-auto">
+          {cartItems.map((item) => (
+            <div
+              key={item._id}
+              className="flex items-center gap-4 p-3 bg-slate-700 rounded-lg"
+            >
+              {/* Product Image */}
+              <img
+                src={item.saree?.image || "https://via.placeholder.com/80"}
+                alt={item.saree?.name}
+                className="w-16 h-16 object-cover rounded"
+              />
+
+              {/* Product Details */}
+              <div className="flex-1">
+                <p className="font-semibold text-white">{item.saree?.name}</p>
+                <p className="text-sm text-slate-400">
+                  ₹{item.saree?.price} × {item.quantity}
+                </p>
+              </div>
+
+              {/* Quantity Control */}
+              <div className="flex items-center gap-2 bg-slate-600 rounded px-2 py-1">
+                <button
+                  onClick={() =>
+                    updateCartQuantity(item._id, Math.max(1, item.quantity - 1))
                   }
-
-                  const itemTotal = (item.saree.price || 0) * (item.quantity || 1);
-
-                  return (
-                    <motion.div
-                      key={item._id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
-                    >
-                      <img
-                        src={item.saree.imageUrl || "https://via.placeholder.com/80"}
-                        alt={item.saree.name}
-                        className="w-20 h-20 object-cover rounded-lg"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-foreground">{item.saree.name}</h4>
-                        <p className="text-sm text-muted-foreground">{item.saree.category}</p>
-                        <p className="text-lg font-bold text-primary mt-1">
-                          ₹{itemTotal.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end justify-between">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onRemove(item._id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => onUpdateQuantity(item._id, (item.quantity || 1) - 1)}
-                            disabled={(item.quantity || 1) <= 1}
-                          >
-                            <Minus className="w-3 h-3" />
-                          </Button>
-                          <span className="w-8 text-center font-medium">{item.quantity || 1}</span>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => onUpdateQuantity(item._id, (item.quantity || 1) + 1)}
-                          >
-                            <Plus className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-
-              <div className="border-t pt-4 space-y-3">
-                <div className="flex justify-between text-lg">
-                  <span className="font-semibold">Total:</span>
-                  <span className="font-bold text-primary text-xl">
-                    ₹{total.toLocaleString()}
-                  </span>
-                </div>
-                <Button
-                  onClick={onCheckout}
-                  className="w-full bg-gradient-saree text-white"
-                  size="lg"
-                  disabled={isLoading}
+                  className="text-slate-300 hover:text-white"
                 >
-                  {isLoading ? "Processing..." : "Proceed to Checkout"}
-                </Button>
+                  −
+                </button>
+                <span className="text-white w-6 text-center">{item.quantity}</span>
+                <button
+                  onClick={() =>
+                    updateCartQuantity(item._id, item.quantity + 1)
+                  }
+                  className="text-slate-300 hover:text-white"
+                >
+                  +
+                </button>
               </div>
-            </>
+
+              {/* Remove Button */}
+              <button
+                onClick={() => removeFromCart(item._id)}
+                className="text-red-400 hover:text-red-300 p-2"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-slate-600 pt-4">
+          {/* Total */}
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-slate-300 font-medium">Total:</span>
+            <span className="text-2xl font-bold text-purple-400">
+              ₹{totalPrice.toLocaleString()}
+            </span>
+          </div>
+
+          {/* Checkout Button */}
+          <Button
+            onClick={handleCheckout}
+            disabled={loading}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 gap-2"
+          >
+            {!user ? (
+              <>
+                <Lock className="w-4 h-4" />
+                Login to Checkout
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-4 h-4" />
+                Proceed to Checkout
+              </>
+            )}
+          </Button>
+
+          {/* Auth Message */}
+          {!user && (
+            <p className="text-center text-slate-400 text-sm mt-3 p-3 bg-slate-700 rounded">
+              💡 You need to login to complete your purchase
+            </p>
           )}
-        </CardContent>
-      </Card>
-    </motion.div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

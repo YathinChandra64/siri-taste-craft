@@ -1,90 +1,134 @@
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Shield } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { getProductWithStock } from "@/utils/inventory";
+import { useAuth } from "@/contexts/useAuth";
+import { useCart } from "@/hooks/useCart";
+import { Card } from "@/components/ui/card";
 
-interface ProductCardProps {
-  product: {
-    id: number;
-    name: string;
-    category: string;
-    price: number;
-    pricePerKg?: number;
-    description: string;
-    image: string;
-  };
-  type: "saree" | "sweet";
-  onViewDetails: () => void;
-}
-
-const ProductCard = ({ product, type, onViewDetails }: ProductCardProps) => {
+const ProductCard = ({ product, onSelect }) => {
   const { user } = useAuth();
-  const productWithStock = getProductWithStock(product.id, type);
-  const currentStock = productWithStock?.stock ?? 0;
-  const inStock = currentStock > 0;
-  const gradientClass = type === "saree" ? "bg-gradient-saree" : "bg-gradient-sweet";
+  const { addToCart } = useCart();
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+
+  const handleAddToCart = async () => {
+    // ✅ Check if user is logged in
+    if (!user) {
+      setLoginModalOpen(true);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const success = await addToCart(product._id, 1);
+      if (success) {
+        // Show success toast
+        alert("Added to cart! ✨");
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      alert("Failed to add to cart");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      whileHover={{ y: -8 }}
-      transition={{ duration: 0.3 }}
-      className="group bg-card rounded-xl overflow-hidden shadow-card hover:shadow-hover transition-all duration-300"
-    >
-      {/* Image Container */}
-      <div className="relative aspect-square overflow-hidden bg-muted">
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-foreground/10" />
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-        />
-        <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-medium ${gradientClass} text-white`}>
-          {product.category}
-        </div>
-      </div>
+    <>
+      <Card className="bg-slate-800 border-slate-700 overflow-hidden hover:border-purple-600 transition-all hover:shadow-xl hover:shadow-purple-600/20 group cursor-pointer">
+        {/* Image Container */}
+        <div className="relative overflow-hidden h-64 bg-slate-700">
+          <img
+            src={product.image || "https://via.placeholder.com/300x400"}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
+            onClick={() => onSelect(product)}
+          />
 
-      {/* Content */}
-      <div className="p-5">
-        <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-1">
-          {product.name}
-        </h3>
-        <p className="text-sm text-muted-foreground mb-3 line-clamp-2 min-h-[40px]">
-          {product.description}
-        </p>
-        
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xl font-bold text-foreground">
-            ₹{(product.pricePerKg || product.price).toLocaleString()}{type === 'sweet' ? '/kg' : ''}
-          </span>
-          <Button
-            onClick={onViewDetails}
-            variant="outline"
-            size="sm"
-            className="hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+          {/* Wishlist Button */}
+          <button
+            onClick={() => setIsWishlisted(!isWishlisted)}
+            className="absolute top-3 right-3 bg-white/90 hover:bg-white p-2 rounded-full transition"
           >
-            View Details
+            <Heart
+              className={`w-4 h-4 ${
+                isWishlisted ? "fill-red-500 text-red-500" : "text-gray-600"
+              }`}
+            />
+          </button>
+
+          {/* Stock Badge */}
+          {product.stock < 5 && (
+            <div className="absolute top-3 left-3 bg-amber-500 text-white text-xs px-2 py-1 rounded">
+              Low Stock
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="p-4">
+          <h3
+            className="font-semibold text-white mb-2 cursor-pointer hover:text-purple-400 transition"
+            onClick={() => onSelect(product)}
+          >
+            {product.name}
+          </h3>
+
+          {product.description && (
+            <p className="text-slate-400 text-sm mb-3 line-clamp-2">
+              {product.description}
+            </p>
+          )}
+
+          {/* Price */}
+          <div className="mb-4">
+            <p className="text-2xl font-bold text-purple-400">₹{product.price}</p>
+            {product.originalPrice && (
+              <p className="text-sm text-slate-400 line-through">
+                ₹{product.originalPrice}
+              </p>
+            )}
+          </div>
+
+          {/* Add to Cart Button */}
+          <Button
+            onClick={handleAddToCart}
+            disabled={loading || product.stock === 0}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white gap-2 font-medium"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            {loading ? "Adding..." : product.stock === 0 ? "Out of Stock" : "Add to Cart"}
           </Button>
         </div>
+      </Card>
 
-        {/* Stock Badge - Admin Only */}
-        {user?.isAdmin && (
-          <div className="flex items-center gap-2 text-sm">
-            <Shield size={14} className="text-primary" />
-            <Badge 
-              variant={inStock ? "default" : "destructive"}
-              className={`text-xs ${inStock ? "bg-green-500" : ""}`}
-            >
-              {inStock ? `${currentStock} ${type === 'sweet' ? 'kg' : ''} in stock` : "Out of Stock"}
-            </Badge>
+      {/* Login Modal */}
+      {loginModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-sm w-full border border-slate-700">
+            <h2 className="text-2xl font-bold text-white mb-4">🎉 Join Us!</h2>
+            <p className="text-slate-300 mb-6">
+              You need to be logged in to add items to cart. We'd be happy to have you join us!
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setLoginModalOpen(false)}
+                className="flex-1 px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-700 transition"
+              >
+                Continue Shopping
+              </button>
+              <a
+                href="/login"
+                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition text-center font-medium"
+              >
+                Login
+              </a>
+            </div>
           </div>
-        )}
-      </div>
-    </motion.div>
+        </div>
+      )}
+    </>
   );
 };
 

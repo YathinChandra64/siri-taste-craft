@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import QRPaymentModal from "./QRPaymentModal";
+import QRPaymentModal from "./UPIPaymentModal";
 import { getProductWithStock } from "@/utils/inventory";
 import { addToCart } from "@/utils/cart";
 
