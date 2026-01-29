@@ -36,7 +36,7 @@ export const submitContact = async (req, res) => {
       status: "new"
     });
 
-    // ✅ NEW: Create admin notification
+    // ✅ Create admin notification when customer sends message
     try {
       await Notification.create({
         type: "new_message",
@@ -50,7 +50,6 @@ export const submitContact = async (req, res) => {
       console.log("✅ Admin notification created for new message");
     } catch (notificationError) {
       console.error("Notification creation error:", notificationError);
-      // Don't fail the request if notification fails
     }
 
     res.status(201).json({
@@ -64,10 +63,10 @@ export const submitContact = async (req, res) => {
   }
 };
 
-// ✅ Get customer's messages and replies (for customer portal)
+// ✅ Get customer's own messages (Protected - requires auth)
 export const getCustomerMessages = async (req, res) => {
   try {
-    const userEmail = req.user.email;
+    const userEmail = req.user?.email;
 
     if (!userEmail) {
       return res.status(400).json({ message: "User email not found" });
@@ -86,10 +85,10 @@ export const getCustomerMessages = async (req, res) => {
   }
 };
 
-// ✅ Get customer notifications (replies to their messages)
+// ✅ Get customer notifications (messages with replies - Protected)
 export const getCustomerNotifications = async (req, res) => {
   try {
-    const userEmail = req.user.email;
+    const userEmail = req.user?.email;
 
     if (!userEmail) {
       return res.status(400).json({ message: "User email not found" });
@@ -98,7 +97,7 @@ export const getCustomerNotifications = async (req, res) => {
     // Find all messages from this customer that have replies
     const notifications = await Contact.find({
       email: userEmail,
-      reply: { $ne: null }
+      reply: { $ne: null } // Only messages with replies
     }).sort({ repliedAt: -1 });
 
     res.json(notifications);
@@ -120,7 +119,7 @@ export const getAllContacts = async (req, res) => {
   }
 };
 
-// 📖 Get contact by ID (Admin only)
+// 📖 Get contact by ID (Admin only - marks as read)
 export const getContactById = async (req, res) => {
   try {
     const contact = await Contact.findById(req.params.id);
@@ -132,6 +131,18 @@ export const getContactById = async (req, res) => {
     // Mark as read
     contact.status = "read";
     await contact.save();
+
+    // ✅ Mark admin notification as read
+    try {
+      await Notification.findOneAndUpdate(
+        { contactId: contact._id, recipientRole: "admin", isRead: false },
+        { isRead: true },
+        { new: true }
+      );
+      console.log("✅ Admin notification marked as read");
+    } catch (notificationError) {
+      console.error("Error marking notification:", notificationError);
+    }
 
     res.json(contact);
   } catch (error) {
@@ -163,7 +174,7 @@ export const replyToContact = async (req, res) => {
       return res.status(404).json({ message: "Contact not found" });
     }
 
-    // ✅ NEW: Create customer notification for reply
+    // ✅ Create customer notification for reply
     try {
       await Notification.create({
         type: "message_reply",
@@ -177,7 +188,6 @@ export const replyToContact = async (req, res) => {
       console.log("✅ Customer notification created for reply");
     } catch (notificationError) {
       console.error("Notification creation error:", notificationError);
-      // Don't fail the request if notification fails
     }
 
     res.json({

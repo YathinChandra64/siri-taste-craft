@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ShoppingCart, AlertCircle } from "lucide-react";
+import { Trash2, ShoppingCart, Download, AlertCircle, Mail, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { getCart, removeFromCart } from "@/utils/cart";
@@ -14,6 +14,18 @@ interface OrderItem {
   name: string;
   quantity: number;
   price: number;
+}
+
+interface ContactMessage {
+  _id: string;
+  name: string;
+  email: string;
+  message: string;
+  status: "new" | "read" | "replied";
+  reply?: string;
+  repliedAt?: string;
+  read?: boolean;
+  createdAt: string;
 }
 
 interface LocalCartItem {
@@ -64,6 +76,7 @@ const Profile = () => {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [useLocalCart, setUseLocalCart] = useState(true);
   const [sareeMap, setSareeMap] = useState<Record<string, SareeProduct>>({});
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
 
   useEffect(() => {
     // Check authentication
@@ -73,6 +86,8 @@ const Profile = () => {
     }
     
     fetchData();
+    fetchUnreadMessages();
+    
     // Listen for storage changes (when items added from other tabs/pages)
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
@@ -95,28 +110,44 @@ const Profile = () => {
           map[saree._id] = saree;
         });
         setSareeMap(map);
-        console.log("✅ Saree map loaded:", Object.keys(map).length, "sarees");
       }
     } catch (error) {
       console.log("Failed to fetch sarees:", error);
     }
   };
 
+  const fetchUnreadMessages = async () => {
+    try {
+      const authToken = localStorage.getItem("authToken");
+      if (!authToken) return;
+
+      const response = await fetch("http://localhost:5000/api/contact/customer/notifications", {
+        headers: {
+          "Authorization": `Bearer ${authToken}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (response.ok) {
+        const data: ContactMessage[] = await response.json();
+        // Count messages with replies
+        const unreplied = data.filter((msg: ContactMessage) => msg.reply).length;
+        setUnreadMessagesCount(unreplied);
+      }
+    } catch (error) {
+      console.log("Failed to fetch unread messages:", error);
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      // ✅ Use correct token key "authToken"
       const authToken = localStorage.getItem("authToken");
-      
-      console.log("📋 Auth Token Check:");
-      console.log("  - User from context:", !!user);
-      console.log("  - Token in localStorage:", !!authToken);
-      console.log("  - Token preview:", authToken ? authToken.substring(0, 20) + "..." : "NONE");
       
       // Fetch saree mapping first
       await fetchSarees();
       
-      // Always load local cart first (this is the primary source)
+      // Always load local cart first
       const localCart = getCart();
       setCartItems(localCart);
 
@@ -215,7 +246,6 @@ const Profile = () => {
 
     try {
       setIsCheckingOut(true);
-      // ✅ Use correct token key "authToken"
       const authToken = localStorage.getItem("authToken");
 
       if (!authToken) {
@@ -232,11 +262,9 @@ const Profile = () => {
       let totalAmount: number;
 
       if (useLocalCart) {
-        // ✅ FIXED: Map local cart items to use actual MongoDB IDs from sareeMap
         orderItems = cartItems.map(item => {
-          // Try to find the actual saree in the map by name
           const saree = Object.values(sareeMap).find(s => s.name === item.name);
-          const mongoId = saree ? saree._id : item.id; // Use actual MongoDB ID if found
+          const mongoId = saree ? saree._id : item.id;
           
           return {
             product: mongoId,
@@ -256,13 +284,6 @@ const Profile = () => {
         totalAmount = apiCartItems.reduce((sum, item) => sum + (item.saree.price * item.quantity), 0);
       }
 
-      console.log("📤 Checkout Details:");
-      console.log("  - Order Items:", orderItems);
-      console.log("  - Total Amount:", totalAmount);
-      console.log("  - Auth Token:", authToken ? authToken.substring(0, 20) + "..." : "MISSING");
-      console.log("  - Using Cart Type:", useLocalCart ? "LOCAL" : "API");
-      console.log("  - Saree Map Size:", Object.keys(sareeMap).length);
-
       const response = await fetch("http://localhost:5000/api/orders", {
         method: "POST",
         headers: {
@@ -275,25 +296,19 @@ const Profile = () => {
         })
       });
 
-      console.log("📤 API Response Status:", response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("❌ API Error:", errorData);
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(errorData.message || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
 
       if (data.success || data._id) {
-        console.log("✅ Order Created:", data._id);
-        
         toast({
           title: "Success",
           description: "Order created! Proceeding to payment...",
         });
 
-        // Clear cart
         if (useLocalCart) {
           const cartKey = `cart_${user?.id || "guest"}`;
           localStorage.removeItem(cartKey);
@@ -312,7 +327,7 @@ const Profile = () => {
         throw new Error(data.message || "Failed to create order");
       }
     } catch (error) {
-      console.error("❌ Checkout Error:", error);
+      console.error("Checkout Error:", error);
       
       toast({
         title: "Checkout Failed",
@@ -353,13 +368,35 @@ const Profile = () => {
               <h1 className="text-4xl font-bold text-white mb-2">My Account</h1>
               <p className="text-slate-400">Welcome, {user?.name}!</p>
             </div>
-            <Button
-              onClick={logout}
-              variant="destructive"
-              className="gap-2"
-            >
-              Logout
-            </Button>
+            <div className="flex gap-3">
+              {unreadMessagesCount > 0 && (
+                <motion.button
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  onClick={() => navigate("/messages")}
+                  className="relative bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  <Mail className="w-5 h-5" />
+                  <span className="font-semibold">Messages</span>
+                  <span className="absolute -top-2 -right-2 bg-yellow-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold animate-pulse">
+                    {unreadMessagesCount}
+                  </span>
+                </motion.button>
+              )}
+              <Button
+                onClick={() => navigate("/messages")}
+                className="bg-purple-600 hover:bg-purple-700 gap-2"
+              >
+                <Mail className="w-5 h-5" />
+                Messages
+              </Button>
+              <Button
+                onClick={logout}
+                variant="destructive"
+              >
+                Logout
+              </Button>
+            </div>
           </div>
         </motion.div>
 

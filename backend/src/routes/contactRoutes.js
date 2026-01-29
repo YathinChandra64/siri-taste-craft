@@ -15,22 +15,22 @@ import {
 
 const router = express.Router();
 
-// ✅ Public routes
-router.post("/", submitContact); // Customer sends message
+// ✅ PUBLIC: Customer sends message
+router.post("/", submitContact);
 
-// ✅ Customer routes (logged-in customers)
-router.get("/customer/messages", protect, getCustomerMessages); // Customer views their messages
-router.get("/customer/notifications", protect, getCustomerNotifications); // Customer views replies
+// ✅ CUSTOMER ROUTES (auth required)
+router.get("/customer/messages", protect, getCustomerMessages);
+router.get("/customer/notifications", protect, getCustomerNotifications);
 
-// ✅ Admin routes
-router.get("/", protect, adminOnly, getAllContacts); // Admin views all messages
-router.get("/admin/notifications", protect, adminOnly, getAdminNotifications); // Admin views new message notifications
-router.get("/:id", protect, adminOnly, getContactById); // Admin views specific message
-router.put("/:id/reply", protect, adminOnly, replyToContact); // Admin replies to message
-router.delete("/:id", protect, adminOnly, deleteContact); // Admin deletes message
+// ✅ ADMIN ROUTES (auth + admin role required)
+router.get("/admin/notifications", protect, adminOnly, getAdminNotifications);
+router.get("/", protect, adminOnly, getAllContacts);
+router.get("/:id", protect, adminOnly, getContactById);
+router.put("/:id/reply", protect, adminOnly, replyToContact);
+router.delete("/:id", protect, adminOnly, deleteContact);
 
-// ✅ Notification routes
-router.put("/notification/:id/read", protect, markNotificationAsRead); // Mark notification as read
-router.get("/notification/unread-count", protect, getUnreadCount); // Get unread count
+// ✅ NOTIFICATION ROUTES (auth required)
+router.put("/notification/:id/read", protect, markNotificationAsRead);
+router.get("/notification/unread-count", protect, getUnreadCount);
 
 export default router;

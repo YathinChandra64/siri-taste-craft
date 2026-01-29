@@ -13,7 +13,11 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
 import Sarees from "./pages/Sarees";
+import Payment from "./pages/Payment";
 import NotFound from "./pages/NotFound";
+
+// Customer Pages
+import CustomerMessages from "./pages/CustomerMessages";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -22,11 +26,6 @@ import AdminMessages from "./pages/admin/Messages";
 import AdminSarees from "./pages/admin/Sarees";
 import AdminProfile from "./pages/admin/AdminProfile";
 import AdminPayments from "./pages/admin/AdminPayments";
-import AdminChat from "./pages/admin/AdminChat"; // ✅ NEW
-
-import Payment from "@/pages/Payment";
-import CustomerMessages from "@/pages/CustomerMessages";
-   
 
 const App = () => {
   return (
@@ -43,8 +42,6 @@ const App = () => {
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/customer/messages" element={<CustomerMessages />} />
 
           {/* Protected Customer Routes */}
           <Route 
@@ -52,6 +49,25 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/payment" 
+            element={
+              <ProtectedRoute>
+                <Payment />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* ✅ Customer Messages Route */}
+          <Route 
+            path="/messages" 
+            element={
+              <ProtectedRoute>
+                <CustomerMessages />
               </ProtectedRoute>
             } 
           />
@@ -80,16 +96,6 @@ const App = () => {
             element={
               <ProtectedRoute requiredRole="admin">
                 <AdminMessages />
-              </ProtectedRoute>
-            } 
-          />
-
-          {/* ✅ NEW: Admin Chat Route */}
-          <Route 
-            path="/admin/chat" 
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminChat />
               </ProtectedRoute>
             } 
           />

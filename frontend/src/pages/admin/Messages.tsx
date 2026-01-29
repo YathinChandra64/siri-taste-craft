@@ -32,11 +32,13 @@ const AdminMessages = () => {
   useEffect(() => {
     fetchMessages();
     fetchUnreadCount();
+    
     // Refresh every 10 seconds
     const interval = setInterval(() => {
       fetchMessages();
       fetchUnreadCount();
     }, 10000);
+    
     return () => clearInterval(interval);
   }, []);
 
@@ -52,6 +54,7 @@ const AdminMessages = () => {
       if (response.ok) {
         const data = await response.json();
         setMessages(data);
+        console.log("✅ Messages loaded:", data.length);
       }
     } catch (error) {
       console.error("Failed to fetch messages:", error);
@@ -77,9 +80,33 @@ const AdminMessages = () => {
       if (response.ok) {
         const data = await response.json();
         setUnreadCount(data.unreadCount);
+        console.log("✅ Unread count:", data.unreadCount);
       }
     } catch (error) {
       console.error("Failed to fetch unread count:", error);
+    }
+  };
+
+  const handleSelectMessage = async (message: ContactMessage) => {
+    setSelectedMessage(message);
+    setReplyText("");
+    
+    // Mark message as read if it's new
+    if (message.status === "new") {
+      try {
+        const token = localStorage.getItem("authToken");
+        await fetch(`http://localhost:5000/api/contact/${message._id}`, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        
+        // Update unread count
+        fetchUnreadCount();
+      } catch (error) {
+        console.error("Error marking as read:", error);
+      }
     }
   };
 
@@ -111,11 +138,12 @@ const AdminMessages = () => {
       if (response.ok) {
         toast({
           title: "Reply Sent! ✅",
-          description: "Customer notification sent",
+          description: "Customer has been notified",
         });
         setReplyText("");
         setSelectedMessage(null);
         fetchMessages();
+        fetchUnreadCount();
       } else {
         throw new Error("Failed to send reply");
       }
@@ -149,6 +177,7 @@ const AdminMessages = () => {
           description: "Message has been deleted",
         });
         fetchMessages();
+        fetchUnreadCount();
       }
     } catch (error) {
       console.error("Delete failed:", error);
@@ -158,11 +187,6 @@ const AdminMessages = () => {
         variant: "destructive",
       });
     }
-  };
-
-  const handleSelectMessage = async (message: ContactMessage) => {
-    setSelectedMessage(message);
-    setReplyText("");
   };
 
   const getStatusColor = (status: string) => {
@@ -212,9 +236,17 @@ const AdminMessages = () => {
               animate={{ scale: 1 }}
               className="relative"
             >
-              <div className="bg-red-500 text-white px-4 py-2 rounded-full flex items-center gap-2">
-                <Bell className="w-5 h-5" />
-                <span className="font-semibold">{unreadCount} New Notification{unreadCount !== 1 ? 's' : ''}</span>
+              <div className="bg-red-500 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-lg">
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 0.5, repeat: Infinity }}
+                >
+                  <Bell className="w-6 h-6" />
+                </motion.div>
+                <div>
+                  <span className="font-bold text-lg">{unreadCount}</span>
+                  <span className="ml-1">New Notification{unreadCount !== 1 ? 's' : ''}</span>
+                </div>
               </div>
             </motion.div>
           )}
@@ -247,7 +279,7 @@ const AdminMessages = () => {
                     }`}
                   >
                     <Card className={`bg-slate-800 border-slate-700 p-4 hover:border-purple-600/50 transition-all ${
-                      message.status === "new" ? "border-yellow-500/50" : ""
+                      message.status === "new" ? "border-yellow-500/50 shadow-lg shadow-yellow-500/20" : ""
                     }`}>
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
@@ -258,10 +290,10 @@ const AdminMessages = () => {
                             </Badge>
                             {message.status === "new" && (
                               <motion.div
-                                animate={{ scale: [1, 1.2, 1] }}
-                                transition={{ duration: 2, repeat: Infinity }}
+                                animate={{ scale: [1, 1.3, 1] }}
+                                transition={{ duration: 1.5, repeat: Infinity }}
                               >
-                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                               </motion.div>
                             )}
                           </div>
