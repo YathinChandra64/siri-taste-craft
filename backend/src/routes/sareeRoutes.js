@@ -12,15 +12,23 @@ import {
 
 const router = express.Router();
 
-// Public routes
-router.get("/", getAllSarees);
-router.get("/:id", getSareeById);
+// ✅ CRITICAL: SPECIFIC ROUTES MUST COME BEFORE GENERIC /:id ROUTES
 
-// Admin only routes
+// ✅ Public routes - GET all sarees
+router.get("/", getAllSarees);
+
+// ✅ ADMIN STATS ROUTE - MUST COME BEFORE /:id route
+router.get("/admin/stats", protect, adminOnly, getSareeStats);
+
+// ✅ CREATE - before GET by ID
 router.post("/", protect, adminOnly, createSaree);
+
+// ✅ BULK UPLOAD - before GET by ID
+router.post("/bulk/upload", protect, adminOnly, bulkUploadSarees);
+
+// ✅ GENERIC ROUTES - MUST COME LAST
+router.get("/:id", getSareeById);
 router.put("/:id", protect, adminOnly, updateSaree);
 router.delete("/:id", protect, adminOnly, deleteSaree);
-router.post("/bulk/upload", protect, adminOnly, bulkUploadSarees);
-router.get("/admin/stats", protect, adminOnly, getSareeStats);
 
 export default router;

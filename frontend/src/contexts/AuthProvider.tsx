@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const token = localStorage.getItem("authToken");
+        const token = localStorage.getItem("authToken"); // ✅ Using 'authToken'
         
         if (!token) {
           setLoading(false);
@@ -26,9 +26,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (response.ok) {
           const userData: User = await response.json();
           setUser(userData);
-          // ✅ FIX: Store user info in localStorage for cart purposes
+          // ✅ Store user info in localStorage for app purposes
           localStorage.setItem("user", JSON.stringify(userData));
-        } else {
+        } else if (response.status === 401) {
+          // ✅ Token expired, clear storage
           localStorage.removeItem("authToken");
           localStorage.removeItem("user");
           setUser(null);
@@ -65,10 +66,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const data = await response.json();
 
       if (data.token) {
-        localStorage.setItem("authToken", data.token);
+        localStorage.setItem("authToken", data.token); // ✅ Using 'authToken'
       }
 
-      // ✅ FIX: Store user info in localStorage for cart purposes
+      // ✅ Store user info in localStorage
       const userData: User = data.user;
       localStorage.setItem("user", JSON.stringify(userData));
       
@@ -99,10 +100,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const data = await response.json();
 
       if (data.token) {
-        localStorage.setItem("authToken", data.token);
+        localStorage.setItem("authToken", data.token); // ✅ Using 'authToken'
       }
 
-      // ✅ FIX: Store user info in localStorage for cart purposes
+      // ✅ Store user info in localStorage
       const userData: User = data.user;
       localStorage.setItem("user", JSON.stringify(userData));
       
@@ -115,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem("authToken");
+    localStorage.removeItem("authToken"); // ✅ Using 'authToken'
     localStorage.removeItem("user");
     setUser(null);
   };

@@ -400,3 +400,121 @@ export const cancelOrder = async (req, res) => {
     });
   }
 };
+
+// ✅ THESE FUNCTIONS WERE MISSING - NOW ADDED
+
+// 🛒 Place Order - Customer places an order
+export const placeOrderCustomer = async (req, res) => {
+  try {
+    const { items, totalAmount, paymentMethod, address } = req.body;
+
+    // Validation
+    if (!items || items.length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Order items required" 
+      });
+    }
+
+    if (!totalAmount || totalAmount <= 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid total amount" 
+      });
+    }
+
+    // Create order
+    const order = new Order({
+      user: req.user.id,
+      items,
+      totalAmount,
+      paymentMethod: paymentMethod || "upi",
+      status: "pending_payment",
+    });
+
+    await order.save();
+
+    console.log("✅ Order placed by customer:", order._id);
+
+    res.status(201).json({
+      success: true,
+      message: "Order placed successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("❌ Place order error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to place order" 
+    });
+  }
+};
+
+// 📦 Get My Orders - Customer views their own orders
+export const getMyOrdersCustomer = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    if (!userId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "User ID not found" 
+      });
+    }
+
+    const orders = await Order.find({ user: userId })
+      .populate("items.product", "name price imageUrl")
+      .sort({ createdAt: -1 });
+
+    console.log(`✅ Retrieved ${orders.length} orders for user ${userId}`);
+
+    res.json(orders);
+  } catch (error) {
+    console.error("❌ Get my orders error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to fetch orders" 
+    });
+  }
+};
+
+// 🔍 Get Order Details - Customer views single order details
+export const getOrderDetailsCustomer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Validate order ID format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid order ID" 
+      });
+    }
+
+    // Find order and ensure it belongs to the customer
+    const order = await Order.findOne({
+      _id: id,
+      user: userId,
+    })
+      .populate("items.product", "name price imageUrl")
+      .populate("user", "name email");
+
+    if (!order) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Order not found" 
+      });
+    }
+
+    console.log("✅ Retrieved order details:", id);
+
+    res.json(order);
+  } catch (error) {
+    console.error("❌ Get order details error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to fetch order details" 
+    });
+  }
+};

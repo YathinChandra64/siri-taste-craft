@@ -15,22 +15,22 @@ import {
 
 const router = express.Router();
 
-// ✅ PUBLIC: Customer sends message
+// ✅ PUBLIC: Customer sends message (no auth needed)
 router.post("/", submitContact);
 
-// ✅ CUSTOMER ROUTES (auth required)
+// ✅ CUSTOMER ROUTES (auth required - must come BEFORE admin routes to avoid conflicts)
 router.get("/customer/messages", protect, getCustomerMessages);
 router.get("/customer/notifications", protect, getCustomerNotifications);
 
-// ✅ ADMIN ROUTES (auth + admin role required)
+// ✅ NOTIFICATION ROUTES (auth required)
+router.get("/notification/unread-count", protect, getUnreadCount); // ✅ Must come before /:id routes
+router.put("/notification/:id/read", protect, markNotificationAsRead);
+
+// ✅ ADMIN ROUTES (auth + admin role required - must come LAST)
 router.get("/admin/notifications", protect, adminOnly, getAdminNotifications);
 router.get("/", protect, adminOnly, getAllContacts);
-router.get("/:id", protect, adminOnly, getContactById);
+router.get("/:id", protect, adminOnly, getContactById); // ✅ Generic :id route goes last
 router.put("/:id/reply", protect, adminOnly, replyToContact);
 router.delete("/:id", protect, adminOnly, deleteContact);
-
-// ✅ NOTIFICATION ROUTES (auth required)
-router.put("/notification/:id/read", protect, markNotificationAsRead);
-router.get("/notification/unread-count", protect, getUnreadCount);
 
 export default router;

@@ -22,7 +22,7 @@ interface ContactMessage {
 }
 
 const CustomerMessages = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth(); // ✅ Get auth loading state
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -31,29 +31,44 @@ const CustomerMessages = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // ✅ FIXED: Wait for auth to be resolved before making API calls
   useEffect(() => {
+    // Don't do anything while auth is loading
+    if (authLoading) {
+      return;
+    }
+
     // Redirect if not logged in
     if (!user) {
       navigate("/login");
       return;
     }
 
+    // Fetch messages only when user is authenticated
     fetchMessages();
     fetchUnreadCount();
     
-    // Refresh every 10 seconds
+    // ✅ FIXED: Stop polling if user logs out
     const interval = setInterval(() => {
-      fetchMessages();
-      fetchUnreadCount();
+      const currentToken = localStorage.getItem("authToken");
+      if (currentToken) {
+        fetchMessages();
+        fetchUnreadCount();
+      }
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]); // ✅ Added authLoading to dependencies
 
   const fetchMessages = async () => {
     try {
+      // ✅ FIXED: Don't call API if no token
       const authToken = localStorage.getItem("authToken");
-      
+      if (!authToken) {
+        console.warn("No auth token, skipping fetch");
+        return;
+      }
+
       const response = await fetch("http://localhost:5000/api/contact/customer/messages", {
         method: "GET",
         headers: {
@@ -67,7 +82,12 @@ const CustomerMessages = () => {
         setMessages(data);
         console.log("✅ Messages loaded:", data.length);
       } else if (response.status === 401) {
+        // Token expired, redirect to login
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
         navigate("/login");
+      } else if (response.status === 400) {
+        console.warn("Bad request - user context missing");
       }
     } catch (error) {
       console.error("Failed to fetch messages:", error);
@@ -83,8 +103,13 @@ const CustomerMessages = () => {
 
   const fetchUnreadCount = async () => {
     try {
+      // ✅ FIXED: Don't call API if no token
       const authToken = localStorage.getItem("authToken");
-      
+      if (!authToken) {
+        console.warn("No auth token, skipping unread count fetch");
+        return;
+      }
+
       const response = await fetch("http://localhost:5000/api/contact/customer/notifications", {
         method: "GET",
         headers: {
@@ -98,6 +123,12 @@ const CustomerMessages = () => {
         // Count messages with replies that haven't been marked as read
         const repliedMessages = data.filter((msg: ContactMessage) => msg.reply && msg.status !== "replied");
         setUnreadCount(repliedMessages.length);
+        console.log("✅ Unread count:", repliedMessages.length);
+      } else if (response.status === 401) {
+        // Token expired
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
+        navigate("/login");
       }
     } catch (error) {
       console.error("Failed to fetch unread count:", error);
@@ -106,8 +137,10 @@ const CustomerMessages = () => {
 
   const markMessageAsRead = async (messageId: string) => {
     try {
+      // ✅ FIXED: Validate token exists
       const authToken = localStorage.getItem("authToken");
-      
+      if (!authToken) return;
+
       // Update local state immediately
       setMessages(prev => prev.map(msg => 
         msg._id === messageId ? { ...msg, status: "replied" } : msg
@@ -155,6 +188,15 @@ const CustomerMessages = () => {
       minute: "2-digit"
     });
   };
+
+  // ✅ FIXED: Show loading while auth is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
 
   if (!user) {
     return null;

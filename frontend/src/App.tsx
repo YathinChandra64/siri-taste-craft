@@ -26,6 +26,8 @@ import AdminMessages from "./pages/admin/Messages";
 import AdminSarees from "./pages/admin/Sarees";
 import AdminProfile from "./pages/admin/AdminProfile";
 import AdminPayments from "./pages/admin/AdminPayments";
+import AdminProducts from "./pages/admin/Products";
+import AdminOrders from "./pages/admin/Orders";
 
 const App = () => {
   return (
@@ -123,6 +125,24 @@ const App = () => {
             element={
               <ProtectedRoute requiredRole="admin">
                 <AdminProfile />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/admin/products" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminProducts />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/admin/orders" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminOrders />
               </ProtectedRoute>
             } 
           />

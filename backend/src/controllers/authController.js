@@ -31,9 +31,11 @@ export const register = async (req, res) => {
       role: "customer" // ✅ ALWAYS default to customer, NEVER from request body
     });
 
+    // ✅ FIXED: Include email in JWT token
     const token = jwt.sign(
       {
         id: newUser._id,
+        email: newUser.email,  // ✅ ADD EMAIL TO TOKEN
         role: newUser.role
       },
       process.env.JWT_SECRET,
@@ -78,9 +80,11 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
+    // ✅ FIXED: Include email in JWT token
     const token = jwt.sign(
       {
         id: user._id,
+        email: user.email,  // ✅ ADD EMAIL TO TOKEN
         role: user.role
       },
       process.env.JWT_SECRET,
@@ -107,7 +111,14 @@ export const login = async (req, res) => {
 // ================= GET CURRENT USER =================
 export const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    // ✅ Get user ID from JWT token
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(400).json({ message: "User ID not found in token" });
+    }
+
+    const user = await User.findById(userId).select("-password");
     
     if (!user) {
       return res.status(404).json({ message: "User not found" });
