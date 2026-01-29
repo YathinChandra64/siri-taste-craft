@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/useAuth";
-import { MessageSquare, Send, X, Bell } from "lucide-react";
+import { MessageSquare, Send, Bell } from "lucide-react";
 
 interface Message {
   sender: "admin" | "customer";
@@ -26,7 +25,7 @@ interface Conversation {
   lastMessageAt: string;
 }
 
-const AdminChatAndNotifications = () => {
+const AdminChat = () => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -36,7 +35,6 @@ const AdminChatAndNotifications = () => {
   useEffect(() => {
     if (user?.role === "admin") {
       fetchConversations();
-      // Poll for new messages every 3 seconds
       const interval = setInterval(fetchConversations, 3000);
       return () => clearInterval(interval);
     }
@@ -55,6 +53,7 @@ const AdminChatAndNotifications = () => {
       }
     } catch (error) {
       console.error("Error fetching conversations:", error);
+      setConversations([]);
     } finally {
       setLoading(false);
     }
@@ -80,9 +79,6 @@ const AdminChatAndNotifications = () => {
       if (response.ok) {
         setNewMessage("");
         await fetchConversations();
-        // Re-select to update
-        const updated = (await response.json()).conversation;
-        setSelectedConversation(updated);
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -105,31 +101,28 @@ const AdminChatAndNotifications = () => {
 
   if (!user?.role || user.role !== "admin") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-600">Admin access required</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+        <Card className="bg-slate-800 border-slate-700 p-8">
+          <p className="text-red-400">Admin access required</p>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
+        <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
             <MessageSquare className="w-8 h-8 text-purple-400" />
             Customer Conversations
           </h1>
-          <p className="text-slate-400">Manage customer chats and respond to inquiries</p>
-        </motion.div>
+          <p className="text-slate-400">Manage customer chats</p>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Conversations List */}
-          <Card className="bg-slate-800 border-slate-700 lg:col-span-1 h-fit">
+          <Card className="bg-slate-800 border-slate-700 lg:col-span-1">
             <div className="p-4 border-b border-slate-700">
               <h2 className="text-lg font-semibold text-white">Active Chats</h2>
             </div>
@@ -183,7 +176,7 @@ const AdminChatAndNotifications = () => {
                       size="sm"
                       variant="destructive"
                     >
-                      Close Chat
+                      Close
                     </Button>
                   )}
                 </div>
@@ -246,7 +239,7 @@ const AdminChatAndNotifications = () => {
             <Card className="bg-slate-800 border-slate-700 lg:col-span-2 flex items-center justify-center h-96">
               <div className="text-center">
                 <MessageSquare className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400">Select a conversation to start chatting</p>
+                <p className="text-slate-400">Select a conversation to chat</p>
               </div>
             </Card>
           )}
@@ -256,4 +249,4 @@ const AdminChatAndNotifications = () => {
   );
 };
 
-export default AdminChatAndNotifications;
+export default AdminChat; 

@@ -4,24 +4,48 @@ import { useAuth } from "@/contexts/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ShoppingCart, Download, AlertCircle } from "lucide-react";
+import { Trash2, ShoppingCart, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import { getCart, removeFromCart } from "@/utils/cart";
 
-interface CartItem {
+interface OrderItem {
+  product: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+interface LocalCartItem {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  type: "saree" | "sweet";
+  quantity: number;
+}
+
+interface SareeProduct {
+  _id: string;
+  name: string;
+  price: number;
+  imageUrl?: string;
+}
+
+interface APICartItem {
   _id: string;
   saree: {
     _id: string;
     name: string;
     price: number;
-    image?: string;
+    imageUrl?: string;
   };
   quantity: number;
 }
 
 interface Order {
   _id: string;
-  items: any[];
+  items: OrderItem[];
   totalAmount: number;
   status: string;
   createdAt: string;
@@ -32,38 +56,111 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartItems, setCartItems] = useState<LocalCartItem[]>([]);
+  const [apiCartItems, setApiCartItems] = useState<APICartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("cart");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [useLocalCart, setUseLocalCart] = useState(true);
+  const [sareeMap, setSareeMap] = useState<Record<string, SareeProduct>>({});
 
   useEffect(() => {
-    fetchCartAndOrders();
-  }, []);
+    // Check authentication
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    
+    fetchData();
+    // Listen for storage changes (when items added from other tabs/pages)
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [user, navigate]);
 
-  const fetchCartAndOrders = async () => {
+  const handleStorageChange = () => {
+    // Refresh cart when storage changes
+    const localCart = getCart();
+    setCartItems(localCart);
+  };
+
+  // Fetch all sarees to map IDs and names
+  const fetchSarees = async () => {
     try {
-      const token = localStorage.getItem("token");
-      
-      // Fetch cart
-      const cartRes = await fetch("http://localhost:5000/api/cart", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (cartRes.ok) {
-        const cartData = await cartRes.json();
-        setCartItems(Array.isArray(cartData) ? cartData : []);
+      const response = await fetch("http://localhost:5000/api/sarees");
+      if (response.ok) {
+        const sarees: SareeProduct[] = await response.json();
+        const map: Record<string, SareeProduct> = {};
+        sarees.forEach(saree => {
+          map[saree._id] = saree;
+        });
+        setSareeMap(map);
+        console.log("✅ Saree map loaded:", Object.keys(map).length, "sarees");
       }
+    } catch (error) {
+      console.log("Failed to fetch sarees:", error);
+    }
+  };
 
-      // Fetch orders
-      const ordersRes = await fetch("http://localhost:5000/api/orders/my-orders", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // ✅ Use correct token key "authToken"
+      const authToken = localStorage.getItem("authToken");
       
-      if (ordersRes.ok) {
-        const ordersData = await ordersRes.json();
-        setOrders(ordersData.orders || []);
+      console.log("📋 Auth Token Check:");
+      console.log("  - User from context:", !!user);
+      console.log("  - Token in localStorage:", !!authToken);
+      console.log("  - Token preview:", authToken ? authToken.substring(0, 20) + "..." : "NONE");
+      
+      // Fetch saree mapping first
+      await fetchSarees();
+      
+      // Always load local cart first (this is the primary source)
+      const localCart = getCart();
+      setCartItems(localCart);
+
+      // Try to fetch from API if user is authenticated
+      if (authToken && user) {
+        try {
+          const cartRes = await fetch("http://localhost:5000/api/cart", {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              "Content-Type": "application/json"
+            }
+          });
+
+          if (cartRes.ok) {
+            const cartData = await cartRes.json();
+            const apiItems = Array.isArray(cartData.cartItems) ? cartData.cartItems : [];
+            setApiCartItems(apiItems);
+            if (apiItems.length > 0) {
+              setUseLocalCart(false);
+            }
+          }
+        } catch (apiError) {
+          console.log("API cart fetch error:", apiError);
+          setUseLocalCart(true);
+        }
+
+        // Fetch orders
+        try {
+          const ordersRes = await fetch("http://localhost:5000/api/orders/my-orders", {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              "Content-Type": "application/json"
+            }
+          });
+
+          if (ordersRes.ok) {
+            const ordersData = await ordersRes.json();
+            setOrders(ordersData.orders || []);
+          }
+        } catch (orderError) {
+          console.log("Orders fetch error:", orderError);
+        }
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -77,62 +174,37 @@ const Profile = () => {
     }
   };
 
-  const handleRemoveFromCart = async (cartItemId: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/cart/${cartItemId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        setCartItems(cartItems.filter(item => item._id !== cartItemId));
-        toast({
-          title: "Removed",
-          description: "Item removed from cart"
-        });
-      }
-    } catch (error) {
-      console.error("Error removing item:", error);
+  const handleRemoveFromCart = (itemId: string) => {
+    if (useLocalCart) {
+      removeFromCart(itemId, "saree");
+      const updatedCart = getCart();
+      setCartItems(updatedCart);
       toast({
-        title: "Error",
-        description: "Failed to remove item",
-        variant: "destructive"
+        title: "Removed",
+        description: "Item removed from cart"
       });
     }
   };
 
-  const handleUpdateQuantity = async (cartItemId: string, newQuantity: number) => {
+  const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
 
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/cart/${cartItemId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ quantity: newQuantity })
-      });
-
-      if (res.ok) {
-        setCartItems(cartItems.map(item =>
-          item._id === cartItemId ? { ...item, quantity: newQuantity } : item
-        ));
-      }
-    } catch (error) {
-      console.error("Error updating quantity:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update quantity",
-        variant: "destructive"
-      });
+    if (useLocalCart) {
+      const updatedCart = cartItems.map(item =>
+        item.id === itemId ? { ...item, quantity: newQuantity } : item
+      );
+      setCartItems(updatedCart);
+      
+      // Update localStorage
+      const cartKey = `cart_${user?.id || "guest"}`;
+      localStorage.setItem(cartKey, JSON.stringify(updatedCart));
     }
   };
 
   const handleProceedToCheckout = async () => {
-    if (cartItems.length === 0) {
+    const itemsToCheckout = useLocalCart ? cartItems : apiCartItems;
+    
+    if (itemsToCheckout.length === 0) {
       toast({
         title: "Empty Cart",
         description: "Please add items to your cart",
@@ -143,25 +215,59 @@ const Profile = () => {
 
     try {
       setIsCheckingOut(true);
-      const token = localStorage.getItem("token");
+      // ✅ Use correct token key "authToken"
+      const authToken = localStorage.getItem("authToken");
 
-      // ✅ FIXED: Properly structure the order items with valid MongoDB ObjectIds
-      const orderItems = cartItems.map(item => ({
-        product: item.saree._id,  // ✅ Use the saree's MongoDB _id
-        name: item.saree.name,
-        quantity: item.quantity,
-        price: item.saree.price
-      }));
+      if (!authToken) {
+        toast({
+          title: "Authentication Required",
+          description: "Please login to continue",
+          variant: "destructive"
+        });
+        navigate("/login");
+        return;
+      }
 
-      const totalAmount = cartItems.reduce((sum, item) => sum + (item.saree.price * item.quantity), 0);
+      let orderItems: OrderItem[];
+      let totalAmount: number;
 
-      console.log("📤 Sending order items:", orderItems);
+      if (useLocalCart) {
+        // ✅ FIXED: Map local cart items to use actual MongoDB IDs from sareeMap
+        orderItems = cartItems.map(item => {
+          // Try to find the actual saree in the map by name
+          const saree = Object.values(sareeMap).find(s => s.name === item.name);
+          const mongoId = saree ? saree._id : item.id; // Use actual MongoDB ID if found
+          
+          return {
+            product: mongoId,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
+          };
+        });
+        totalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      } else {
+        orderItems = apiCartItems.map(item => ({
+          product: item.saree._id,
+          name: item.saree.name,
+          quantity: item.quantity,
+          price: item.saree.price
+        }));
+        totalAmount = apiCartItems.reduce((sum, item) => sum + (item.saree.price * item.quantity), 0);
+      }
+
+      console.log("📤 Checkout Details:");
+      console.log("  - Order Items:", orderItems);
+      console.log("  - Total Amount:", totalAmount);
+      console.log("  - Auth Token:", authToken ? authToken.substring(0, 20) + "..." : "MISSING");
+      console.log("  - Using Cart Type:", useLocalCart ? "LOCAL" : "API");
+      console.log("  - Saree Map Size:", Object.keys(sareeMap).length);
 
       const response = await fetch("http://localhost:5000/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${authToken}`
         },
         body: JSON.stringify({
           items: orderItems,
@@ -169,29 +275,45 @@ const Profile = () => {
         })
       });
 
+      console.log("📤 API Response Status:", response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("❌ API Error:", errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
 
-      if (response.ok && data.success) {
+      if (data.success || data._id) {
+        console.log("✅ Order Created:", data._id);
+        
         toast({
           title: "Success",
           description: "Order created! Proceeding to payment...",
         });
 
         // Clear cart
+        if (useLocalCart) {
+          const cartKey = `cart_${user?.id || "guest"}`;
+          localStorage.removeItem(cartKey);
+        }
         setCartItems([]);
+        setApiCartItems([]);
         
-        // Redirect to payment page
         navigate("/payment", { 
           state: { 
             orderId: data._id || data.order._id,
-            totalAmount: totalAmount
+            totalAmount: totalAmount,
+            items: orderItems
           } 
         });
       } else {
         throw new Error(data.message || "Failed to create order");
       }
     } catch (error) {
-      console.error("❌ Order creation failed:", error);
+      console.error("❌ Checkout Error:", error);
+      
       toast({
         title: "Checkout Failed",
         description: error instanceof Error ? error.message : "Failed to process checkout",
@@ -202,7 +324,18 @@ const Profile = () => {
     }
   };
 
-  const totalPrice = cartItems.reduce((sum, item) => sum + (item.saree.price * item.quantity), 0);
+  const displayItems = useLocalCart ? cartItems : apiCartItems;
+  const totalPrice = useLocalCart 
+    ? cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    : apiCartItems.reduce((sum, item) => sum + (item.saree.price * item.quantity), 0);
+
+  // Generate colored placeholder if image fails to load
+  const getPlaceholderImage = (name: string) => {
+    const colors = ['8B4513', 'C71585', 'FF1493', 'DA70D6', 'DDA0DD'];
+    const hashCode = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const color = colors[hashCode % colors.length];
+    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23${color}' width='100' height='100'/%3E%3Ctext x='50%' y='50%' font-size='14' fill='white' text-anchor='middle' dy='.3em'%3E${name.substring(0, 3).toUpperCase()}%3C/text%3E%3C/svg%3E`;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -230,6 +363,15 @@ const Profile = () => {
           </div>
         </motion.div>
 
+        {/* Cart Source Indicator */}
+        {displayItems.length > 0 && (
+          <div className="mb-4 p-3 rounded-lg bg-blue-600/20 border border-blue-500/50">
+            <p className="text-sm text-blue-300">
+              {useLocalCart ? "📱 Local Cart" : "☁️ Server Cart"} - {displayItems.length} items
+            </p>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex gap-4 mb-8 border-b border-slate-700">
           <button
@@ -240,7 +382,7 @@ const Profile = () => {
                 : "text-slate-400 hover:text-white"
             }`}
           >
-            Shopping Cart ({cartItems.length})
+            Shopping Cart ({displayItems.length})
           </button>
           <button
             onClick={() => setActiveTab("orders")}
@@ -262,7 +404,7 @@ const Profile = () => {
           // CART TAB
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">
-              {cartItems.length === 0 ? (
+              {displayItems.length === 0 ? (
                 <Card className="bg-slate-800 border-slate-700 p-8 text-center">
                   <ShoppingCart className="w-12 h-12 text-slate-600 mx-auto mb-4" />
                   <p className="text-slate-400 mb-4">Your cart is empty</p>
@@ -271,31 +413,40 @@ const Profile = () => {
                   </Button>
                 </Card>
               ) : (
-                cartItems.map((item) => (
+                displayItems.map((item) => (
                   <motion.div
-                    key={item._id}
+                    key={useLocalCart ? item.id : (item as APICartItem)._id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                   >
                     <Card className="bg-slate-800 border-slate-700 p-4 flex gap-4">
-                      <img
-                        src={item.saree.image || "https://via.placeholder.com/100"}
-                        alt={item.saree.name}
-                        className="w-24 h-24 object-cover rounded"
-                      />
+                      <div className="relative w-24 h-24 flex-shrink-0">
+                        <img
+                          src={useLocalCart 
+                            ? item.image 
+                            : (item as APICartItem).saree.imageUrl || getPlaceholderImage(useLocalCart ? item.name : (item as APICartItem).saree.name)
+                          }
+                          alt={useLocalCart ? item.name : (item as APICartItem).saree.name}
+                          className="w-24 h-24 object-cover rounded bg-slate-700"
+                          onError={(e) => {
+                            const name = useLocalCart ? item.name : (item as APICartItem).saree.name;
+                            e.currentTarget.src = getPlaceholderImage(name);
+                          }}
+                        />
+                      </div>
                       <div className="flex-1">
-                        <h3 className="text-white font-semibold">{item.saree.name}</h3>
-                        <p className="text-slate-400 text-sm">₹{item.saree.price}</p>
+                        <h3 className="text-white font-semibold">{useLocalCart ? item.name : (item as APICartItem).saree.name}</h3>
+                        <p className="text-slate-400 text-sm">₹{useLocalCart ? item.price : (item as APICartItem).saree.price}</p>
                         <div className="flex items-center gap-3 mt-3">
                           <button
-                            onClick={() => handleUpdateQuantity(item._id, item.quantity - 1)}
+                            onClick={() => handleUpdateQuantity(useLocalCart ? item.id : (item as APICartItem)._id, item.quantity - 1)}
                             className="w-8 h-8 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded text-white"
                           >
                             −
                           </button>
                           <span className="text-white w-8 text-center">{item.quantity}</span>
                           <button
-                            onClick={() => handleUpdateQuantity(item._id, item.quantity + 1)}
+                            onClick={() => handleUpdateQuantity(useLocalCart ? item.id : (item as APICartItem)._id, item.quantity + 1)}
                             className="w-8 h-8 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded text-white"
                           >
                             +
@@ -304,10 +455,10 @@ const Profile = () => {
                       </div>
                       <div className="text-right">
                         <p className="text-white font-semibold mb-4">
-                          ₹{(item.saree.price * item.quantity).toLocaleString()}
+                          ₹{((useLocalCart ? item.price : (item as APICartItem).saree.price) * item.quantity).toLocaleString()}
                         </p>
                         <button
-                          onClick={() => handleRemoveFromCart(item._id)}
+                          onClick={() => handleRemoveFromCart(useLocalCart ? item.id : (item as APICartItem)._id)}
                           className="text-red-400 hover:text-red-300"
                         >
                           <Trash2 className="w-5 h-5" />
@@ -320,7 +471,7 @@ const Profile = () => {
             </div>
 
             {/* Cart Summary */}
-            {cartItems.length > 0 && (
+            {displayItems.length > 0 && (
               <Card className="bg-slate-800 border-slate-700 p-6 h-fit sticky top-20">
                 <h2 className="text-xl font-bold text-white mb-4">Order Summary</h2>
                 <div className="space-y-3 mb-6">

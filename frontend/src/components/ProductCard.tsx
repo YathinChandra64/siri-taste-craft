@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 
 const ProductCard = ({ product, onSelect }) => {
   const { user } = useAuth();
-  const { addToCart } = useCart();
+  const { addItem } = useCart();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -21,17 +21,20 @@ const ProductCard = ({ product, onSelect }) => {
 
     try {
       setLoading(true);
-      const success = await addToCart(product._id, 1);
-      if (success) {
-        // Show success toast
-        alert("Added to cart! ✨");
-      }
+      await addItem(product._id, 1);
     } catch (error) {
       console.error("Error adding to cart:", error);
-      alert("Failed to add to cart");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Generate colored placeholder if image fails to load
+  const getPlaceholderImage = (name: string) => {
+    const colors = ['8B4513', 'C71585', 'FF1493', 'DA70D6', 'DDA0DD'];
+    const hashCode = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const color = colors[hashCode % colors.length];
+    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='400'%3E%3Crect fill='%23${color}' width='300' height='400'/%3E%3Ctext x='50%' y='50%' font-size='20' fill='white' text-anchor='middle' dy='.3em' font-family='Arial'%3E${name.substring(0, 5).toUpperCase()}%3C/text%3E%3C/svg%3E`;
   };
 
   return (
@@ -40,10 +43,13 @@ const ProductCard = ({ product, onSelect }) => {
         {/* Image Container */}
         <div className="relative overflow-hidden h-64 bg-slate-700">
           <img
-            src={product.image || "https://via.placeholder.com/300x400"}
+            src={product.imageUrl || product.image || getPlaceholderImage(product.name)}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
             onClick={() => onSelect(product)}
+            onError={(e) => {
+              e.currentTarget.src = getPlaceholderImage(product.name);
+            }}
           />
 
           {/* Wishlist Button */}

@@ -24,6 +24,9 @@ import AdminProfile from "./pages/admin/AdminProfile";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminChat from "./pages/admin/AdminChat"; // ✅ NEW
 
+import Payment from "@/pages/Payment";
+   
+
 const App = () => {
   return (
     <div className="min-h-screen flex flex-col">
@@ -39,6 +42,7 @@ const App = () => {
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/payment" element={<Payment />} />
 
           {/* Protected Customer Routes */}
           <Route 

@@ -25,35 +25,35 @@ const AdminMenu = () => {
       bgColor: "bg-blue-100 dark:bg-blue-900",
     },
     {
-      label: "Manage Users",
+      label: "Users",
       icon: Users,
       path: "/admin/users",
       color: "text-purple-600",
       bgColor: "bg-purple-100 dark:bg-purple-900",
     },
     {
-      label: "Manage Sarees",
+      label: "Sarees",
       icon: ShoppingBag,
       path: "/admin/sarees",
       color: "text-orange-600",
       bgColor: "bg-orange-100 dark:bg-orange-900",
     },
     {
-      label: "Customer Chats", // ✅ NEW
+      label: "Messages",
       icon: MessageSquare,
-      path: "/admin/chat",
+      path: "/admin/messages",
       color: "text-pink-600",
       bgColor: "bg-pink-100 dark:bg-pink-900",
     },
     {
-      label: "Payment Verification",
+      label: "Payments",
       icon: CreditCard,
       path: "/admin/payments",
       color: "text-green-600",
       bgColor: "bg-green-100 dark:bg-green-900",
     },
     {
-      label: "Admin Profile",
+      label: "Settings",
       icon: Settings,
       path: "/admin/profile",
       color: "text-gray-600",
@@ -76,7 +76,7 @@ const AdminMenu = () => {
         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 transition-opacity"
       >
         <Settings size={20} />
-        <span className="font-semibold">Admin Menu</span>
+        <span className="font-semibold">Admin</span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
@@ -98,9 +98,9 @@ const AdminMenu = () => {
             <div className="p-2">
               {/* Header */}
               <div className="px-4 py-3 border-b border-border">
-                <h3 className="font-bold text-foreground">Admin Controls</h3>
+                <h3 className="font-bold text-foreground">Admin Panel</h3>
                 <p className="text-xs text-muted-foreground">
-                  Manage your store and customers
+                  Manage your store
                 </p>
               </div>
 
@@ -121,11 +121,9 @@ const AdminMenu = () => {
                       <div className={`p-2 rounded-lg ${item.bgColor}`}>
                         <Icon size={18} className={item.color} />
                       </div>
-                      <div className="flex-1 text-left">
-                        <p className="font-medium text-sm text-foreground">
-                          {item.label}
-                        </p>
-                      </div>
+                      <span className="flex-1 text-left font-medium text-sm text-foreground">
+                        {item.label}
+                      </span>
                       <ChevronDown size={14} className="text-muted-foreground rotate-180" />
                     </motion.button>
                   );
@@ -135,7 +133,7 @@ const AdminMenu = () => {
               {/* Footer */}
               <div className="px-4 py-3 border-t border-border">
                 <p className="text-xs text-muted-foreground text-center">
-                  Admin Dashboard v2.0
+                  v2.0
                 </p>
               </div>
             </div>

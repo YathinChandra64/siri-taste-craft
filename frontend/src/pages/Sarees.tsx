@@ -93,7 +93,7 @@ const Sarees = () => {
 
   const handleAddToCart = (saree: Saree) => {
     const cartItem = {
-      id: saree._id ? parseInt(saree._id.slice(-4)) || Math.floor(Math.random() * 10000) : Math.floor(Math.random() * 10000),
+      id: saree._id,
       name: saree.name,
       price: saree.price,
       image: saree.imageUrl,
@@ -122,8 +122,7 @@ const Sarees = () => {
   };
 
   const handleRemoveFromCart = (saree: Saree) => {
-    const cartId = saree._id ? parseInt(saree._id.slice(-4)) || Math.floor(Math.random() * 10000) : Math.floor(Math.random() * 10000);
-    removeFromCart(cartId, "saree");
+    removeFromCart(saree._id, "saree");
     setCartItems(getCart());
 
     // Show encouraging toast
@@ -134,8 +133,7 @@ const Sarees = () => {
   };
 
   const isInCart = (sareeId: string) => {
-    const cartId = parseInt(sareeId.slice(-4)) || 0;
-    return cartItems.some(item => item.id === cartId);
+    return cartItems.some(item => item.id === sareeId);
   };
 
   const categories = ["All", "Silk", "Cotton", "Bridal", "Designer", "Casual", "Traditional"];
@@ -302,10 +300,17 @@ const Sarees = () => {
                           {/* Image Container */}
                           <div className="relative aspect-square overflow-hidden bg-muted">
                             <motion.img
-                              src={saree.imageUrl || "https://via.placeholder.com/500x500?text=Saree"}
+                              src={saree.imageUrl}
                               alt={saree.name}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                               loading="lazy"
+                              onError={(e) => {
+                                const img = e.currentTarget;
+                                const colors = ['8B4513', 'C71585', 'FF1493', 'DA70D6', 'DDA0DD'];
+                                const hashCode = saree.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                                const color = colors[hashCode % colors.length];
+                                img.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect fill='%23${color}' width='500' height='500'/%3E%3Ctext x='50%' y='50%' font-size='24' fill='white' text-anchor='middle' dy='.3em' font-family='Arial'%3E${saree.name.substring(0, 5).toUpperCase()}%3C/text%3E%3C/svg%3E`;
+                              }}
                             />
 
                             {/* Stock Badge */}
