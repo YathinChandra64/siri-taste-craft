@@ -1,4 +1,5 @@
 import Contact from "../models/Contact.js";
+import Notification from "../models/Notification.js";
 
 // 📨 Submit contact form (Public - No auth needed)
 export const submitContact = async (req, res) => {
@@ -35,6 +36,23 @@ export const submitContact = async (req, res) => {
       status: "new"
     });
 
+    // ✅ NEW: Create admin notification
+    try {
+      await Notification.create({
+        type: "new_message",
+        title: `New message from ${name}`,
+        message: `${name} has sent you a new message`,
+        email: email,
+        contactId: contact._id,
+        isRead: false,
+        recipientRole: "admin"
+      });
+      console.log("✅ Admin notification created for new message");
+    } catch (notificationError) {
+      console.error("Notification creation error:", notificationError);
+      // Don't fail the request if notification fails
+    }
+
     res.status(201).json({
       message: "Your message has been sent successfully!",
       contact
@@ -46,10 +64,32 @@ export const submitContact = async (req, res) => {
   }
 };
 
-// ✅ NEW: Get notifications for logged-in customer (their own messages with replies)
+// ✅ Get customer's messages and replies (for customer portal)
+export const getCustomerMessages = async (req, res) => {
+  try {
+    const userEmail = req.user.email;
+
+    if (!userEmail) {
+      return res.status(400).json({ message: "User email not found" });
+    }
+
+    // Find all messages from this customer
+    const messages = await Contact.find({
+      email: userEmail
+    }).sort({ createdAt: -1 });
+
+    res.json(messages);
+
+  } catch (error) {
+    console.error("Get customer messages error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ Get customer notifications (replies to their messages)
 export const getCustomerNotifications = async (req, res) => {
   try {
-    const userEmail = req.user.email; // From auth middleware
+    const userEmail = req.user.email;
 
     if (!userEmail) {
       return res.status(400).json({ message: "User email not found" });
@@ -58,7 +98,7 @@ export const getCustomerNotifications = async (req, res) => {
     // Find all messages from this customer that have replies
     const notifications = await Contact.find({
       email: userEmail,
-      reply: { $ne: null } // Only messages with replies
+      reply: { $ne: null }
     }).sort({ repliedAt: -1 });
 
     res.json(notifications);
@@ -123,6 +163,23 @@ export const replyToContact = async (req, res) => {
       return res.status(404).json({ message: "Contact not found" });
     }
 
+    // ✅ NEW: Create customer notification for reply
+    try {
+      await Notification.create({
+        type: "message_reply",
+        title: "You have a new reply",
+        message: "Admin has replied to your message",
+        email: contact.email,
+        contactId: contact._id,
+        isRead: false,
+        recipientRole: "customer"
+      });
+      console.log("✅ Customer notification created for reply");
+    } catch (notificationError) {
+      console.error("Notification creation error:", notificationError);
+      // Don't fail the request if notification fails
+    }
+
     res.json({
       message: "Reply sent successfully",
       contact
@@ -152,6 +209,57 @@ export const deleteContact = async (req, res) => {
     });
   } catch (error) {
     console.error("Delete contact error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ Get admin notifications
+export const getAdminNotifications = async (req, res) => {
+  try {
+    const notifications = await Notification.find({
+      recipientRole: "admin"
+    }).sort({ createdAt: -1 });
+
+    res.json(notifications);
+  } catch (error) {
+    console.error("Get admin notifications error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ Mark notification as read
+export const markNotificationAsRead = async (req, res) => {
+  try {
+    const notification = await Notification.findByIdAndUpdate(
+      req.params.id,
+      { isRead: true },
+      { new: true }
+    );
+
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    res.json(notification);
+  } catch (error) {
+    console.error("Mark notification error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ Get unread notification count
+export const getUnreadCount = async (req, res) => {
+  try {
+    const recipientRole = req.query.role || "admin";
+    
+    const count = await Notification.countDocuments({
+      recipientRole,
+      isRead: false
+    });
+
+    res.json({ unreadCount: count });
+  } catch (error) {
+    console.error("Get unread count error:", error);
     res.status(500).json({ message: error.message });
   }
 };

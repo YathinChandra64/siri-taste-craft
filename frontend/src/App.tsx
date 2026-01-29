@@ -25,6 +25,7 @@ import AdminPayments from "./pages/admin/AdminPayments";
 import AdminChat from "./pages/admin/AdminChat"; // ✅ NEW
 
 import Payment from "@/pages/Payment";
+import CustomerMessages from "@/pages/CustomerMessages";
    
 
 const App = () => {
@@ -43,6 +44,7 @@ const App = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/payment" element={<Payment />} />
+          <Route path="/customer/messages" element={<CustomerMessages />} />
 
           {/* Protected Customer Routes */}
           <Route 
