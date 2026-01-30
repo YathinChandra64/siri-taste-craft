@@ -90,8 +90,10 @@ const AdminOrders = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setOrders(data);
-        console.log("✅ Orders loaded:", data.length);
+        // ✅ FIXED: Extract the orders array from the response object
+        const ordersArray = Array.isArray(data) ? data : (data.orders || []);
+        setOrders(ordersArray);
+        console.log("✅ Orders loaded:", ordersArray.length);
       } else {
         toast({ title: "Error", description: "Failed to load orders", variant: "destructive" });
       }
@@ -199,74 +201,84 @@ const AdminOrders = () => {
         >
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">Orders Management</h1>
-            <p className="text-slate-400">View and manage all customer orders</p>
+            <p className="text-slate-400">Manage and track all customer orders</p>
           </div>
         </motion.div>
 
         {/* Stats Cards */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8"
         >
-          <Card className="p-4 bg-slate-800 border-slate-700">
-            <div className="flex items-center justify-between">
+          <Card className="bg-slate-800 border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <ShoppingBag className="text-purple-400" size={24} />
               <div>
                 <p className="text-slate-400 text-sm">Total Orders</p>
-                <p className="text-3xl font-bold text-white">{orderStats.total}</p>
+                <p className="text-2xl font-bold text-white">{orderStats.total}</p>
               </div>
-              <ShoppingBag className="w-10 h-10 text-purple-600" />
             </div>
           </Card>
 
-          <Card className="p-4 bg-slate-800 border-slate-700">
-            <div className="flex items-center justify-between">
+          <Card className="bg-slate-800 border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <Clock className="text-yellow-400" size={24} />
               <div>
                 <p className="text-slate-400 text-sm">Pending</p>
-                <p className="text-3xl font-bold text-yellow-500">{orderStats.pending}</p>
+                <p className="text-2xl font-bold text-white">{orderStats.pending}</p>
               </div>
-              <Clock className="w-10 h-10 text-yellow-600" />
             </div>
           </Card>
 
-          <Card className="p-4 bg-slate-800 border-slate-700">
-            <div className="flex items-center justify-between">
+          <Card className="bg-slate-800 border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="text-green-400" size={24} />
               <div>
                 <p className="text-slate-400 text-sm">Confirmed</p>
-                <p className="text-3xl font-bold text-blue-500">{orderStats.confirmed}</p>
+                <p className="text-2xl font-bold text-white">{orderStats.confirmed}</p>
               </div>
-              <CheckCircle className="w-10 h-10 text-blue-600" />
             </div>
           </Card>
 
-          <Card className="p-4 bg-slate-800 border-slate-700">
-            <div className="flex items-center justify-between">
+          <Card className="bg-slate-800 border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <ShoppingBag className="text-blue-400" size={24} />
+              <div>
+                <p className="text-slate-400 text-sm">Shipped</p>
+                <p className="text-2xl font-bold text-white">{orderStats.shipped}</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="text-emerald-400" size={24} />
               <div>
                 <p className="text-slate-400 text-sm">Delivered</p>
-                <p className="text-3xl font-bold text-green-500">{orderStats.delivered}</p>
+                <p className="text-2xl font-bold text-white">{orderStats.delivered}</p>
               </div>
-              <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
           </Card>
 
-          <Card className="p-4 bg-slate-800 border-slate-700">
-            <div className="flex items-center justify-between">
+          <Card className="bg-slate-800 border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <DollarSign className="text-green-400" size={24} />
               <div>
-                <p className="text-slate-400 text-sm">Total Revenue</p>
-                <p className="text-2xl font-bold text-green-500">₹{orderStats.totalRevenue.toLocaleString()}</p>
+                <p className="text-slate-400 text-sm">Revenue</p>
+                <p className="text-2xl font-bold text-white">₹{orderStats.totalRevenue.toLocaleString()}</p>
               </div>
-              <DollarSign className="w-10 h-10 text-green-600" />
             </div>
           </Card>
         </motion.div>
 
-        {/* Filters */}
+        {/* Search and Filter */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 flex gap-4 flex-wrap"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col md:flex-row gap-4 mb-8"
         >
-          <div className="flex-1 min-w-[250px]">
+          <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
               <Input
