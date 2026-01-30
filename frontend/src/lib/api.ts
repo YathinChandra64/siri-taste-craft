@@ -1,5 +1,84 @@
 import axios from "axios";
 
+interface AxiosConfig {
+  headers: {
+    "Content-Type": string;
+  };
+}
+
+interface LoginData {
+  email: string;
+  password: string;
+}
+
+interface SignupData {
+  [key: string]: unknown;
+}
+
+interface OrderData {
+  [key: string]: unknown;
+}
+
+interface ProfileData {
+  [key: string]: unknown;
+}
+
+interface UpdateData {
+  [key: string]: unknown;
+}
+
+interface PasswordChangeData {
+  oldPassword: string;
+  newPassword: string;
+}
+
+interface ContactData {
+  [key: string]: unknown;
+}
+
+interface ChatData {
+  [key: string]: unknown;
+}
+
+interface IssueData {
+  [key: string]: unknown;
+}
+
+interface UserData {
+  [key: string]: unknown;
+}
+
+interface PaymentData {
+  [key: string]: unknown;
+}
+
+interface FilterParams {
+  [key: string]: unknown;
+}
+
+interface ApiErrorResponse {
+  message: string;
+  status: number | null;
+  data?: unknown;
+}
+
+interface ApiNoResponseError {
+  message: string;
+  status: null;
+}
+
+type ApiError = ApiErrorResponse | ApiNoResponseError;
+
+// ======================================
+// GENERIC API RESPONSE WRAPPER
+// ======================================
+
+export interface ApiResponseWrapper<T> {
+  success: boolean;
+  message?: string;
+  data: T;
+}
+
 const API = axios.create({
   baseURL: "http://localhost:5000/api",
   headers: {
@@ -36,13 +115,79 @@ API.interceptors.response.use(
 );
 
 // ======================================
+// ✅ NEW: UPI PAYMENT TYPES
+// ======================================
+
+export interface UpiConfigData {
+  upiId: string;
+  merchantName: string;
+  qrCodeImage?: string;
+  instructions: string;
+}
+
+export interface ReceiptReferenceData {
+  [key: string]: unknown;
+}
+
+export interface OcrResultData {
+  text: string;
+  confidence: number;
+  lineCount: number;
+  utr?: string;
+  ocrConfidence?: number;
+  utrDetected?: boolean;
+}
+
+export interface PaymentSubmissionResultData {
+  paymentId: string;
+  orderId: string;
+  status: string;
+  utrDetected: boolean;
+  utr?: string;
+  ocrConfidence: number;
+  ocrData: {
+    text: string;
+    confidence: number;
+    lineCount: number;
+  };
+}
+
+export interface PaymentStatusData {
+  hasPayment: boolean;
+  paymentId?: string;
+  status?: string;
+  utr?: string;
+  amount?: number;
+  submittedAt?: Date;
+  verifiedAt?: Date;
+  adminNotes?: string;
+  attempts?: number;
+  expiresAt?: Date;
+  isExpired?: boolean;
+}
+
+export interface PaymentVerificationData {
+  [key: string]: unknown;
+}
+
+export interface PendingPaymentsData {
+  [key: string]: unknown;
+}
+
+export interface PaymentStatsData {
+  [key: string]: unknown;
+}
+
+// ======================================
 // ✅ NEW: UPI PAYMENT ENDPOINTS
 // ======================================
 
 /**
  * Get UPI Configuration (public endpoint)
  */
-export const getUpiConfig = async () => {
+export const getUpiConfig = async (): Promise<
+  ApiResponseWrapper<UpiConfigData>
+> => {
   const response = await API.get("/upi-payments/config");
   return response.data;
 };
@@ -50,7 +195,9 @@ export const getUpiConfig = async () => {
 /**
  * Get Payment Receipt Reference Guide (public endpoint)
  */
-export const getReceiptReference = async () => {
+export const getReceiptReference = async (): Promise<
+  ApiResponseWrapper<ReceiptReferenceData>
+> => {
   const response = await API.get("/upi-payments/receipt-reference");
   return response.data;
 };
@@ -64,7 +211,7 @@ export const getReceiptReference = async () => {
 export const uploadPaymentScreenshot = async (
   orderId: string,
   screenshot: File
-) => {
+): Promise<ApiResponseWrapper<PaymentSubmissionResultData>> => {
   const formData = new FormData();
   formData.append("orderId", orderId);
   formData.append("screenshot", screenshot);
@@ -82,7 +229,9 @@ export const uploadPaymentScreenshot = async (
  * @param {string} orderId - Order ID
  * @returns {Promise} Payment status details
  */
-export const getPaymentStatus = async (orderId: string) => {
+export const getPaymentStatus = async (
+  orderId: string
+): Promise<ApiResponseWrapper<PaymentStatusData>> => {
   const response = await API.get(`/upi-payments/status/${orderId}`);
   return response.data;
 };
@@ -96,7 +245,7 @@ export const getPaymentStatus = async (orderId: string) => {
 export const resubmitPayment = async (
   orderId: string,
   screenshot: File
-) => {
+): Promise<ApiResponseWrapper<PaymentSubmissionResultData>> => {
   const formData = new FormData();
   formData.append("orderId", orderId);
   formData.append("screenshot", screenshot);
@@ -120,7 +269,7 @@ export const verifyPayment = async (
   paymentId: string,
   action: "approve" | "reject",
   notes?: string
-) => {
+): Promise<ApiResponseWrapper<PaymentVerificationData>> => {
   const response = await API.post("/upi-payments/verify", {
     paymentId,
     action,
@@ -135,7 +284,10 @@ export const verifyPayment = async (
  * @param {number} offset - Pagination offset
  * @returns {Promise} List of pending payments
  */
-export const getPendingPayments = async (limit = 20, offset = 0) => {
+export const getPendingPayments = async (
+  limit: number = 20,
+  offset: number = 0
+): Promise<ApiResponseWrapper<PendingPaymentsData>> => {
   const response = await API.get(
     `/admin/payments/pending?limit=${limit}&offset=${offset}`
   );
@@ -146,7 +298,9 @@ export const getPendingPayments = async (limit = 20, offset = 0) => {
  * Get Payment Statistics (Admin Only)
  * @returns {Promise} Payment statistics
  */
-export const getPaymentStatistics = async () => {
+export const getPaymentStatistics = async (): Promise<
+  ApiResponseWrapper<PaymentStatsData>
+> => {
   const response = await API.get("/admin/payments/statistics");
   return response.data;
 };
@@ -155,22 +309,25 @@ export const getPaymentStatistics = async () => {
 // EXISTING: AUTHENTICATION ENDPOINTS
 // ======================================
 
-export const loginUser = async (email: string, password: string) => {
+export const loginUser = async (
+  email: string,
+  password: string
+): Promise<unknown> => {
   const response = await API.post("/auth/login", { email, password });
   return response.data;
 };
 
-export const signupUser = async (userData: any) => {
+export const signupUser = async (userData: SignupData): Promise<unknown> => {
   const response = await API.post("/auth/signup", userData);
   return response.data;
 };
 
-export const logoutUser = async () => {
+export const logoutUser = async (): Promise<unknown> => {
   const response = await API.post("/auth/logout");
   return response.data;
 };
 
-export const verifyToken = async () => {
+export const verifyToken = async (): Promise<unknown> => {
   const response = await API.get("/auth/verify");
   return response.data;
 };
@@ -179,22 +336,24 @@ export const verifyToken = async () => {
 // EXISTING: PRODUCT ENDPOINTS
 // ======================================
 
-export const getProducts = async (filters?: any) => {
+export const getProducts = async (
+  filters?: FilterParams
+): Promise<unknown> => {
   const response = await API.get("/products", { params: filters });
   return response.data;
 };
 
-export const getProductById = async (id: string) => {
+export const getProductById = async (id: string): Promise<unknown> => {
   const response = await API.get(`/products/${id}`);
   return response.data;
 };
 
-export const getSarees = async (filters?: any) => {
+export const getSarees = async (filters?: FilterParams): Promise<unknown> => {
   const response = await API.get("/sarees", { params: filters });
   return response.data;
 };
 
-export const getSareeById = async (id: string) => {
+export const getSareeById = async (id: string): Promise<unknown> => {
   const response = await API.get(`/sarees/${id}`);
   return response.data;
 };
@@ -203,27 +362,33 @@ export const getSareeById = async (id: string) => {
 // EXISTING: CART ENDPOINTS
 // ======================================
 
-export const getCart = async () => {
+export const getCart = async (): Promise<unknown> => {
   const response = await API.get("/cart");
   return response.data;
 };
 
-export const addToCart = async (productId: string, quantity: number) => {
+export const addToCart = async (
+  productId: string,
+  quantity: number
+): Promise<unknown> => {
   const response = await API.post("/cart", { productId, quantity });
   return response.data;
 };
 
-export const updateCart = async (cartId: string, quantity: number) => {
+export const updateCart = async (
+  cartId: string,
+  quantity: number
+): Promise<unknown> => {
   const response = await API.put(`/cart/${cartId}`, { quantity });
   return response.data;
 };
 
-export const removeFromCart = async (cartId: string) => {
+export const removeFromCart = async (cartId: string): Promise<unknown> => {
   const response = await API.delete(`/cart/${cartId}`);
   return response.data;
 };
 
-export const clearCart = async () => {
+export const clearCart = async (): Promise<unknown> => {
   const response = await API.delete("/cart");
   return response.data;
 };
@@ -232,27 +397,30 @@ export const clearCart = async () => {
 // EXISTING: ORDER ENDPOINTS
 // ======================================
 
-export const createOrder = async (orderData: any) => {
+export const createOrder = async (orderData: OrderData): Promise<unknown> => {
   const response = await API.post("/orders", orderData);
   return response.data;
 };
 
-export const getOrders = async () => {
+export const getOrders = async (): Promise<unknown> => {
   const response = await API.get("/orders");
   return response.data;
 };
 
-export const getOrderById = async (id: string) => {
+export const getOrderById = async (id: string): Promise<unknown> => {
   const response = await API.get(`/orders/${id}`);
   return response.data;
 };
 
-export const updateOrder = async (id: string, updateData: any) => {
+export const updateOrder = async (
+  id: string,
+  updateData: UpdateData
+): Promise<unknown> => {
   const response = await API.put(`/orders/${id}`, updateData);
   return response.data;
 };
 
-export const cancelOrder = async (id: string) => {
+export const cancelOrder = async (id: string): Promise<unknown> => {
   const response = await API.post(`/orders/${id}/cancel`);
   return response.data;
 };
@@ -261,17 +429,22 @@ export const cancelOrder = async (id: string) => {
 // EXISTING: PROFILE ENDPOINTS
 // ======================================
 
-export const getProfile = async () => {
+export const getProfile = async (): Promise<unknown> => {
   const response = await API.get("/profile");
   return response.data;
 };
 
-export const updateProfile = async (profileData: any) => {
+export const updateProfile = async (
+  profileData: ProfileData
+): Promise<unknown> => {
   const response = await API.put("/profile", profileData);
   return response.data;
 };
 
-export const changePassword = async (oldPassword: string, newPassword: string) => {
+export const changePassword = async (
+  oldPassword: string,
+  newPassword: string
+): Promise<unknown> => {
   const response = await API.post("/profile/change-password", {
     oldPassword,
     newPassword,
@@ -283,7 +456,9 @@ export const changePassword = async (oldPassword: string, newPassword: string) =
 // EXISTING: CONTACT ENDPOINTS
 // ======================================
 
-export const sendContactMessage = async (contactData: any) => {
+export const sendContactMessage = async (
+  contactData: ContactData
+): Promise<unknown> => {
   const response = await API.post("/contact", contactData);
   return response.data;
 };
@@ -292,12 +467,12 @@ export const sendContactMessage = async (contactData: any) => {
 // EXISTING: CHAT ENDPOINTS
 // ======================================
 
-export const sendChatMessage = async (chatData: any) => {
+export const sendChatMessage = async (chatData: ChatData): Promise<unknown> => {
   const response = await API.post("/chat", chatData);
   return response.data;
 };
 
-export const getChatMessages = async () => {
+export const getChatMessages = async (): Promise<unknown> => {
   const response = await API.get("/chat");
   return response.data;
 };
@@ -306,12 +481,12 @@ export const getChatMessages = async () => {
 // EXISTING: ISSUE ENDPOINTS
 // ======================================
 
-export const reportIssue = async (issueData: any) => {
+export const reportIssue = async (issueData: IssueData): Promise<unknown> => {
   const response = await API.post("/issues", issueData);
   return response.data;
 };
 
-export const getIssues = async () => {
+export const getIssues = async (): Promise<unknown> => {
   const response = await API.get("/issues");
   return response.data;
 };
@@ -320,17 +495,20 @@ export const getIssues = async () => {
 // EXISTING: USER ENDPOINTS
 // ======================================
 
-export const getUsers = async () => {
+export const getUsers = async (): Promise<unknown> => {
   const response = await API.get("/users");
   return response.data;
 };
 
-export const getUserById = async (id: string) => {
+export const getUserById = async (id: string): Promise<unknown> => {
   const response = await API.get(`/users/${id}`);
   return response.data;
 };
 
-export const updateUser = async (id: string, userData: any) => {
+export const updateUser = async (
+  id: string,
+  userData: UserData
+): Promise<unknown> => {
   const response = await API.put(`/users/${id}`, userData);
   return response.data;
 };
@@ -339,12 +517,14 @@ export const updateUser = async (id: string, userData: any) => {
 // EXISTING: PAYMENT ENDPOINTS
 // ======================================
 
-export const processPayment = async (paymentData: any) => {
+export const processPayment = async (
+  paymentData: PaymentData
+): Promise<unknown> => {
   const response = await API.post("/payments", paymentData);
   return response.data;
 };
 
-export const getPaymentHistory = async () => {
+export const getPaymentHistory = async (): Promise<unknown> => {
   const response = await API.get("/payments");
   return response.data;
 };
@@ -353,24 +533,41 @@ export const getPaymentHistory = async () => {
 // ERROR HANDLING UTILITY
 // ======================================
 
-export const handleApiError = (error: any) => {
-  if (error.response) {
+export const handleApiError = (error: unknown): ApiError => {
+  if (
+    error instanceof Error &&
+    "response" in error &&
+    error.response instanceof Object
+  ) {
+    const response = error.response as {
+      status?: number;
+      data?: { message?: string };
+    };
     // Server responded with error status
     return {
-      message: error.response.data?.message || "An error occurred",
-      status: error.response.status,
-      data: error.response.data,
+      message: response.data?.message || "An error occurred",
+      status: response.status || null,
+      data: response.data,
     };
-  } else if (error.request) {
+  } else if (
+    error instanceof Error &&
+    "request" in error &&
+    error.request !== undefined
+  ) {
     // Request was made but no response
     return {
       message: "No response from server. Please check your connection.",
       status: null,
     };
-  } else {
+  } else if (error instanceof Error) {
     // Error in request setup
     return {
       message: error.message || "An error occurred",
+      status: null,
+    };
+  } else {
+    return {
+      message: "An unknown error occurred",
       status: null,
     };
   }

@@ -4,7 +4,11 @@ import {
   getUpiConfig,
   uploadPaymentScreenshot,
   getPaymentStatus,
-  resubmitPayment
+  resubmitPayment,
+  ApiResponseWrapper,
+  UpiConfigData,
+  PaymentSubmissionResultData,
+  PaymentStatusData,
 } from "@/lib/api";
 
 export interface UpiConfig {
@@ -61,7 +65,7 @@ const initialState: UseUpiPaymentState = {
   uploading: false,
   uploadProgress: 0,
   lastUploadResult: null,
-  error: null
+  error: null,
 };
 
 export const useUpiPayment = () => {
@@ -73,33 +77,42 @@ export const useUpiPayment = () => {
    */
   const loadUpiConfig = useCallback(async () => {
     try {
-      setState(prev => ({ ...prev, loadingConfig: true, error: null }));
+      setState((prev) => ({ ...prev, loadingConfig: true, error: null }));
 
-      const response = await getUpiConfig();
+      const response: ApiResponseWrapper<UpiConfigData> =
+        await getUpiConfig();
 
       if (!response.success) {
         throw new Error(response.message || "Failed to load UPI configuration");
       }
 
-      setState(prev => ({
+      const configData: UpiConfig = {
+        upiId: response.data.upiId,
+        merchantName: response.data.merchantName,
+        qrCodeImage: response.data.qrCodeImage,
+        instructions: response.data.instructions,
+      };
+
+      setState((prev) => ({
         ...prev,
-        config: response.data,
-        loadingConfig: false
+        config: configData,
+        loadingConfig: false,
       }));
 
-      return response.data;
+      return configData;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load configuration";
-      setState(prev => ({
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load configuration";
+      setState((prev) => ({
         ...prev,
         loadingConfig: false,
-        error: errorMessage
+        error: errorMessage,
       }));
 
       toast({
         title: "Configuration Error",
         description: errorMessage,
-        variant: "destructive"
+        variant: "destructive",
       });
 
       throw error;
@@ -112,56 +125,71 @@ export const useUpiPayment = () => {
   const uploadScreenshot = useCallback(
     async (orderId: string, file: File) => {
       try {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           uploading: true,
           uploadProgress: 0,
-          error: null
+          error: null,
         }));
 
         // Simulate progress updates
         const progressInterval = setInterval(() => {
-          setState(prev => ({
+          setState((prev) => ({
             ...prev,
-            uploadProgress: Math.min(prev.uploadProgress + Math.random() * 30, 90)
+            uploadProgress: Math.min(
+              prev.uploadProgress + Math.random() * 30,
+              90
+            ),
           }));
         }, 300);
 
-        const response = await uploadPaymentScreenshot(orderId, file);
+        const response: ApiResponseWrapper<PaymentSubmissionResultData> =
+          await uploadPaymentScreenshot(orderId, file);
 
         clearInterval(progressInterval);
-        setState(prev => ({ ...prev, uploadProgress: 100 }));
+        setState((prev) => ({ ...prev, uploadProgress: 100 }));
 
         if (!response.success) {
           throw new Error(response.message || "Upload failed");
         }
 
-        setState(prev => ({
+        const uploadResult: UploadResult = {
+          paymentId: response.data.paymentId,
+          orderId: response.data.orderId,
+          status: response.data.status,
+          utrDetected: response.data.utrDetected,
+          utr: response.data.utr,
+          ocrConfidence: response.data.ocrConfidence,
+          ocrData: response.data.ocrData,
+        };
+
+        setState((prev) => ({
           ...prev,
           uploading: false,
           uploadProgress: 100,
-          lastUploadResult: response.data
+          lastUploadResult: uploadResult,
         }));
 
         // Auto-clear progress after 2 seconds
         setTimeout(() => {
-          setState(prev => ({ ...prev, uploadProgress: 0 }));
+          setState((prev) => ({ ...prev, uploadProgress: 0 }));
         }, 2000);
 
-        return response.data;
+        return uploadResult;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Upload failed";
-        setState(prev => ({
+        const errorMessage =
+          error instanceof Error ? error.message : "Upload failed";
+        setState((prev) => ({
           ...prev,
           uploading: false,
           uploadProgress: 0,
-          error: errorMessage
+          error: errorMessage,
         }));
 
         toast({
           title: "Upload Failed",
           description: errorMessage,
-          variant: "destructive"
+          variant: "destructive",
         });
 
         throw error;
@@ -176,31 +204,47 @@ export const useUpiPayment = () => {
   const checkPaymentStatus = useCallback(
     async (orderId: string) => {
       try {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           loadingStatus: true,
-          error: null
+          error: null,
         }));
 
-        const response = await getPaymentStatus(orderId);
+        const response: ApiResponseWrapper<PaymentStatusData> =
+          await getPaymentStatus(orderId);
 
         if (!response.success) {
           throw new Error(response.message || "Failed to fetch payment status");
         }
 
-        setState(prev => ({
+        const statusData: PaymentStatus = {
+          hasPayment: response.data.hasPayment,
+          paymentId: response.data.paymentId,
+          status: response.data.status,
+          utr: response.data.utr,
+          amount: response.data.amount,
+          submittedAt: response.data.submittedAt,
+          verifiedAt: response.data.verifiedAt,
+          adminNotes: response.data.adminNotes,
+          attempts: response.data.attempts,
+          expiresAt: response.data.expiresAt,
+          isExpired: response.data.isExpired,
+        };
+
+        setState((prev) => ({
           ...prev,
-          paymentStatus: response.data,
-          loadingStatus: false
+          paymentStatus: statusData,
+          loadingStatus: false,
         }));
 
-        return response.data;
+        return statusData;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to fetch status";
-        setState(prev => ({
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to fetch status";
+        setState((prev) => ({
           ...prev,
           loadingStatus: false,
-          error: errorMessage
+          error: errorMessage,
         }));
 
         throw error;
@@ -215,45 +259,58 @@ export const useUpiPayment = () => {
   const retryPayment = useCallback(
     async (orderId: string, file: File) => {
       try {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           uploading: true,
           uploadProgress: 0,
-          error: null
+          error: null,
         }));
 
-        const response = await resubmitPayment(orderId, file);
+        const response: ApiResponseWrapper<PaymentSubmissionResultData> =
+          await resubmitPayment(orderId, file);
 
         if (!response.success) {
           throw new Error(response.message || "Resubmission failed");
         }
 
-        setState(prev => ({
+        const uploadResult: UploadResult = {
+          paymentId: response.data.paymentId,
+          orderId: response.data.orderId,
+          status: response.data.status,
+          utrDetected: response.data.utrDetected,
+          utr: response.data.utr,
+          ocrConfidence: response.data.ocrConfidence,
+          ocrData: response.data.ocrData,
+        };
+
+        setState((prev) => ({
           ...prev,
           uploading: false,
           uploadProgress: 100,
-          lastUploadResult: response.data
+          lastUploadResult: uploadResult,
         }));
 
         toast({
           title: "Payment Resubmitted",
-          description: "Your payment screenshot has been resubmitted for verification"
+          description:
+            "Your payment screenshot has been resubmitted for verification",
         });
 
-        return response.data;
+        return uploadResult;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Resubmission failed";
-        setState(prev => ({
+        const errorMessage =
+          error instanceof Error ? error.message : "Resubmission failed";
+        setState((prev) => ({
           ...prev,
           uploading: false,
           uploadProgress: 0,
-          error: errorMessage
+          error: errorMessage,
         }));
 
         toast({
           title: "Resubmission Failed",
           description: errorMessage,
-          variant: "destructive"
+          variant: "destructive",
         });
 
         throw error;
@@ -273,7 +330,7 @@ export const useUpiPayment = () => {
    * Clear error
    */
   const clearError = useCallback(() => {
-    setState(prev => ({ ...prev, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
   }, []);
 
   return {
@@ -290,10 +347,12 @@ export const useUpiPayment = () => {
 
     // Derived state
     isLoading: state.loadingConfig || state.loadingStatus || state.uploading,
-    canRetry: state.paymentStatus?.attempts && state.paymentStatus.attempts < 3,
+    canRetry: state.paymentStatus?.attempts
+      ? state.paymentStatus.attempts < 3
+      : false,
     isVerified: state.paymentStatus?.status === "verified",
     isRejected: state.paymentStatus?.status === "rejected",
-    isPending: state.paymentStatus?.status === "pending_verification"
+    isPending: state.paymentStatus?.status === "pending_verification",
   };
 };
 

@@ -6,7 +6,7 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
-import authMiddleware from "../middleware/authMiddleware.js";
+import { protect, adminOnly } from "../middleware/authMiddleware.js";
 import UpiPaymentController from "../controllers/UpiPaymentController.js";
 
 const router = express.Router();
@@ -63,7 +63,7 @@ router.get("/receipt-reference", UpiPaymentController.getReceiptReference);
 // Upload Payment Screenshot
 router.post(
   "/upload",
-  authMiddleware,
+  protect,
   upload.single("screenshot"),
   (req, res, next) => {
     // Handle multer errors
@@ -81,7 +81,7 @@ router.post(
 // Resubmit Payment (for failed attempts)
 router.post(
   "/resubmit",
-  authMiddleware,
+  protect,
   upload.single("screenshot"),
   UpiPaymentController.resubmitPayment
 );
@@ -89,7 +89,7 @@ router.post(
 // Get Payment Status
 router.get(
   "/status/:orderId",
-  authMiddleware,
+  protect,
   UpiPaymentController.getPaymentStatus
 );
 
@@ -100,21 +100,24 @@ router.get(
 // Verify Payment
 router.post(
   "/verify",
-  authMiddleware,
+  protect,
+  adminOnly,
   UpiPaymentController.verifyPayment
 );
 
 // List Pending Payments
 router.get(
   "/admin/pending",
-  authMiddleware,
+  protect,
+  adminOnly,
   UpiPaymentController.listPendingPayments
 );
 
 // Get Payment Statistics
 router.get(
   "/admin/statistics",
-  authMiddleware,
+  protect,
+  adminOnly,
   UpiPaymentController.getPaymentStatistics
 );
 
