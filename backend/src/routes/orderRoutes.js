@@ -29,5 +29,6 @@ router.get("/:id", protect, getOrderById);          // Get single order
 router.put("/:id/status", protect, adminOnly, updateOrderStatus); // Update status
 router.put("/:id/verify-payment", protect, adminOnly, verifyPayment); // Verify payment
 router.delete("/:id/cancel", protect, cancelOrder); // Cancel order
-
+router.get("/", authMiddleware, adminOnly, getAllOrders);
+router.get("/my", authMiddleware, getMyOrders);
 export default router;
