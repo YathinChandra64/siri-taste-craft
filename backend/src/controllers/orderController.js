@@ -1,11 +1,13 @@
 import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import Saree from "../models/Saree.js";
+import Address from "../models/Address.js";
 
-// 🛒 Place Order
+// 🛒 Place Order - Updated with address & payment method
 export const placeOrder = async (req, res) => {
   try {
-    const { items, totalAmount } = req.body;
+    const { items, totalAmount, paymentMethod, addressId, newAddress } = req.body;
+    const userId = req.user.id;
 
     // ✅ Validation
     if (!items || items.length === 0) {
@@ -22,6 +24,81 @@ export const placeOrder = async (req, res) => {
       });
     }
 
+    // ✅ Validate payment method
+    if (!paymentMethod || !["COD", "UPI"].includes(paymentMethod)) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid payment method. Must be 'COD' or 'UPI'"
+      });
+    }
+
+    // ✅ Validate address
+    let deliveryAddress;
+
+    if (newAddress) {
+      // Validate new address fields
+      const { fullName, mobileNumber, houseFlat, streetArea, city, state, pincode, addressType } = newAddress;
+      
+      if (!fullName || !mobileNumber || !houseFlat || !streetArea || !city || !state || !pincode || !addressType) {
+        return res.status(400).json({
+          success: false,
+          message: "All address fields are required"
+        });
+      }
+
+      if (!/^\d{10}$/.test(mobileNumber)) {
+        return res.status(400).json({
+          success: false,
+          message: "Mobile number must be 10 digits"
+        });
+      }
+
+      if (!/^\d{6}$/.test(pincode)) {
+        return res.status(400).json({
+          success: false,
+          message: "Pincode must be 6 digits"
+        });
+      }
+
+      if (!["Home", "Work"].includes(addressType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Address type must be 'Home' or 'Work'"
+        });
+      }
+
+      deliveryAddress = newAddress;
+    } else if (addressId) {
+      // Use existing address
+      const savedAddress = await Address.findOne({
+        _id: addressId,
+        user: userId
+      });
+
+      if (!savedAddress) {
+        return res.status(404).json({
+          success: false,
+          message: "Address not found"
+        });
+      }
+
+      deliveryAddress = {
+        fullName: savedAddress.fullName,
+        mobileNumber: savedAddress.mobileNumber,
+        houseFlat: savedAddress.houseFlat,
+        streetArea: savedAddress.streetArea,
+        city: savedAddress.city,
+        state: savedAddress.state,
+        pincode: savedAddress.pincode,
+        addressType: savedAddress.addressType
+      };
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery address is required"
+      });
+    }
+
     // ✅ Process each item and validate product IDs
     let calculatedTotal = 0;
     const processedItems = [];
@@ -35,21 +112,19 @@ export const placeOrder = async (req, res) => {
         });
       }
 
-      // ✅ CRITICAL FIX: Validate and convert product ID to MongoDB ObjectId
+      // ✅ Validate and convert product ID to MongoDB ObjectId
       let productId;
       
-      // Check if the product ID is a valid MongoDB ObjectId
       if (mongoose.Types.ObjectId.isValid(item.product)) {
         productId = new mongoose.Types.ObjectId(item.product);
       } else {
-        // If not valid, return error
         return res.status(400).json({
           success: false,
-          message: `Invalid product ID format: "${item.product}". Must be a valid MongoDB ID.`
+          message: `Invalid product ID format: "${item.product}"`
         });
       }
 
-      // ✅ Use Saree model instead of Product
+      // ✅ Use Saree model
       const saree = await Saree.findById(productId);
 
       if (!saree) {
@@ -83,28 +158,55 @@ export const placeOrder = async (req, res) => {
       calculatedTotal += (item.price || saree.price) * item.quantity;
     }
 
-    // ✅ Create order with validated data
+    // ✅ Determine payment and order status based on payment method
+    let paymentStatus = "COD_PENDING";
+    let orderStatus = "PLACED";
+
+    if (paymentMethod === "UPI") {
+      paymentStatus = "PENDING";
+    } else if (paymentMethod === "COD") {
+      paymentStatus = "COD_PENDING";
+      orderStatus = "PLACED";
+    }
+
+    // ✅ Create order with address and payment method
     const order = await Order.create({
-      user: new mongoose.Types.ObjectId(req.user.id),
+      user: new mongoose.Types.ObjectId(userId),
       items: processedItems,
       totalAmount: calculatedTotal || totalAmount,
-      status: "pending_payment",
-      paymentMethod: "upi"
+      address: deliveryAddress,
+      paymentMethod,
+      orderStatus,
+      paymentStatus
     });
 
     console.log("✅ Order created successfully:", order._id);
 
+    // ✅ If new address was provided, save it to user's addresses
+    if (newAddress) {
+      const existingAddresses = await Address.find({ user: userId });
+      const isDefault = existingAddresses.length === 0;
+
+      const savedAddr = new Address({
+        user: userId,
+        ...newAddress,
+        isDefault
+      });
+
+      await savedAddr.save();
+      console.log("✅ Address saved for future orders");
+    }
+
     return res.status(201).json({
       success: true,
-      message: "Order created successfully",
+      message: "Order placed successfully",
       _id: order._id,
-      order: order
+      order
     });
 
   } catch (error) {
     console.error("❌ Order creation error:", error);
     
-    // Handle Mongoose validation errors
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({ 
@@ -114,11 +216,9 @@ export const placeOrder = async (req, res) => {
       });
     }
 
-    // Handle other errors
     return res.status(500).json({ 
       success: false,
-      message: error.message || "Error creating order",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined
+      message: error.message || "Error creating order"
     });
   }
 };
@@ -148,7 +248,7 @@ export const getMyOrders = async (req, res) => {
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
-      .populate("user", "name email")
+      .populate("user", "name email phone")
       .populate("items.product", "name price image")
       .sort({ createdAt: -1 });
 
@@ -182,8 +282,13 @@ export const verifyPayment = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    order.status = status === "confirmed" ? "confirmed" : "payment_rejected";
+    // Update payment status
+    order.paymentStatus = status === "VERIFIED" ? "VERIFIED" : "REJECTED";
     if (paymentReference) order.paymentReference = paymentReference;
+    if (status === "VERIFIED") {
+      order.paymentVerifiedAt = new Date();
+      order.orderStatus = "CONFIRMED";
+    }
     
     await order.save();
 
@@ -279,11 +384,11 @@ export const getOrderById = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { status } = req.body;
+    const { orderStatus } = req.body;
 
     // ✅ Validate status
-    const validStatuses = ["pending_payment", "confirmed", "processing", "shipped", "delivered", "cancelled"];
-    if (!validStatuses.includes(status)) {
+    const validStatuses = ["PLACED", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
+    if (!validStatuses.includes(orderStatus)) {
       return res.status(400).json({
         success: false,
         message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`
@@ -299,7 +404,7 @@ export const updateOrderStatus = async (req, res) => {
 
     const order = await Order.findByIdAndUpdate(
       orderId,
-      { status, updatedAt: new Date() },
+      { orderStatus, updatedAt: new Date() },
       { new: true }
     ).populate("user", "name email").populate("items.product", "name price");
 
@@ -310,11 +415,11 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    console.log(`✅ Order ${orderId} status updated to: ${status}`);
+    console.log(`✅ Order ${orderId} status updated to: ${orderStatus}`);
 
     return res.json({
       success: true,
-      message: `Order status updated to ${status}`,
+      message: `Order status updated to ${orderStatus}`,
       order
     });
   } catch (error) {
@@ -356,12 +461,12 @@ export const cancelOrder = async (req, res) => {
       });
     }
 
-    // ✅ Check if order can be cancelled (only pending or confirmed orders)
-    const cancellableStatuses = ["pending_payment", "confirmed"];
-    if (!cancellableStatuses.includes(order.status)) {
+    // ✅ Check if order can be cancelled
+    const cancellableStatuses = ["PLACED", "CONFIRMED"];
+    if (!cancellableStatuses.includes(order.orderStatus)) {
       return res.status(400).json({
         success: false,
-        message: `Cannot cancel order with status: ${order.status}. Only pending or confirmed orders can be cancelled.`
+        message: `Cannot cancel order with status: ${order.orderStatus}`
       });
     }
 
@@ -378,8 +483,7 @@ export const cancelOrder = async (req, res) => {
     const updatedOrder = await Order.findByIdAndUpdate(
       orderId,
       {
-        status: "cancelled",
-        cancelledAt: new Date(),
+        orderStatus: "CANCELLED",
         updatedAt: new Date()
       },
       { new: true }
@@ -397,124 +501,6 @@ export const cancelOrder = async (req, res) => {
     return res.status(500).json({ 
       success: false,
       message: error.message || "Error cancelling order"
-    });
-  }
-};
-
-// ✅ THESE FUNCTIONS WERE MISSING - NOW ADDED
-
-// 🛒 Place Order - Customer places an order
-export const placeOrderCustomer = async (req, res) => {
-  try {
-    const { items, totalAmount, paymentMethod, address } = req.body;
-
-    // Validation
-    if (!items || items.length === 0) {
-      return res.status(400).json({ 
-        success: false,
-        message: "Order items required" 
-      });
-    }
-
-    if (!totalAmount || totalAmount <= 0) {
-      return res.status(400).json({ 
-        success: false,
-        message: "Invalid total amount" 
-      });
-    }
-
-    // Create order
-    const order = new Order({
-      user: req.user.id,
-      items,
-      totalAmount,
-      paymentMethod: paymentMethod || "upi",
-      status: "pending_payment",
-    });
-
-    await order.save();
-
-    console.log("✅ Order placed by customer:", order._id);
-
-    res.status(201).json({
-      success: true,
-      message: "Order placed successfully",
-      order,
-    });
-  } catch (error) {
-    console.error("❌ Place order error:", error);
-    res.status(500).json({ 
-      success: false,
-      message: "Failed to place order" 
-    });
-  }
-};
-
-// 📦 Get My Orders - Customer views their own orders
-export const getMyOrdersCustomer = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    if (!userId) {
-      return res.status(400).json({ 
-        success: false,
-        message: "User ID not found" 
-      });
-    }
-
-    const orders = await Order.find({ user: userId })
-      .populate("items.product", "name price imageUrl")
-      .sort({ createdAt: -1 });
-
-    console.log(`✅ Retrieved ${orders.length} orders for user ${userId}`);
-
-    res.json(orders);
-  } catch (error) {
-    console.error("❌ Get my orders error:", error);
-    res.status(500).json({ 
-      success: false,
-      message: "Failed to fetch orders" 
-    });
-  }
-};
-
-// 🔍 Get Order Details - Customer views single order details
-export const getOrderDetailsCustomer = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    // Validate order ID format
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false,
-        message: "Invalid order ID" 
-      });
-    }
-
-    // Find order and ensure it belongs to the customer
-    const order = await Order.findOne({
-      _id: id,
-      user: userId,
-    })
-      .populate("items.product", "name price imageUrl")
-      .populate("user", "name email");
-
-    if (!order) {
-      return res.status(404).json({ 
-        success: false,
-        message: "Order not found" 
-      });
-    }
-
-    console.log("✅ Retrieved order details:", id);
-
-    res.json(order);
-  } catch (error) {
-    console.error("❌ Get order details error:", error);
-    res.status(500).json({ 
-      success: false,
-      message: "Failed to fetch order details" 
     });
   }
 };

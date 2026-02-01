@@ -28,8 +28,16 @@ import AdminProfile from "./pages/admin/AdminProfile";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminProducts from "./pages/admin/Products";
 import AdminOrders from "./pages/admin/Orders";
+import Checkout from "@/components/Checkout";
+import { useCart } from "@/hooks/useCart";  // ✅ ADDED: Import cart hook
 
 const App = () => {
+  const { cart } = useCart();  // ✅ ADDED: Get cart data from hook
+
+  // ✅ ADDED: Prepare cart items in correct format
+  const cartItems = cart?.items || [];
+  const totalAmount = cart?.total || 0;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Toaster />
@@ -60,6 +68,16 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Payment />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* ✅ ADDED: Checkout Route */}
+          <Route 
+            path="/checkout" 
+            element={
+              <ProtectedRoute>
+                <Checkout cartItems={cartItems} totalAmount={totalAmount} />
               </ProtectedRoute>
             } 
           />

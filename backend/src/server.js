@@ -19,6 +19,9 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 
+// 📍 ADDRESS ROUTES (NEW)
+import addressRoutes from "./routes/addressRoutes.js";
+
 // 🛒 CART ROUTES
 import cartRoutes from "./routes/cartRoutes.js";
 
@@ -110,6 +113,9 @@ app.use("/api/users", userRoutes);
 
 // 👤 Profile Routes
 app.use("/api/profile", profileRoutes);
+
+// 📍 Address Routes (NEW)
+app.use("/api/addresses", addressRoutes);
 
 // 🛒 Cart Routes
 app.use("/api/cart", cartRoutes);

@@ -36,27 +36,79 @@ const orderSchema = new mongoose.Schema(
       required: true
     },
 
-    // ✅ Payment Fields
-    status: {
-      type: String,
-      enum: [
-        "pending_payment",      // Customer needs to pay
-        "payment_submitted",    // Customer submitted proof, awaiting verification
-        "confirmed",            // Payment verified by admin
-        "payment_rejected",     // Payment not verified
-        "shipped",
-        "delivered",
-        "cancelled"
-      ],
-      default: "pending_payment"
+    // ✅ DELIVERY ADDRESS FIELDS (NEW)
+    address: {
+      fullName: {
+        type: String,
+        required: true
+      },
+      mobileNumber: {
+        type: String,
+        required: true
+      },
+      houseFlat: {
+        type: String,
+        required: true
+      },
+      streetArea: {
+        type: String,
+        required: true
+      },
+      city: {
+        type: String,
+        required: true
+      },
+      state: {
+        type: String,
+        required: true
+      },
+      pincode: {
+        type: String,
+        required: true
+      },
+      addressType: {
+        type: String,
+        enum: ["Home", "Work"],
+        required: true
+      }
     },
 
+    // ✅ PAYMENT METHOD (UPDATED)
     paymentMethod: {
       type: String,
-      enum: ["upi", "card", "net_banking"],
-      default: "upi"
+      enum: ["COD", "UPI"],
+      default: "COD"
     },
 
+    // ✅ ORDER STATUS (NEW)
+    orderStatus: {
+      type: String,
+      enum: [
+        "PLACED",           // Order created, waiting for fulfillment
+        "CONFIRMED",        // Confirmed (UPI: payment verified, COD: confirmed)
+        "PROCESSING",       // Being prepared
+        "SHIPPED",          // On the way
+        "DELIVERED",        // Delivered
+        "CANCELLED"         // Cancelled
+      ],
+      default: "PLACED"
+    },
+
+    // ✅ PAYMENT STATUS (UPDATED)
+    paymentStatus: {
+      type: String,
+      enum: [
+        "COD_PENDING",      // Cash on Delivery - payment pending at delivery
+        "PENDING",          // For UPI - waiting for payment
+        "PAYMENT_SUBMITTED", // Payment submitted, awaiting verification
+        "VERIFIED",         // Payment verified
+        "REJECTED",         // Payment rejected
+        "COMPLETED"         // Payment completed
+      ],
+      default: "COD_PENDING"
+    },
+
+    // ✅ PAYMENT REFERENCE & PROOF (KEPT FROM ORIGINAL)
     paymentReference: {
       type: String,          // UPI reference number or transaction ID
       default: null
@@ -86,8 +138,9 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Index for quick queries
-orderSchema.index({ user: 1, status: 1 });
+// ✅ INDEXES FOR PERFORMANCE
+orderSchema.index({ user: 1, orderStatus: 1 });
+orderSchema.index({ user: 1, paymentMethod: 1 });
 orderSchema.index({ createdAt: -1 });
 
 export default mongoose.model("Order", orderSchema);
