@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Loader, CreditCard } from "lucide-react";
+import { AlertCircle, Loader, CreditCard, QrCode, Copy, CheckCircle } from "lucide-react";
 import { Address } from "@/types/checkout";
 import AddressSelection from "@/components/AddressSelection";
 import AddressForm from "@/components/AddressForm";
 import { addAddressAPI } from "@/services/addressService";
-import  API_BASE_URL  from "@/lib/api";
+import API_BASE_URL from "@/lib/api";
 
 interface CartItem {
   _id: string;
@@ -26,22 +26,57 @@ interface CartItem {
 }
 
 interface CheckoutPageProps {
-  cartItems: CartItem[];
-  totalAmount: number;
+  cartItems?: CartItem[];
+  totalAmount?: number;
+}
+
+interface LocationState {
+  cartItems?: CartItem[];
+  totalAmount?: number;
+  isLocalCart?: boolean;
+}
+
+interface UPIConfig {
+  upiId: string;
+  merchantName: string;
+  qrCodeImage: string;
+  instructions: string;
 }
 
 type CheckoutStep = "payment-method" | "address" | "address-form";
 
-const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
+const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: CheckoutPageProps) => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Get data from location.state OR props
+  const stateData = (location.state as LocationState) || {};
+  
+  // ✅ FIXED: Proper logic to prefer state data over empty props
+  const { cartItems, totalAmount } = useMemo(() => {
+    const hasValidProps = propsCartItems && propsCartItems.length > 0;
+    const hasValidStateItems = stateData.cartItems && stateData.cartItems.length > 0;
+    
+    const items = hasValidProps ? propsCartItems : (hasValidStateItems ? stateData.cartItems : []);
+    
+    const hasValidPropsAmount = propsTotalAmount && propsTotalAmount > 0;
+    const hasValidStateAmount = stateData.totalAmount && stateData.totalAmount > 0;
+    
+    const amount = hasValidPropsAmount ? propsTotalAmount : (hasValidStateAmount ? stateData.totalAmount : 0);
+    
+    return { cartItems: items, totalAmount: amount };
+  }, [propsCartItems, stateData.cartItems, propsTotalAmount, stateData.totalAmount]);
 
   const [step, setStep] = useState<CheckoutStep>("payment-method");
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "UPI">("COD");
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [newAddress, setNewAddress] = useState<Address | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [upiConfig, setUpiConfig] = useState<UPIConfig | null>(null);
+  const [upiLoading, setUpiLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Check authentication
   useEffect(() => {
@@ -63,9 +98,38 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
         description: "Your cart is empty",
         variant: "destructive"
       });
-      navigate("/sarees");
+      
+      setTimeout(() => {
+        navigate("/sarees");
+      }, 1500);
     }
   }, [cartItems, navigate, toast]);
+
+  // Fetch UPI config when user selects UPI
+  useEffect(() => {
+    if (paymentMethod === "UPI" && !upiConfig) {
+      fetchUPIConfig();
+    }
+  }, [paymentMethod]);
+
+  const fetchUPIConfig = async () => {
+    try {
+      setUpiLoading(true);
+      const response = await fetch("http://localhost:5000/api/upi/config");
+      const data = await response.json();
+      setUpiConfig(data);
+      console.log("✅ UPI Config loaded:", data);
+    } catch (error) {
+      console.error("❌ Failed to load UPI config:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load UPI payment details",
+        variant: "destructive"
+      });
+    } finally {
+      setUpiLoading(false);
+    }
+  };
 
   const handleAddressSubmit = async (address: Address) => {
     try {
@@ -73,7 +137,7 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
       const saved = await addAddressAPI(address);
       setNewAddress(saved);
       setSelectedAddress(saved);
-      setStep("payment-method");
+      setStep("address");
       toast({
         title: "Success",
         description: "Address saved successfully"
@@ -90,8 +154,8 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
   };
 
   const handlePlaceOrder = async () => {
-    // Validation
-    if (!selectedAddress && !newAddress) {
+    // For COD, address is required
+    if (paymentMethod === "COD" && !selectedAddress && !newAddress) {
       toast({
         title: "Error",
         description: "Please select or add a delivery address",
@@ -103,7 +167,7 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
     try {
       setIsLoading(true);
 
-      // Prepare order data
+      // Prepare order data with all required fields
       const orderData = {
         items: cartItems.map((item) => ({
           product: item.saree._id,
@@ -113,11 +177,14 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
         })),
         totalAmount,
         paymentMethod,
-        ...(selectedAddress?._id && { addressId: selectedAddress._id }),
-        ...(newAddress && { newAddress })
+        // Only add address for COD
+        ...(paymentMethod === "COD" && selectedAddress?._id && { addressId: selectedAddress._id }),
+        ...(paymentMethod === "COD" && newAddress && { newAddress })
       };
 
-      // Place order
+      console.log("📤 Creating Order:", orderData);
+
+      // Create order
       const token = localStorage.getItem("authToken");
       const response = await fetch(`${API_BASE_URL}/orders`, {
         method: "POST",
@@ -134,26 +201,39 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
       }
 
       const result = await response.json();
+      const orderId = result._id;
+
+      console.log("✅ Order Created:", result);
 
       toast({
         title: "Success",
-        description: `Order placed successfully. Order ID: ${result._id}`
+        description: `Order created. Proceeding to ${paymentMethod === "COD" ? "confirmation" : "payment"}...`
       });
+
+      // Clear cart from localStorage if using local cart
+      if (stateData.isLocalCart) {
+        const cartKey = `cart_${user?.id || "guest"}`;
+        localStorage.removeItem(cartKey);
+      }
 
       // Redirect based on payment method
       if (paymentMethod === "COD") {
-        navigate(`/order-confirmation/${result._id}`);
+        // For COD: Navigate to order confirmation
+        navigate(`/order-confirmation/${orderId}`);
       } else if (paymentMethod === "UPI") {
+        // For UPI: Navigate to Payment page with OCR upload
+        // This will use your existing Payment.tsx and UPIScreenshotUpload.tsx
         navigate("/payment", {
           state: {
-            orderId: result._id,
-            totalAmount,
+            orderId: orderId,
+            totalAmount: totalAmount,
             items: orderData.items,
             isLocalOrder: false
           }
         });
       }
     } catch (error) {
+      console.error("❌ Order Error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to place order",
@@ -162,6 +242,12 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (!isAuthenticated) {
@@ -218,7 +304,7 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
                             <Label htmlFor="cod" className="flex-1 cursor-pointer">
                               <div className="font-semibold">Cash on Delivery (COD)</div>
                               <p className="text-sm text-slate-500 mt-1">
-                                Pay when your order is delivered. No payment required now.
+                                Pay when your order is delivered. Delivery address required.
                               </p>
                             </Label>
                           </div>
@@ -234,7 +320,7 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
                             <Label htmlFor="upi" className="flex-1 cursor-pointer">
                               <div className="font-semibold">Pay with UPI</div>
                               <p className="text-sm text-slate-500 mt-1">
-                                Fast and secure. Transfer funds using any UPI app.
+                                Fast and secure. Upload payment screenshot with automatic UTR extraction.
                               </p>
                             </Label>
                           </div>
@@ -253,20 +339,48 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
                       <div className="text-sm text-green-700">
                         <p className="font-semibold">No payment needed now</p>
                         <p className="mt-1">You'll pay ₹{totalAmount.toFixed(2)} at the time of delivery</p>
+                        <p className="mt-2 text-xs">Next step: Select your delivery address</p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {paymentMethod === "UPI" && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3"
+                    >
+                      <QrCode className="w-5 h-5 text-blue-700 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm text-blue-700">
+                        <p className="font-semibold">Pay now via UPI</p>
+                        <p className="mt-1">No address needed! After payment, upload the receipt screenshot</p>
+                        <p className="mt-2 text-xs">Our system will automatically extract the UTR using OCR</p>
                       </div>
                     </motion.div>
                   )}
 
                   <Button
-                    onClick={() => setStep("address")}
+                    onClick={() => {
+                      if (paymentMethod === "UPI") {
+                        // Skip address for UPI, go directly to create order
+                        handlePlaceOrder();
+                      } else {
+                        // For COD, go to address selection
+                        setStep("address");
+                      }
+                    }}
+                    disabled={isLoading}
                     className="w-full bg-purple-600 hover:bg-purple-700"
                   >
-                    Continue to Address
+                    {paymentMethod === "UPI" 
+                      ? (isLoading ? "Creating Order..." : "Create Order & Pay")
+                      : "Continue to Address"
+                    }
                   </Button>
                 </motion.div>
               )}
 
-              {/* Step 2: Address Selection */}
+              {/* Step 2: Address Selection (COD only) */}
               {step === "address" && (
                 <motion.div
                   key="address"
@@ -274,12 +388,16 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                 >
-                  <AddressSelection
-                    onAddressSelect={setSelectedAddress}
-                    onNewAddressClick={() => setStep("address-form")}
-                    selectedAddressId={selectedAddress?._id}
-                  />
-                  <div className="flex gap-3 mt-6">
+                  <Card className="p-6 mb-4">
+                    <h3 className="text-lg font-semibold mb-4">Delivery Address</h3>
+                    <AddressSelection
+                      onAddressSelect={setSelectedAddress}
+                      onNewAddressClick={() => setStep("address-form")}
+                      selectedAddressId={selectedAddress?._id}
+                    />
+                  </Card>
+                  
+                  <div className="flex gap-3">
                     <Button
                       variant="outline"
                       onClick={() => setStep("payment-method")}
@@ -298,7 +416,7 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
                 </motion.div>
               )}
 
-              {/* Step 3: Add New Address Form */}
+              {/* Step 3: Add New Address Form (COD only) */}
               {step === "address-form" && (
                 <motion.div
                   key="address-form"
@@ -326,15 +444,19 @@ const Checkout = ({ cartItems, totalAmount }: CheckoutPageProps) => {
               <Card className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
                 <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
-                  {cartItems.map((item) => (
-                    <div key={item._id} className="flex justify-between text-sm">
-                      <div>
-                        <p className="font-medium">{item.saree.name}</p>
-                        <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
+                  {cartItems && cartItems.length > 0 ? (
+                    cartItems.map((item) => (
+                      <div key={item._id} className="flex justify-between text-sm">
+                        <div>
+                          <p className="font-medium">{item.saree.name}</p>
+                          <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
+                        </div>
+                        <p className="font-medium">₹{(item.saree.price * item.quantity).toFixed(2)}</p>
                       </div>
-                      <p className="font-medium">₹{(item.saree.price * item.quantity).toFixed(2)}</p>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-slate-500 text-sm">No items in cart</p>
+                  )}
                 </div>
                 <Separator className="my-4" />
                 <div className="flex justify-between items-center">

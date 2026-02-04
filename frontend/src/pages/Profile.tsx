@@ -217,22 +217,52 @@ const Profile = () => {
     }
   };
 
-  const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
+  const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
+    if (newQuantity < 1) {
+      handleRemoveFromCart(itemId);
+      return;
+    }
 
     if (useLocalCart) {
+      // For local cart, just update the quantity
       const updatedCart = cartItems.map(item =>
         item.id === itemId ? { ...item, quantity: newQuantity } : item
       );
       setCartItems(updatedCart);
-      
-      // Update localStorage
-      const cartKey = `cart_${user?.id || "guest"}`;
-      localStorage.setItem(cartKey, JSON.stringify(updatedCart));
+      // Save to localStorage
+      localStorage.setItem(`cart_${user?.id || "guest"}`, JSON.stringify(updatedCart));
+    } else {
+      // For API cart
+      const authToken = localStorage.getItem("authToken");
+      try {
+        const response = await fetch(`http://localhost:5000/api/cart/update/${itemId}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ quantity: newQuantity })
+        });
+
+        if (response.ok) {
+          const updatedCart = apiCartItems.map(item =>
+            item._id === itemId ? { ...item, quantity: newQuantity } : item
+          );
+          setApiCartItems(updatedCart);
+        }
+      } catch (error) {
+        console.error("Failed to update quantity:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update quantity",
+          variant: "destructive"
+        });
+      }
     }
   };
 
-  const handleProceedToCheckout = async () => {
+  // ✅ FIXED: handleProceedToCheckout - Navigate to Checkout component
+  const handleProceedToCheckout = () => {
     const itemsToCheckout = useLocalCart ? cartItems : apiCartItems;
     
     if (itemsToCheckout.length === 0) {
@@ -244,99 +274,44 @@ const Profile = () => {
       return;
     }
 
-    try {
-      setIsCheckingOut(true);
-      const authToken = localStorage.getItem("authToken");
+    setIsCheckingOut(true);
 
-      if (!authToken) {
-        toast({
-          title: "Authentication Required",
-          description: "Please login to continue",
-          variant: "destructive"
-        });
-        navigate("/login");
-        return;
-      }
-
-      let orderItems: OrderItem[];
-      let totalAmount: number;
-
-      if (useLocalCart) {
-        orderItems = cartItems.map(item => {
+    // Prepare cart items in format expected by Checkout component
+    const itemsForCheckout = useLocalCart 
+      ? cartItems.map(item => {
           const saree = Object.values(sareeMap).find(s => s.name === item.name);
           const mongoId = saree ? saree._id : item.id;
           
           return {
-            product: mongoId,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price
+            _id: item.id,
+            saree: {
+              _id: mongoId,
+              name: item.name,
+              price: item.price
+            },
+            quantity: item.quantity
           };
-        });
-        totalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      } else {
-        orderItems = apiCartItems.map(item => ({
-          product: item.saree._id,
-          name: item.saree.name,
-          quantity: item.quantity,
-          price: item.saree.price
-        }));
-        totalAmount = apiCartItems.reduce((sum, item) => sum + (item.saree.price * item.quantity), 0);
-      }
-
-      const response = await fetch("http://localhost:5000/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`
-        },
-        body: JSON.stringify({
-          items: orderItems,
-          totalAmount: totalAmount
         })
-      });
+      : apiCartItems;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP ${response.status}`);
+    const totalAmount = useLocalCart 
+      ? cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+      : apiCartItems.reduce((sum, item) => sum + (item.saree.price * item.quantity), 0);
+
+    // ✅ Navigate to Checkout component with cart data via location state
+    // The Checkout component will handle:
+    // 1. Payment method selection (COD default with UPI option)
+    // 2. Address selection or creation
+    // 3. Order creation with all required fields (paymentMethod, addressId, etc.)
+    navigate("/checkout", {
+      state: {
+        cartItems: itemsForCheckout,
+        totalAmount: totalAmount,
+        isLocalCart: useLocalCart
       }
+    });
 
-      const data = await response.json();
-
-      if (data.success || data._id) {
-        toast({
-          title: "Success",
-          description: "Order created! Proceeding to payment...",
-        });
-
-        if (useLocalCart) {
-          const cartKey = `cart_${user?.id || "guest"}`;
-          localStorage.removeItem(cartKey);
-        }
-        setCartItems([]);
-        setApiCartItems([]);
-        
-        navigate("/payment", { 
-          state: { 
-            orderId: data._id || data.order._id,
-            totalAmount: totalAmount,
-            items: orderItems
-          } 
-        });
-      } else {
-        throw new Error(data.message || "Failed to create order");
-      }
-    } catch (error) {
-      console.error("Checkout Error:", error);
-      
-      toast({
-        title: "Checkout Failed",
-        description: error instanceof Error ? error.message : "Failed to process checkout",
-        variant: "destructive"
-      });
-    } finally {
-      setIsCheckingOut(false);
-    }
+    setIsCheckingOut(false);
   };
 
   const displayItems = useLocalCart ? cartItems : apiCartItems;
@@ -349,36 +324,42 @@ const Profile = () => {
     const colors = ['8B4513', 'C71585', 'FF1493', 'DA70D6', 'DDA0DD'];
     const hashCode = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const color = colors[hashCode % colors.length];
-    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23${color}' width='100' height='100'/%3E%3Ctext x='50%' y='50%' font-size='14' fill='white' text-anchor='middle' dy='.3em'%3E${name.substring(0, 3).toUpperCase()}%3C/text%3E%3C/svg%3E`;
+    return `data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23${color}" width="100" height="100"/%3E%3C/svg%3E`;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-950 text-white">
       <AnimatedBackground />
-      
-      <div className="relative z-10 max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-8">
+        {/* Header with User Info and Actions */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-4xl font-bold text-white mb-2">My Account</h1>
-              <p className="text-slate-400">Welcome, {user?.name}!</p>
+              <h1 className="text-4xl font-bold mb-2">Profile</h1>
+              <p className="text-slate-400">Welcome back, {user?.email?.split('@')[0]}!</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap justify-end">
               {unreadMessagesCount > 0 && (
                 <motion.button
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
+                  whileHover={{ scale: 1.05 }}
                   onClick={() => navigate("/messages")}
-                  className="relative bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                  className="relative bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded font-medium flex items-center gap-2"
                 >
-                  <Mail className="w-5 h-5" />
-                  <span className="font-semibold">Messages</span>
-                  <span className="absolute -top-2 -right-2 bg-yellow-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold animate-pulse">
+                  <Bell className="w-5 h-5" />
+                  Replies ({unreadMessagesCount})
+                  <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
                     {unreadMessagesCount}
                   </span>
                 </motion.button>
