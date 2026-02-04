@@ -13,7 +13,7 @@ import { Address } from "@/types/checkout";
 import AddressSelection from "@/components/AddressSelection";
 import AddressForm from "@/components/AddressForm";
 import { addAddressAPI } from "@/services/addressService";
-import API_BASE_URL from "@/lib/api";
+import { createOrder } from "@/lib/api"; // ✅ USE PROPER API METHOD
 
 interface CartItem {
   _id: string;
@@ -41,6 +41,16 @@ interface UPIConfig {
   merchantName: string;
   qrCodeImage: string;
   instructions: string;
+}
+
+// ✅ FIXED: Proper type for API response
+interface OrderResponse {
+  _id?: string;
+  id?: string;
+  orderId?: string;
+  success?: boolean;
+  message?: string;
+  [key: string]: unknown;
 }
 
 type CheckoutStep = "payment-method" | "address" | "address-form";
@@ -153,6 +163,7 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     }
   };
 
+  // ✅ FIXED: Use proper API method with improved error handling and proper typing
   const handlePlaceOrder = async () => {
     // For COD, address is required
     if (paymentMethod === "COD" && !selectedAddress && !newAddress) {
@@ -184,26 +195,18 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
 
       console.log("📤 Creating Order:", orderData);
 
-      // Create order
-      const token = localStorage.getItem("authToken");
-      const response = await fetch(`${API_BASE_URL}/orders`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(orderData)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to place order");
-      }
-
-      const result = await response.json();
-      const orderId = result._id;
+      // ✅ FIXED: Use the proper API method from api.ts with proper typing
+      const result = await createOrder(orderData);
 
       console.log("✅ Order Created:", result);
+
+      // ✅ FIXED: Properly typed response handling
+      const orderResponse = result as OrderResponse;
+      const orderId = orderResponse._id || orderResponse.id || orderResponse.orderId;
+
+      if (!orderId) {
+        throw new Error("Order ID not returned from server");
+      }
 
       toast({
         title: "Success",
@@ -222,7 +225,6 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
         navigate(`/order-confirmation/${orderId}`);
       } else if (paymentMethod === "UPI") {
         // For UPI: Navigate to Payment page with OCR upload
-        // This will use your existing Payment.tsx and UPIScreenshotUpload.tsx
         navigate("/payment", {
           state: {
             orderId: orderId,
@@ -234,9 +236,30 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
       }
     } catch (error) {
       console.error("❌ Order Error:", error);
+      
+      let errorMessage = "Failed to place order";
+
+      // ✅ FIXED: Proper error handling with type checking
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === "object" && error !== null) {
+        const err = error as Record<string, unknown>;
+        if (err.response && typeof err.response === "object") {
+          const response = err.response as Record<string, unknown>;
+          if (response.data && typeof response.data === "object") {
+            const data = response.data as Record<string, unknown>;
+            if (typeof data.message === "string") {
+              errorMessage = data.message;
+            }
+          }
+        } else if (typeof err.message === "string") {
+          errorMessage = err.message;
+        }
+      }
+
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to place order",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -244,17 +267,20 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !cartItems || cartItems.length === 0) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader className="w-8 h-8 animate-spin text-purple-600" />
-      </div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4"
+      >
+        <Card className="p-8 max-w-md w-full text-center">
+          <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Loading Checkout...</h2>
+          <p className="text-slate-600">Preparing your order</p>
+          <Loader className="w-6 h-6 animate-spin mx-auto mt-4" />
+        </Card>
+      </motion.div>
     );
   }
 
@@ -262,12 +288,11 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12 px-4"
+      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4"
     >
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
+      <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Checkout</h1>
+          <h1 className="text-4xl font-bold text-slate-800">Checkout</h1>
           <p className="text-slate-600 mt-2">Complete your purchase securely</p>
         </div>
 

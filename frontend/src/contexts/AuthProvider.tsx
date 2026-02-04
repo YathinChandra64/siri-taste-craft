@@ -1,5 +1,6 @@
 import { useState, useEffect, ReactNode } from "react";
 import { AuthContext, AuthContextType, User } from "./AuthContext";
+import API from "@/lib/api"; // ✅ Use Axios instead of fetch
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -9,33 +10,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const token = localStorage.getItem("authToken"); // ✅ Using 'authToken'
+        const token = localStorage.getItem("authToken");
         
         if (!token) {
           setLoading(false);
           return;
         }
 
-        const response = await fetch("http://localhost:5000/api/auth/me", {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          },
-          credentials: "include"
-        });
+        // ✅ FIXED: Use Axios instead of fetch
+        // Axios interceptor will automatically add the token
+        const response = await API.get("/auth/me");
 
-        if (response.ok) {
-          const userData: User = await response.json();
-          setUser(userData);
-          // ✅ Store user info in localStorage for app purposes
-          localStorage.setItem("user", JSON.stringify(userData));
-        } else if (response.status === 401) {
-          // ✅ Token expired, clear storage
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("user");
-          setUser(null);
-        }
+        const userData: User = response.data;
+        setUser(userData);
+        // ✅ Store user info in localStorage for app purposes
+        localStorage.setItem("user", JSON.stringify(userData));
       } catch (error) {
         console.error("Auth check failed:", error);
+        // ✅ If 401, token is invalid
         localStorage.removeItem("authToken");
         localStorage.removeItem("user");
         setUser(null);
@@ -49,24 +41,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: "include"
+      // ✅ FIXED: Use Axios (doesn't need credentials: include for JWT)
+      const response = await API.post("/auth/login", {
+        email,
+        password
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Login failed");
-      }
-
-      const data = await response.json();
+      const data = response.data;
 
       if (data.token) {
-        localStorage.setItem("authToken", data.token); // ✅ Using 'authToken'
+        localStorage.setItem("authToken", data.token);
       }
 
       // ✅ Store user info in localStorage
@@ -83,24 +67,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch("http://localhost:5000/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, email, password }),
-        credentials: "include"
+      // ✅ FIXED: Use Axios (doesn't need credentials: include for JWT)
+      const response = await API.post("/auth/signup", {
+        name,
+        email,
+        password
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Signup failed");
-      }
-
-      const data = await response.json();
+      const data = response.data;
 
       if (data.token) {
-        localStorage.setItem("authToken", data.token); // ✅ Using 'authToken'
+        localStorage.setItem("authToken", data.token);
       }
 
       // ✅ Store user info in localStorage
@@ -116,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem("authToken"); // ✅ Using 'authToken'
+    localStorage.removeItem("authToken");
     localStorage.removeItem("user");
     setUser(null);
   };

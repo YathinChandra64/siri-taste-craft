@@ -15,7 +15,17 @@ export default defineConfig({
     host: true,
     port: 8080,
 
-    // 🔁 Frontend → Backend proxy
+    watch: {
+      // 🧠 THIS is the missing piece
+      usePolling: true,
+      interval: 1500,
+      ignored: [
+        "**/node_modules/**",
+        "**/.git/**",
+        "**/dist/**"
+      ]
+    },
+
     proxy: {
       "/api": {
         target: "http://localhost:5000",
