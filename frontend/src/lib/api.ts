@@ -84,6 +84,7 @@ const API = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 10000, // 10 second timeout
 });
 
 // ✅ IMPROVED: Request interceptor with better logging
@@ -94,7 +95,7 @@ API.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log("✅ Auth token attached for:", config.url);
-    } else {
+    } else if (!config.url?.includes("/auth/") && !config.url?.includes("/products") && !config.url?.includes("/sarees")) {
       console.warn("⚠️ No auth token found for request to:", config.url);
     }
     
@@ -120,13 +121,19 @@ API.interceptors.response.use(
     const status = error.response?.status;
     const message = error.response?.data?.message || error.message;
     
-    console.error("❌ Response Error:", {
-      status,
-      message,
-      url: error.config?.url,
-      data: error.response?.data,
-      timestamp: new Date().toISOString()
-    });
+    // Don't log connection errors excessively
+    if (error.code === "ECONNREFUSED") {
+      console.error("❌ Backend Connection Error: Server not running on http://localhost:5000");
+      console.error("📌 Start your backend with: npm run dev (in the backend directory)");
+    } else {
+      console.error("❌ Response Error:", {
+        status,
+        message,
+        url: error.config?.url,
+        data: error.response?.data,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     // ✅ Handle 401 (Unauthorized) with improved logic
     if (status === 401) {
@@ -320,43 +327,37 @@ export const resubmitPayment = async (
 };
 
 /**
- * Verify Payment (Admin Only)
- * @param {string} paymentId - Payment ID to verify
- * @param {string} action - 'approve' or 'reject'
- * @param {string} notes - Verification notes
+ * Verify Payment Manually (admin endpoint)
+ * @param {string} paymentId - Payment ID
+ * @param {boolean} approved - Approval status
+ * @param {string} notes - Admin notes
  * @returns {Promise} Verification result
  */
-export const verifyPayment = async (
+export const verifyPaymentManually = async (
   paymentId: string,
-  action: "approve" | "reject",
+  approved: boolean,
   notes?: string
 ): Promise<ApiResponseWrapper<PaymentVerificationData>> => {
-  const response = await API.post("/upi-payments/verify", {
-    paymentId,
-    action,
-    notes: notes || "",
+  const response = await API.post(`/upi-payments/verify/${paymentId}`, {
+    approved,
+    notes,
   });
   return response.data;
 };
 
 /**
- * Get Pending Payments (Admin Only)
- * @param {number} limit - Results per page
- * @param {number} offset - Pagination offset
+ * Get Pending Payments (admin endpoint)
  * @returns {Promise} List of pending payments
  */
-export const getPendingPayments = async (
-  limit: number = 20,
-  offset: number = 0
-): Promise<ApiResponseWrapper<PendingPaymentsData>> => {
-  const response = await API.get(
-    `/admin/payments/pending?limit=${limit}&offset=${offset}`
-  );
+export const getPendingPayments = async (): Promise<
+  ApiResponseWrapper<PendingPaymentsData>
+> => {
+  const response = await API.get("/admin/payments/pending");
   return response.data;
 };
 
 /**
- * Get Payment Statistics (Admin Only)
+ * Get Payment Statistics (admin endpoint)
  * @returns {Promise} Payment statistics
  */
 export const getPaymentStatistics = async (): Promise<
@@ -495,8 +496,8 @@ export const createOrder = async (orderData: OrderData): Promise<unknown> => {
   }
   
   if (!["COD", "UPI", "RAZORPAY"].includes(orderData.paymentMethod as string)) {
-  throw new Error("Payment method must be either COD, UPI, or RAZORPAY");
-}
+    throw new Error("Payment method must be either COD, UPI, or RAZORPAY");
+  }
   
   console.log("📤 Creating order with validated data:", {
     itemCount: orderData.items.length,

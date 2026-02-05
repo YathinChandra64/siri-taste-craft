@@ -47,12 +47,25 @@ const app = express();
 // MIDDLEWARE CONFIGURATION
 // ======================================
 
-// ✅ CORS Configuration
+// ✅ CORS Configuration with proper origin handling
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:8080",
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || "http://localhost:8080",
+      "http://localhost:3000",
+      "http://127.0.0.1:8080",
+      "http://127.0.0.1:3000"
+    ];
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed"));
+    }
+  },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
 
 // ✅ Body parsers
@@ -73,11 +86,12 @@ const initializeUploadDirectories = async () => {
     console.log(`✅ Upload directory created/verified: ${uploadDir}`);
   } catch (error) {
     console.error("❌ Error creating upload directory:", error);
+    process.exit(1);
   }
 };
 
 // Call on startup
-initializeUploadDirectories();
+await initializeUploadDirectories();
 
 // ======================================
 // BASE ROUTE
@@ -99,176 +113,99 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 
 // 👚 Product Routes
-app.use("/api/sarees", sareeRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/sarees", sareeRoutes);
 
 // 📋 Order Routes
 app.use("/api/orders", orderRoutes);
 
 // 💳 Payment Routes
 app.use("/api/payments", paymentRoutes);
+app.use("/api/upi-payments", upiPaymentRoutes);
+app.use("/api/upi", upiRoutes);
 
-// 👥 User Management Routes
+// 👥 User & Profile Routes
 app.use("/api/users", userRoutes);
-
-// 👤 Profile Routes
 app.use("/api/profile", profileRoutes);
 
-// 📍 Address Routes (NEW)
+// 📍 Address Routes
 app.use("/api/addresses", addressRoutes);
 
 // 🛒 Cart Routes
 app.use("/api/cart", cartRoutes);
 
-// 📨 Contact Routes
+// 📨 Communication Routes
 app.use("/api/contact", contactRoutes);
-
-// 💬 Chat Routes
 app.use("/api/chat", chatRoutes);
 
 // ⚠️ Issue Report Routes
 app.use("/api/issues", issueRoutes);
 
-// ✅ NEW: UPI PAYMENT ROUTES (Main payment processing)
-app.use("/api/upi-payments", upiPaymentRoutes);
-
-// ✅ OLD: UPI Configuration Routes (Admin setup)
-app.use("/api/upi", upiRoutes);
-
 // ======================================
-// HEALTH CHECK ENDPOINT
+// ADMIN ROUTES
 // ======================================
 
-app.get("/health", (req, res) => {
-  res.json({
-    status: "healthy",
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage()
-  });
-});
+// Admin will use the existing routes with role-based access control
+// (assuming authMiddleware checks user roles)
 
 // ======================================
-// 404 ERROR HANDLER
+// ERROR HANDLING
 // ======================================
 
+// 404 Handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: `Route not found: ${req.method} ${req.originalUrl}`
+    message: "Route not found",
+    path: req.path,
+    method: req.method
   });
 });
 
-// ======================================
-// GLOBAL ERROR HANDLING MIDDLEWARE
-// ======================================
-
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error("❌ Error:", {
+  console.error("❌ Server Error:", {
     message: err.message,
     stack: err.stack,
-    url: req.originalUrl,
+    path: req.path,
     method: req.method,
     timestamp: new Date().toISOString()
   });
 
-  // Multer file upload errors
-  if (err.name === "MulterError") {
-    if (err.code === "LIMIT_FILE_SIZE") {
-      return res.status(413).json({
-        success: false,
-        message: "File size exceeds limit"
-      });
-    }
-    if (err.code === "LIMIT_FILE_COUNT") {
-      return res.status(400).json({
-        success: false,
-        message: "Too many files uploaded"
-      });
-    }
-  }
+  const status = err.status || 500;
+  const message = err.message || "Internal Server Error";
 
-  // Invalid JSON
-  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid JSON in request body"
-    });
-  }
-
-  // Mongoose errors
-  if (err.name === "ValidationError") {
-    return res.status(400).json({
-      success: false,
-      message: err.message
-    });
-  }
-
-  if (err.name === "CastError") {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid ID format"
-    });
-  }
-
-  // JWT errors
-  if (err.name === "JsonWebTokenError") {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid token"
-    });
-  }
-
-  if (err.name === "TokenExpiredError") {
-    return res.status(401).json({
-      success: false,
-      message: "Token expired"
-    });
-  }
-
-  // Default error response
-  res.status(err.status || 500).json({
+  res.status(status).json({
     success: false,
-    message: process.env.NODE_ENV === "production" 
-      ? "Internal server error" 
-      : err.message || "Internal server error",
-    ...(process.env.NODE_ENV !== "production" && { error: err.stack })
+    message,
+    error: process.env.NODE_ENV === "development" ? err : undefined
   });
 });
 
 // ======================================
-// START SERVER
+// SERVER STARTUP
 // ======================================
 
 const PORT = process.env.PORT || 5000;
-const NODE_ENV = process.env.NODE_ENV || "development";
-
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`
-╔═══════════════════════════════════════════════════════╗
-║         Siri Taste Craft Backend Server              ║
-╠═══════════════════════════════════════════════════════╣
-║ 🚀 Server running on port ${PORT}                    
-║ 🌍 Environment: ${NODE_ENV}                           
-║ 📅 Started: ${new Date().toLocaleString()}           
-║ ✅ Database: Connected                                
-║ ✅ UPI Payment System: Active                         
-║ ✅ File Upload: Enabled                               
-╚═══════════════════════════════════════════════════════╝
+  ╔════════════════════════════════════╗
+  ║   🚀 BACKEND SERVER STARTED 🚀     ║
+  ║   Port: ${PORT}                           ║
+  ║   Environment: ${process.env.NODE_ENV || "development"}         ║
+  ╚════════════════════════════════════╝
   `);
+  console.log("✅ Database connected");
+  console.log("✅ Upload directories initialized");
+  console.log(`📡 API running on http://localhost:${PORT}`);
 });
 
-// ======================================
-// GRACEFUL SHUTDOWN
-// ======================================
-
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
-});
-
-process.on("SIGINT", () => {
-  console.log("\n\n📛 Server shutting down gracefully...");
-  process.exit(0);
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  console.log("📭 SIGTERM signal received: closing HTTP server");
+  server.close(() => {
+    console.log("✅ HTTP server closed");
+  });
 });
 
 export default app;

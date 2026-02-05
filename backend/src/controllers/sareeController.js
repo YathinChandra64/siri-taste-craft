@@ -1,313 +1,408 @@
-import mongoose from "mongoose";
-import Saree from "../models/Saree.js";
+import Saree from '../models/Saree.js';
+import { Request, Response } from 'express';
 
-// 📦 Get all sarees (Public)
-export const getAllSarees = async (req, res) => {
+/**
+ * Saree Controller
+ * Handles saree listing, filtering, and pagination
+ */
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Build filter query based on parameters
+ */
+const buildFilterQuery = (queryParams: any) => {
+  const filter: any = {};
+
+  // Price range filter
+  if (queryParams.minPrice || queryParams.maxPrice) {
+    filter.price = {};
+    if (queryParams.minPrice) {
+      filter.price.$gte = Number(queryParams.minPrice);
+    }
+    if (queryParams.maxPrice) {
+      filter.price.$lte = Number(queryParams.maxPrice);
+    }
+  }
+
+  // Category filter
+  if (queryParams.category && queryParams.category !== 'All') {
+    if (Array.isArray(queryParams.category)) {
+      filter.category = { $in: queryParams.category };
+    } else {
+      filter.category = queryParams.category;
+    }
+  }
+
+  // Material filter
+  if (queryParams.material) {
+    if (Array.isArray(queryParams.material)) {
+      filter.material = { $in: queryParams.material };
+    } else {
+      filter.material = queryParams.material;
+    }
+  }
+
+  // Occasion filter
+  if (queryParams.occasion) {
+    if (Array.isArray(queryParams.occasion)) {
+      filter.occasion = { $in: queryParams.occasion };
+    } else {
+      filter.occasion = queryParams.occasion;
+    }
+  }
+
+  // Color filter
+  if (queryParams.color) {
+    if (Array.isArray(queryParams.color)) {
+      filter.color = { $in: queryParams.color };
+    } else {
+      filter.color = queryParams.color;
+    }
+  }
+
+  // Availability filter
+  if (queryParams.availability) {
+    if (Array.isArray(queryParams.availability)) {
+      if (queryParams.availability.includes('in-stock')) {
+        filter.stock = { $gt: 0 };
+      }
+      if (queryParams.availability.includes('out-of-stock')) {
+        filter.stock = { $eq: 0 };
+      }
+    } else if (queryParams.availability === 'in-stock') {
+      filter.stock = { $gt: 0 };
+    } else if (queryParams.availability === 'out-of-stock') {
+      filter.stock = { $eq: 0 };
+    }
+  }
+
+  // Rating filter
+  if (queryParams.minRating) {
+    filter.averageRating = { $gte: Number(queryParams.minRating) };
+  }
+
+  // Search filter (text search in name and description)
+  if (queryParams.search) {
+    filter.$text = { $search: queryParams.search };
+  }
+
+  return filter;
+};
+
+/**
+ * Determine sort order
+ */
+const buildSortQuery = (sortBy: string) => {
+  const sortMap: any = {
+    'price-low': { price: 1 },
+    'price-high': { price: -1 },
+    rating: { averageRating: -1 },
+    newest: { createdAt: -1 },
+  };
+
+  return sortMap[sortBy] || { createdAt: -1 }; // Default to newest
+};
+
+// ============================================
+// CONTROLLER METHODS
+// ============================================
+
+/**
+ * GET /api/sarees
+ * Get all sarees with pagination, filtering, and sorting
+ * 
+ * Query Parameters:
+ *   - page (number, default: 1)
+ *   - limit (number, default: 8, max: 50)
+ *   - sort (string: newest, price-low, price-high, rating)
+ *   - category (string or array)
+ *   - material (string or array)
+ *   - occasion (string or array)
+ *   - color (string or array)
+ *   - minPrice (number)
+ *   - maxPrice (number)
+ *   - minRating (number)
+ *   - availability (string or array: in-stock, out-of-stock)
+ *   - search (string)
+ */
+export const getSarees = async (req: Request, res: Response) => {
   try {
-    const { category, search, minPrice, maxPrice } = req.query;
-    let filter = { isActive: true };
+    const {
+      page = '1',
+      limit = '8',
+      sort = 'newest',
+      category,
+      material,
+      occasion,
+      color,
+      minPrice,
+      maxPrice,
+      minRating,
+      availability,
+      search,
+    } = req.query;
 
-    if (category) {
-      filter.category = category;
-    }
+    // ✅ Validate pagination parameters
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(50, Math.max(1, Number(limit) || 8));
+    const skip = (pageNum - 1) * limitNum;
 
-    if (search) {
-      filter.$text = { $search: search };
-    }
+    // ✅ Build filter query
+    const filter = buildFilterQuery({
+      minPrice,
+      maxPrice,
+      category,
+      material,
+      occasion,
+      color,
+      minRating,
+      availability,
+      search,
+    });
 
-    if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = parseInt(minPrice);
-      if (maxPrice) filter.price.$lte = parseInt(maxPrice);
-    }
+    // ✅ Build sort query
+    const sortQuery = buildSortQuery(sort as string);
 
-    const sarees = await Saree.find(filter).sort({ createdAt: -1 });
-    res.json(sarees);
+    // ✅ Execute query with pagination
+    const sarees = await Saree.find(filter)
+      .sort(sortQuery)
+      .skip(skip)
+      .limit(limitNum)
+      .select('-ratingDistribution'); // Don't send distribution to client initially
+
+    // ✅ Get total count for pagination
+    const total = await Saree.countDocuments(filter);
+    const pages = Math.ceil(total / limitNum);
+
+    // ✅ Log query
+    console.log(`📊 Sarees query: page=${pageNum}, limit=${limitNum}, sort=${sort}, results=${sarees.length}`);
+
+    res.json({
+      success: true,
+      data: sarees,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages,
+      },
+    });
   } catch (error) {
-    console.error("Get sarees error:", error);
-    res.status(500).json({ message: error.message });
+    console.error('Error fetching sarees:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch sarees',
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
+    });
   }
 };
 
-// 🔍 Get saree by ID (Public)
-export const getSareeById = async (req, res) => {
+/**
+ * GET /api/sarees/:id
+ * Get a single saree by ID with full details
+ */
+export const getSareeById = async (req: Request, res: Response) => {
   try {
-    const saree = await Saree.findById(req.params.id);
+    const { id } = req.params;
 
-    if (!saree || !saree.isActive) {
-      return res.status(404).json({ message: "Saree not found" });
-    }
+    // ✅ Find saree
+    const saree = await Saree.findById(id);
 
-    res.json(saree);
-  } catch (error) {
-    console.error("Get saree error:", error);
-    res.status(400).json({ message: "Invalid saree ID" });
-  }
-};
-
-// ➕ Create single saree (Admin only)
-export const createSaree = async (req, res) => {
-  try {
-    const { name, description, price, category, material, color, stock, imageUrl, sku } = req.body;
-
-    if (!name || !description || !price || stock === undefined) {
-      return res.status(400).json({ 
-        message: "Name, description, price, and stock are required" 
+    if (!saree) {
+      return res.status(404).json({
+        success: false,
+        message: 'Saree not found',
       });
     }
 
-    // ✅ FIX: Check if SKU already exists (only if provided)
-    if (sku && sku.trim() !== "") {
-      const existingSaree = await Saree.findOne({ sku: sku.trim() });
-      if (existingSaree) {
-        return res.status(409).json({ message: "SKU already exists" });
-      }
-    }
+    console.log(`🔍 Saree ${id} viewed`);
 
-    const saree = await Saree.create({
+    res.json({
+      success: true,
+      data: saree,
+    });
+  } catch (error) {
+    console.error('Error fetching saree:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch saree',
+    });
+  }
+};
+
+/**
+ * POST /api/sarees (Admin only)
+ * Create a new saree
+ */
+export const createSaree = async (req: Request, res: Response) => {
+  try {
+    const {
       name,
+      price,
+      category,
+      material,
+      color,
+      occasion,
+      stock,
+      imageUrl,
       description,
-      price: parseFloat(price),
-      category: category || "Traditional",
-      material: material || "",
-      color: color || "",
-      stock: parseInt(stock),
-      imageUrl: imageUrl || "",
-      sku: (sku && sku.trim() !== "") ? sku.trim() : null  // ✅ Use null for empty SKU
+      blousePrice,
+      length,
+    } = req.body;
+
+    // ✅ Validate required fields
+    if (!name || !price || !category || !imageUrl || !description) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: name, price, category, imageUrl, description',
+      });
+    }
+
+    // ✅ Create saree
+    const saree = new Saree({
+      name,
+      price,
+      category,
+      material,
+      color,
+      occasion,
+      stock,
+      imageUrl,
+      description,
+      blousePrice,
+      length,
     });
 
-    console.log("✅ Saree created:", saree._id);
+    await saree.save();
+
+    console.log(`✅ Saree created: ${name}`);
 
     res.status(201).json({
-      message: "Saree created successfully",
-      saree
+      success: true,
+      message: 'Saree created successfully',
+      data: saree,
     });
-
   } catch (error) {
-    console.error("❌ Create saree error:", error);
-    res.status(500).json({ 
-      message: error.message || "Failed to create saree",
-      error: process.env.NODE_ENV === "development" ? error : undefined
+    console.error('Error creating saree:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create saree',
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
     });
   }
 };
 
-// ✏️ Update saree (Admin only) - FIXED FOR E11000 DUPLICATE KEY ERROR
-export const updateSaree = async (req, res) => {
+/**
+ * PUT /api/sarees/:id (Admin only)
+ * Update a saree
+ */
+export const updateSaree = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const updates = req.body;
 
-    console.log("📝 Update request for saree:", id);
-    console.log("📝 Update data:", updateData);
+    // ✅ Prevent updating ratings/counts
+    delete updates.averageRating;
+    delete updates.reviewCount;
+    delete updates.ratingDistribution;
 
-    // ✅ Validate ID format
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.error("❌ Invalid saree ID format:", id);
-      return res.status(400).json({ message: "Invalid saree ID format" });
-    }
-
-    // ✅ CRITICAL FIX: Remove empty strings to avoid duplicate key error
-    if (updateData.sku !== undefined) {
-      if (updateData.sku === "" || (updateData.sku && updateData.sku.trim() === "")) {
-        delete updateData.sku;  // Don't update SKU if it's empty
-        console.log("⚠️ Empty SKU provided - skipping SKU update");
-      } else if (updateData.sku) {
-        updateData.sku = updateData.sku.trim();
-      }
-    }
-
-    // Remove empty strings from other optional fields
-    if (updateData.material === "") delete updateData.material;
-    if (updateData.color === "") delete updateData.color;
-
-    // Convert types properly
-    if (updateData.price !== undefined) {
-      updateData.price = parseFloat(updateData.price);
-    }
-    if (updateData.stock !== undefined) {
-      updateData.stock = parseInt(updateData.stock);
-    }
-
-    // Don't allow changing SKU to a duplicate (only check if SKU is being updated)
-    if (updateData.sku) {
-      const existingSaree = await Saree.findOne({ 
-        sku: updateData.sku, 
-        _id: { $ne: id } 
-      });
-      if (existingSaree) {
-        return res.status(409).json({ message: "SKU already exists" });
-      }
-    }
-
-    const saree = await Saree.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: false }
-    );
+    // ✅ Update saree
+    const saree = await Saree.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!saree) {
-      console.error("❌ Saree not found:", id);
-      return res.status(404).json({ message: "Saree not found" });
-    }
-
-    console.log("✅ Saree updated successfully:", saree._id);
-
-    res.json({
-      message: "Saree updated successfully",
-      saree
-    });
-  } catch (error) {
-    console.error("❌ Update saree error:", error);
-    
-    // Handle duplicate key error specifically
-    if (error.code === 11000) {
-      return res.status(409).json({ 
-        message: "Duplicate value error - SKU might already exist. Try updating without SKU or use a unique SKU."
+      return res.status(404).json({
+        success: false,
+        message: 'Saree not found',
       });
     }
 
-    res.status(500).json({ 
-      message: error.message || "Failed to update saree",
-      error: process.env.NODE_ENV === "development" ? error.toString() : undefined
+    console.log(`✏️ Saree ${id} updated`);
+
+    res.json({
+      success: true,
+      message: 'Saree updated successfully',
+      data: saree,
+    });
+  } catch (error) {
+    console.error('Error updating saree:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update saree',
     });
   }
 };
 
-// 🗑️ Delete saree (Admin only - Soft delete)
-export const deleteSaree = async (req, res) => {
+/**
+ * DELETE /api/sarees/:id (Admin only)
+ * Delete a saree
+ */
+export const deleteSaree = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    console.log("🗑️ Delete request for saree:", id);
-
-    // ✅ Validate ID format
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.error("❌ Invalid saree ID format:", id);
-      return res.status(400).json({ message: "Invalid saree ID format" });
-    }
-
-    const saree = await Saree.findByIdAndUpdate(
-      id,
-      { isActive: false },
-      { new: true }
-    );
+    // ✅ Delete saree
+    const saree = await Saree.findByIdAndDelete(id);
 
     if (!saree) {
-      console.error("❌ Saree not found:", id);
-      return res.status(404).json({ message: "Saree not found" });
+      return res.status(404).json({
+        success: false,
+        message: 'Saree not found',
+      });
     }
 
-    console.log("✅ Saree deleted successfully:", saree._id);
+    // TODO: Also delete associated reviews
+
+    console.log(`🗑️ Saree ${id} deleted`);
 
     res.json({
-      message: "Saree deleted successfully",
-      saree
+      success: true,
+      message: 'Saree deleted successfully',
     });
   } catch (error) {
-    console.error("❌ Delete saree error:", error);
-    res.status(500).json({ 
-      message: error.message || "Failed to delete saree",
-      error: process.env.NODE_ENV === "development" ? error.toString() : undefined
+    console.error('Error deleting saree:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete saree',
     });
   }
 };
 
-// 📤 Bulk upload sarees (Admin only)
-export const bulkUploadSarees = async (req, res) => {
+/**
+ * GET /api/sarees/stats/top-rated
+ * Get top-rated sarees
+ */
+export const getTopRatedSarees = async (req: Request, res: Response) => {
   try {
-    // Handle both { sarees: [] } and direct array format
-    let sarees = req.body;
-    
-    if (req.body.sarees && Array.isArray(req.body.sarees)) {
-      sarees = req.body.sarees;
-    }
+    const { limit = '10' } = req.query;
 
-    if (!Array.isArray(sarees) || sarees.length === 0) {
-      return res.status(400).json({ 
-        message: "Invalid data format. Expected array of sarees." 
-      });
-    }
+    const sarees = await Saree.find({ reviewCount: { $gt: 0 } })
+      .sort({ averageRating: -1 })
+      .limit(Number(limit));
 
-    console.log("📤 Bulk upload:", sarees.length, "sarees");
-
-    // Validate and process each saree
-    const validationErrors = [];
-    const processedSarees = sarees.map((saree, index) => {
-      if (!saree.name || !saree.description || !saree.price || saree.stock === undefined) {
-        validationErrors.push(`Row ${index + 1}: Missing required fields`);
-      }
-      
-      return {
-        ...saree,
-        price: parseFloat(saree.price),
-        stock: parseInt(saree.stock),
-        // ✅ FIX: Use null for empty SKU instead of empty string
-        sku: (saree.sku && saree.sku.trim() !== "") ? saree.sku.trim() : null,
-        isActive: true
-      };
+    res.json({
+      success: true,
+      data: sarees,
     });
-
-    if (validationErrors.length > 0) {
-      return res.status(400).json({ 
-        message: "Validation failed",
-        errors: validationErrors 
-      });
-    }
-
-    // Insert all sarees
-    const createdSarees = await Saree.insertMany(processedSarees);
-
-    console.log("✅ Bulk upload completed:", createdSarees.length, "sarees");
-
-    res.status(201).json({
-      message: `${createdSarees.length} sarees uploaded successfully`,
-      count: createdSarees.length,
-      sarees: createdSarees
-    });
-
   } catch (error) {
-    console.error("❌ Bulk upload error:", error);
-    
-    // Handle duplicate key error
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(409).json({ 
-        message: `Duplicate ${field} found. Please ensure all SKUs are unique.` 
-      });
-    }
-
-    res.status(500).json({ 
-      message: error.message || "Failed to upload sarees",
-      error: process.env.NODE_ENV === "development" ? error.toString() : undefined
+    console.error('Error fetching top-rated sarees:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch top-rated sarees',
     });
   }
 };
 
-// 📊 Get saree statistics (Admin only)
-export const getSareeStats = async (req, res) => {
-  try {
-    const totalSarees = await Saree.countDocuments({ isActive: true });
-    const outOfStock = await Saree.countDocuments({ isActive: true, stock: 0 });
-    const categories = await Saree.distinct("category", { isActive: true });
-
-    const totalValue = await Saree.aggregate([
-      { $match: { isActive: true } },
-      { $group: { _id: null, total: { $sum: { $multiply: ["$price", "$stock"] } } } }
-    ]);
-
-    res.json({
-      totalSarees,
-      outOfStock,
-      inStock: totalSarees - outOfStock,
-      categories,
-      totalInventoryValue: totalValue[0]?.total || 0
-    });
-  } catch (error) {
-    console.error("❌ Get stats error:", error);
-    res.status(500).json({ 
-      message: error.message || "Failed to get statistics",
-      error: process.env.NODE_ENV === "development" ? error.toString() : undefined
-    });
-  }
+export default {
+  getSarees,
+  getSareeById,
+  createSaree,
+  updateSaree,
+  deleteSaree,
+  getTopRatedSarees,
 };

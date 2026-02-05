@@ -1,35 +1,82 @@
-import express from "express";
-import { protect, adminOnly } from "../middleware/authMiddleware.js";
+import express, { Router } from 'express';
 import {
-  getAllSarees,
+  getSarees,
   getSareeById,
   createSaree,
   updateSaree,
   deleteSaree,
-  bulkUploadSarees,
-  getSareeStats
-} from "../controllers/sareeController.js";
+  getTopRatedSarees,
+} from '../controllers/sareeController.js';
+import { authenticate, authorize } from '../middleware/authMiddleware.js';
 
-const router = express.Router();
+/**
+ * Saree Routes
+ * All routes related to saree products
+ */
 
-// ✅ CRITICAL: SPECIFIC ROUTES MUST COME BEFORE GENERIC /:id ROUTES
+const router: Router = express.Router();
 
-// ✅ Public routes - GET all sarees
-router.get("/", getAllSarees);
+// ============================================
+// PUBLIC ROUTES (No authentication required)
+// ============================================
 
-// ✅ ADMIN STATS ROUTE - MUST COME BEFORE /:id route
-router.get("/admin/stats", protect, adminOnly, getSareeStats);
+/**
+ * GET /api/sarees
+ * Get all sarees with pagination, filtering, and sorting
+ * 
+ * Query Parameters:
+ *   - page: number (default: 1)
+ *   - limit: number (default: 8, max: 50)
+ *   - sort: 'newest' | 'price-low' | 'price-high' | 'rating'
+ *   - category: string or array
+ *   - material: string or array
+ *   - occasion: string or array
+ *   - color: string or array
+ *   - minPrice: number
+ *   - maxPrice: number
+ *   - minRating: number
+ *   - availability: 'in-stock' | 'out-of-stock'
+ *   - search: string (full-text search)
+ */
+router.get('/', getSarees);
 
-// ✅ CREATE - before GET by ID
-router.post("/", protect, adminOnly, createSaree);
+/**
+ * GET /api/sarees/:id
+ * Get a single saree by ID
+ */
+router.get('/:id', getSareeById);
 
-// ✅ BULK UPLOAD - FIXED path (both variations supported)
-router.post("/bulk", protect, adminOnly, bulkUploadSarees);
-router.post("/bulk/upload", protect, adminOnly, bulkUploadSarees);
+/**
+ * GET /api/sarees/stats/top-rated
+ * Get top-rated sarees
+ * Query: limit (default: 10)
+ */
+router.get('/stats/top-rated', getTopRatedSarees);
 
-// ✅ GENERIC ROUTES - MUST COME LAST
-router.get("/:id", getSareeById);
-router.put("/:id", protect, adminOnly, updateSaree);           // ✅ UPDATE
-router.delete("/:id", protect, adminOnly, deleteSaree);        // ✅ DELETE
+// ============================================
+// ADMIN ROUTES (Authentication required)
+// ============================================
+
+/**
+ * POST /api/sarees
+ * Create a new saree (admin only)
+ * Headers: Authorization: Bearer {admin-token}
+ * Body: { name, price, category, material, color, occasion, stock, imageUrl, description, blousePrice, length }
+ */
+router.post('/', authenticate, authorize('admin'), createSaree);
+
+/**
+ * PUT /api/sarees/:id
+ * Update a saree (admin only)
+ * Headers: Authorization: Bearer {admin-token}
+ */
+router.put('/:id', authenticate, authorize('admin'), updateSaree);
+
+/**
+ * DELETE /api/sarees/:id
+ * Delete a saree (admin only)
+ * Headers: Authorization: Bearer {admin-token}
+ */
+router.delete('/:id', authenticate, authorize('admin'), deleteSaree);
 
 export default router;

@@ -14,12 +14,15 @@ export default defineConfig({
   server: {
     host: true,
     port: 8080,
+    
+    hmr: {
+      host: "localhost",
+      port: 8080,
+      protocol: "ws"
+    },
 
     watch: {
-      // ✅ FIXED: Disable aggressive polling that causes refresh loops
-      // Changed from: usePolling: true, interval: 1500
-      usePolling: false,  // Disable polling - use native file watchers instead
-      // Removed interval - not needed when usePolling is false
+      usePolling: false,
       ignored: [
         "**/node_modules/**",
         "**/.git/**",

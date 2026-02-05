@@ -5,6 +5,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
+
+import SareeDetails from '@/pages/SareeDetails';
+
 // Pages
 import Home from "./pages/Home";
 import OurStory from "./pages/OurStory";
@@ -164,6 +167,9 @@ const App = () => {
               </ProtectedRoute>
             } 
           />
+
+          <Route path="/sarees" element={<Sarees />} />
+<Route path="/saree/:id" element={<SareeDetails />} />
 
           {/* 404 - Always Last */}
           <Route path="*" element={<NotFound />} />

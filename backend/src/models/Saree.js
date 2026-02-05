@@ -1,92 +1,136 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from 'mongoose';
 
-const sareeSchema = new mongoose.Schema(
+/**
+ * Updated Saree Model
+ * Added fields for review ratings and statistics
+ */
+
+const sareeSchema = new Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: [true, 'Saree name is required'],
       trim: true,
-      minlength: 2
-    },
-    description: {
-      type: String,
-      required: true,
-      minlength: 10
+      index: true,
     },
     price: {
       type: Number,
-      required: true,
-      min: 0
+      required: [true, 'Price is required'],
+      min: [0, 'Price cannot be negative'],
+      index: true,
     },
     category: {
       type: String,
-      enum: ["Silk", "Cotton", "Bridal", "Designer", "Casual", "Traditional"],
-      default: "Traditional"
+      required: [true, 'Category is required'],
+      enum: {
+        values: ['Silk', 'Cotton', 'Bridal', 'Designer', 'Casual', 'Traditional'],
+        message: 'Invalid category',
+      },
+      index: true,
     },
     material: {
       type: String,
-      trim: true
+      enum: {
+        values: [
+          'Pure Silk',
+          'Cotton',
+          'Chiffon',
+          'Georgette',
+          'Kanjivaram',
+          'Banarasi',
+          'Linen',
+          'Silk Blend',
+          'Cotton Blend',
+        ],
+        message: 'Invalid material type',
+      },
+      index: true,
     },
     color: {
       type: String,
-      trim: true
+      index: true,
     },
-    size: {
+    occasion: {
       type: String,
-      default: "Free Size"
+      enum: {
+        values: ['Wedding', 'Casual', 'Festival', 'Office', 'Party'],
+        message: 'Invalid occasion',
+      },
+      index: true,
     },
     stock: {
       type: Number,
-      required: true,
-      min: 0,
-      default: 0
+      required: [true, 'Stock quantity is required'],
+      default: 0,
+      min: [0, 'Stock cannot be negative'],
     },
     imageUrl: {
       type: String,
-      default: "https://via.placeholder.com/500x500?text=Saree"
+      required: [true, 'Image URL is required'],
     },
-    images: [{
-      type: String
-    }],
-    rating: {
-      type: Number,
-      min: 0,
-      max: 5,
-      default: 0
-    },
-    reviews: {
-      type: Number,
-      default: 0
-    },
-    isActive: {
-      type: Boolean,
-      default: true
-    },
-    sku: {
+    description: {
       type: String,
-      unique: true,
-      sparse: true,   // ✅ Only enforce uniqueness when SKU exists
-      trim: true,
-      default: null   // ✅ Default to null, not empty string
+      required: [true, 'Description is required'],
+      minlength: [20, 'Description must be at least 20 characters'],
     },
-    tags: [String],
-    blouseIncluded: {
-      type: Boolean,
-      default: true
+    blousePrice: {
+      type: Number,
+      min: [0, 'Blouse price cannot be negative'],
     },
     length: {
       type: String,
-      default: "6.5 meters"
+      // e.g., "6m", "5.5m"
     },
-    washCare: {
-      type: String,
-      default: "Dry clean recommended"
-    }
-  },
-  { timestamps: true }
+
+    // Review Statistics (denormalized for fast access)
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+      index: true,
+    },
+    reviewCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    ratingDistribution: {
+      type: {
+        5: { type: Number, default: 0 },
+        4: { type: Number, default: 0 },
+        3: { type: Number, default: 0 },
+        2: { type: Number, default: 0 },
+        1: { type: Number, default: 0 },
+      },
+      default: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    },
+  {
+    timestamps: true,
+  }
 );
 
-// Index for search
-sareeSchema.index({ name: "text", description: "text", tags: "text" });
+// Compound indexes for efficient filtering
+sareeSchema.index({ category: 1, price: 1 });
+sareeSchema.index({ material: 1, color: 1 });
+sareeSchema.index({ averageRating: -1, createdAt: -1 });
+sareeSchema.index({ name: 'text', description: 'text' }); // For full-text search
 
-export default mongoose.model("Saree", sareeSchema);
+// Pre-save validation
+sareeSchema.pre('save', function (next) {
+  // Ensure rating is valid
+  if (this.averageRating < 0 || this.averageRating > 5) {
+    this.averageRating = 0;
+  }
+
+  // Ensure review count is non-negative
+  if (this.reviewCount < 0) {
+    this.reviewCount = 0;
+  }
+
+  next();
+});
+
+const Saree = mongoose.model('Saree', sareeSchema);
+
+export default Saree;
