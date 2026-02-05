@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { AxiosError } from "axios";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, Loader, CreditCard } from "lucide-react";
 import { Address } from "@/types/checkout";
+import type { RazorpayPaymentOptions, RazorpayPaymentResponse } from "@/types/razorpay";
 import AddressSelection from "@/components/AddressSelection";
 import AddressForm from "@/components/AddressForm";
 import { addAddressAPI } from "@/services/addressService";
@@ -59,18 +60,7 @@ interface OrderData {
   paymentMethod: "COD" | "RAZORPAY";
   addressId?: string;
   newAddress?: Address;
-}
-
-interface RazorpayResponse {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-}
-
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
+  [key: string]: unknown;
 }
 
 type CheckoutStep = "payment-method" | "address" | "address-form";
@@ -128,17 +118,29 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     }
   }, [cartItems, navigate, toast]);
 
-  // Load Razorpay script
+  // ✅ IMPROVED: Load Razorpay script with better error handling
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
+    
+    script.onerror = () => {
+      console.error("❌ Failed to load Razorpay script");
+      toast({
+        title: "Error",
+        description: "Failed to load payment gateway. Please try again.",
+        variant: "destructive"
+      });
+    };
+    
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
-  }, []);
+  }, [toast]);
 
   const handleAddressSubmit = async (address: Address) => {
     try {
@@ -164,9 +166,14 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
 
   const handleRazorpayPayment = async (orderId: string) => {
     try {
-      // Create Razorpay order on backend
-      const token = localStorage.getItem("token");
+      setIsLoading(true);
+      const token = localStorage.getItem("authToken");
       
+      if (!token) {
+        throw new Error("Authentication token not found. Please login again.");
+      }
+      
+      // Create Razorpay order on backend
       const createOrderResponse = await fetch("http://localhost:5000/api/payments/create-order", {
         method: "POST",
         headers: {
@@ -176,7 +183,17 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
         body: JSON.stringify({ orderId })
       });
 
-      const createOrderData = await createOrderResponse.json();
+      if (!createOrderResponse.ok) {
+        throw new Error("Failed to create payment order");
+      }
+
+      const createOrderData = await createOrderResponse.json() as {
+        success?: boolean;
+        message?: string;
+        razorpayOrderId?: string;
+        amount?: number;
+        currency?: string;
+      };
 
       if (!createOrderData.success) {
         throw new Error(createOrderData.message || "Failed to create Razorpay order");
@@ -184,15 +201,18 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
 
       const { razorpayOrderId, amount, currency } = createOrderData;
 
-      // Open Razorpay checkout
-      const options = {
-        key: "rzp_test_YOUR_KEY_ID", // Replace with your Razorpay key from env
-        amount: amount,
-        currency: currency,
+      if (!window.Razorpay) {
+        throw new Error("Razorpay is not loaded. Please refresh the page.");
+      }
+
+      const options: RazorpayPaymentOptions = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_YOUR_KEY_ID",
+        amount: amount || 0,
+        currency: currency || "INR",
         name: "Siri Taste Craft",
         description: "Order Payment",
-        order_id: razorpayOrderId,
-        handler: async function (response: RazorpayResponse) {
+        order_id: razorpayOrderId || "",
+        handler: async (response: RazorpayPaymentResponse) => {
           try {
             // Verify payment on backend
             const verifyResponse = await fetch("http://localhost:5000/api/payments/verify", {
@@ -209,22 +229,37 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
               })
             });
 
-            const verifyData = await verifyResponse.json();
+            const verifyData = await verifyResponse.json() as { success?: boolean; message?: string };
 
             if (verifyData.success) {
+              console.log("✅ Payment verified, clearing cart...");
+              
+              // Clear cart after successful payment
+              try {
+                if (stateData.isLocalCart) {
+                  localStorage.removeItem("cart");
+                  console.log("✅ Local cart cleared");
+                } else {
+                  await clearCart();
+                  console.log("✅ Server cart cleared");
+                }
+              } catch (clearError) {
+                console.error("⚠️ Cart clearing error (continuing anyway):", clearError);
+              }
+
               toast({
                 title: "Payment Successful",
                 description: "Your order has been placed successfully"
               });
 
-              // Clear cart
-              if (stateData.isLocalCart) {
-                localStorage.removeItem("cart");
-              } else {
-                await clearCart();
-              }
-
-              navigate("/profile", { state: { tab: "orders" } });
+              // Navigate with refresh flag
+              navigate("/profile", {
+                state: {
+                  tab: "orders",
+                  refresh: true,
+                  refreshTime: Date.now()
+                }
+              });
             } else {
               throw new Error(verifyData.message || "Payment verification failed");
             }
@@ -235,6 +270,7 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
               description: error instanceof Error ? error.message : "Please contact support",
               variant: "destructive"
             });
+            setIsLoading(false);
           }
         },
         prefill: {
@@ -246,7 +282,7 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
           color: "#9333ea"
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: () => {
             setIsLoading(false);
             toast({
               title: "Payment Cancelled",
@@ -284,7 +320,7 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     try {
       setIsLoading(true);
 
-      // Build items array
+      // Build items array with proper validation
       const orderItems: OrderItem[] = cartItems.map((item) => {
         const productId = item.saree._id;
         
@@ -316,7 +352,7 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
 
       console.log("📦 Placing order:", orderData);
 
-      const response = await createOrder(orderData);
+      const response = await createOrder(orderData as Parameters<typeof createOrder>[0]);
       const data = response as OrderResponse;
 
       if (!data.success) {
@@ -333,21 +369,61 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
 
       // Handle payment based on method
       if (paymentMethod === "RAZORPAY") {
-        await handleRazorpayPayment(createdOrderId);
+        await handleRazorpayPayment(createdOrderId as string);
       } else {
-        // COD flow
-        toast({
-          title: "Order Placed Successfully",
-          description: "Your order has been placed. Pay on delivery."
-        });
+        // ✅ IMPROVED: COD flow with proper cart clearing
+        console.log("📍 Starting COD flow...");
+        
+        try {
+          // Step 1: Clear cart
+          console.log("Step 1: Clearing cart...");
+          if (stateData.isLocalCart) {
+            localStorage.removeItem("cart");
+            console.log("✅ Local cart cleared");
+          } else {
+            const clearResult = await clearCart();
+            console.log("✅ Server cart cleared:", clearResult);
+          }
+          
+          // Step 2: Show success message
+          console.log("Step 2: Showing success message...");
+          toast({
+            title: "Order Placed Successfully! 🎉",
+            description: "Your order has been placed. You will pay on delivery.",
+            variant: "default"
+          });
 
-        if (stateData.isLocalCart) {
-          localStorage.removeItem("cart");
-        } else {
-          await clearCart();
+          // Step 3: Small delay to ensure toast is shown
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          // Step 4: Navigate to profile with refresh flag
+          console.log("Step 4: Navigating to profile...");
+          navigate("/profile", {
+            state: {
+              tab: "orders",
+              refresh: true,
+              refreshTime: Date.now()
+            }
+          });
+          
+        } catch (error) {
+          console.error("❌ Error in COD flow:", error);
+          
+          // Even if cart clearing fails, show success and navigate
+          toast({
+            title: "Order Placed Successfully! 🎉",
+            description: "Your order has been placed. Please refresh the page to see it in your orders.",
+            variant: "default"
+          });
+
+          navigate("/profile", {
+            state: {
+              tab: "orders",
+              refresh: true,
+              refreshTime: Date.now()
+            }
+          });
         }
-
-        navigate("/profile", { state: { tab: "orders" } });
       }
 
     } catch (error) {
@@ -364,9 +440,7 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
         variant: "destructive"
       });
     } finally {
-      if (paymentMethod === "COD") {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   };
 
