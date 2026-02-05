@@ -36,86 +36,108 @@ const orderSchema = new mongoose.Schema(
       required: true
     },
 
-    // ✅ DELIVERY ADDRESS FIELDS (NEW)
+    // ✅ PAYMENT METHOD (determine if address is needed)
+    paymentMethod: {
+      type: String,
+      enum: ["COD", "UPI"],
+      required: true
+    },
+
+    // ✅ DELIVERY ADDRESS FIELDS (CONDITIONALLY REQUIRED)
+    // Required only for COD, optional for UPI
     address: {
       fullName: {
         type: String,
-        required: true
+        required: function () {
+          return this.paymentMethod === "COD";
+        }
       },
       mobileNumber: {
         type: String,
-        required: true
+        required: function () {
+          return this.paymentMethod === "COD";
+        }
       },
       houseFlat: {
         type: String,
-        required: true
+        required: function () {
+          return this.paymentMethod === "COD";
+        }
       },
       streetArea: {
         type: String,
-        required: true
+        required: function () {
+          return this.paymentMethod === "COD";
+        }
       },
       city: {
         type: String,
-        required: true
+        required: function () {
+          return this.paymentMethod === "COD";
+        }
       },
       state: {
         type: String,
-        required: true
+        required: function () {
+          return this.paymentMethod === "COD";
+        }
       },
       pincode: {
         type: String,
-        required: true
+        required: function () {
+          return this.paymentMethod === "COD";
+        }
       },
       addressType: {
         type: String,
         enum: ["Home", "Work"],
-        required: true
+        required: function () {
+          return this.paymentMethod === "COD";
+        }
       }
     },
 
-    // ✅ PAYMENT METHOD (UPDATED)
-    paymentMethod: {
-      type: String,
-      enum: ["COD", "UPI"],
-      default: "COD"
-    },
-
-    // ✅ ORDER STATUS (NEW)
+    // ✅ ORDER STATUS
     orderStatus: {
       type: String,
       enum: [
-        "PLACED",           // Order created, waiting for fulfillment
-        "CONFIRMED",        // Confirmed (UPI: payment verified, COD: confirmed)
+        "PENDING_PAYMENT",  // For UPI: waiting for payment
+        "PLACED",           // For COD: order created
+        "CONFIRMED",        // After payment/confirmation
         "PROCESSING",       // Being prepared
         "SHIPPED",          // On the way
         "DELIVERED",        // Delivered
         "CANCELLED"         // Cancelled
       ],
-      default: "PLACED"
+      default: function () {
+        return this.paymentMethod === "COD" ? "PLACED" : "PENDING_PAYMENT";
+      }
     },
 
-    // ✅ PAYMENT STATUS (UPDATED)
+    // ✅ PAYMENT STATUS
     paymentStatus: {
       type: String,
       enum: [
-        "COD_PENDING",      // Cash on Delivery - payment pending at delivery
-        "PENDING",          // For UPI - waiting for payment
-        "PAYMENT_SUBMITTED", // Payment submitted, awaiting verification
-        "VERIFIED",         // Payment verified
-        "REJECTED",         // Payment rejected
-        "COMPLETED"         // Payment completed
+        "COD_PENDING",           // Cash on Delivery - payment pending at delivery
+        "PENDING",               // For UPI - waiting for payment submission
+        "PAYMENT_SUBMITTED",     // Payment screenshot submitted
+        "VERIFIED",              // Payment verified by admin
+        "REJECTED",              // Payment rejected
+        "COMPLETED"              // Payment completed
       ],
-      default: "COD_PENDING"
+      default: function () {
+        return this.paymentMethod === "COD" ? "COD_PENDING" : "PENDING";
+      }
     },
 
-    // ✅ PAYMENT REFERENCE & PROOF (KEPT FROM ORIGINAL)
+    // ✅ PAYMENT PROOF & REFERENCE (for UPI)
     paymentReference: {
-      type: String,          // UPI reference number or transaction ID
+      type: String,
       default: null
     },
 
     paymentProof: {
-      type: String,          // URL to screenshot of payment
+      type: String,
       default: null
     },
 

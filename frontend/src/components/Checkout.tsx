@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { AxiosError } from "axios";
 import { useAuth } from "@/contexts/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import { Address } from "@/types/checkout";
 import AddressSelection from "@/components/AddressSelection";
 import AddressForm from "@/components/AddressForm";
 import { addAddressAPI } from "@/services/addressService";
-import { createOrder } from "@/lib/api"; // ✅ USE PROPER API METHOD
+import { createOrder, clearCart } from "@/lib/api";
 
 interface CartItem {
   _id: string;
@@ -43,7 +44,6 @@ interface UPIConfig {
   instructions: string;
 }
 
-// ✅ FIXED: Proper type for API response
 interface OrderResponse {
   _id?: string;
   id?: string;
@@ -51,6 +51,31 @@ interface OrderResponse {
   success?: boolean;
   message?: string;
   [key: string]: unknown;
+}
+
+interface OrderItem {
+  product: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+interface OrderData {
+  items: OrderItem[];
+  totalAmount: number;
+  paymentMethod: "COD" | "UPI";
+  addressId?: string;
+  newAddress?: Address;
+}
+
+interface ApiErrorResponse {
+  response?: {
+    status?: number;
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
 }
 
 type CheckoutStep = "payment-method" | "address" | "address-form";
@@ -61,10 +86,8 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
   const location = useLocation();
   const { toast } = useToast();
 
-  // Get data from location.state OR props
   const stateData = (location.state as LocationState) || {};
   
-  // ✅ FIXED: Proper logic to prefer state data over empty props
   const { cartItems, totalAmount } = useMemo(() => {
     const hasValidProps = propsCartItems && propsCartItems.length > 0;
     const hasValidStateItems = stateData.cartItems && stateData.cartItems.length > 0;
@@ -88,7 +111,6 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
   const [upiLoading, setUpiLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Check authentication
   useEffect(() => {
     if (!isAuthenticated) {
       toast({
@@ -100,7 +122,6 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     }
   }, [isAuthenticated, navigate, toast]);
 
-  // Validate cart
   useEffect(() => {
     if (!cartItems || cartItems.length === 0) {
       toast({
@@ -115,14 +136,7 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     }
   }, [cartItems, navigate, toast]);
 
-  // Fetch UPI config when user selects UPI
-  useEffect(() => {
-    if (paymentMethod === "UPI" && !upiConfig) {
-      fetchUPIConfig();
-    }
-  }, [paymentMethod]);
-
-  const fetchUPIConfig = async () => {
+  const fetchUPIConfig = useCallback(async () => {
     try {
       setUpiLoading(true);
       const response = await fetch("http://localhost:5000/api/upi/config");
@@ -139,7 +153,13 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     } finally {
       setUpiLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (paymentMethod === "UPI" && !upiConfig) {
+      fetchUPIConfig();
+    }
+  }, [paymentMethod, upiConfig, fetchUPIConfig]);
 
   const handleAddressSubmit = async (address: Address) => {
     try {
@@ -163,9 +183,7 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     }
   };
 
-  // ✅ FIXED: Use proper API method with improved error handling and proper typing
   const handlePlaceOrder = async () => {
-    // For COD, address is required
     if (paymentMethod === "COD" && !selectedAddress && !newAddress) {
       toast({
         title: "Error",
@@ -178,88 +196,130 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     try {
       setIsLoading(true);
 
-      // Prepare order data with all required fields
-      const orderData = {
-        items: cartItems.map((item) => ({
-          product: item.saree._id,
+      // ✅ FIX: Build items array with exact structure backend expects
+      const orderItems: OrderItem[] = cartItems.map((item) => {
+        const productId = item.saree._id;
+        
+        if (!productId) {
+          throw new Error("Invalid product ID in cart item");
+        }
+        
+        return {
+          product: productId,
           name: item.saree.name,
           quantity: item.quantity,
           price: item.saree.price
-        })),
-        totalAmount,
+        };
+      });
+
+      // ✅ FIX: Calculate total from items to ensure accuracy
+      const calculatedTotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      const orderData: OrderData = {
+        items: orderItems,
+        totalAmount: calculatedTotal || totalAmount,
         paymentMethod,
-        // Only add address for COD
         ...(paymentMethod === "COD" && selectedAddress?._id && { addressId: selectedAddress._id }),
         ...(paymentMethod === "COD" && newAddress && { newAddress })
       };
 
-      console.log("📤 Creating Order:", orderData);
+      if (!orderData.items.length) {
+        throw new Error("No items in order");
+      }
+      if (orderData.totalAmount <= 0) {
+        throw new Error("Invalid total amount");
+      }
+      if (![orderData.paymentMethod].some(method => ["COD", "UPI"].includes(method))) {
+        throw new Error("Invalid payment method");
+      }
 
-      // ✅ FIXED: Use the proper API method from api.ts with proper typing
-      const result = await createOrder(orderData);
+      console.log("📤 Creating Order with data:", {
+        itemsCount: orderData.items.length,
+        items: orderData.items,
+        totalAmount: orderData.totalAmount,
+        paymentMethod: orderData.paymentMethod,
+        hasAddress: !!(selectedAddress?._id || newAddress)
+      });
 
-      console.log("✅ Order Created:", result);
+      // ✅ FIX: Send exact order structure
+      const result = await createOrder(orderData as never);
 
-      // ✅ FIXED: Properly typed response handling
-      const orderResponse = result as OrderResponse;
+      console.log("✅ Order Created Successfully:", result);
+
+      const orderResponse = result as unknown as OrderResponse;
       const orderId = orderResponse._id || orderResponse.id || orderResponse.orderId;
 
       if (!orderId) {
-        throw new Error("Order ID not returned from server");
+        console.error("❌ No order ID in response:", orderResponse);
+        throw new Error("Order created but ID not returned");
       }
 
-      toast({
-        title: "Success",
-        description: `Order created. Proceeding to ${paymentMethod === "COD" ? "confirmation" : "payment"}...`
+      if (paymentMethod === "UPI") {
+        toast({
+          title: "✅ Order Created!",
+          description: `Order ID: ${orderId}. Proceeding to payment...`
+        });
+        
+        navigate("/payment", { 
+          state: { orderId, totalAmount: orderData.totalAmount, paymentMethod },
+          replace: true 
+        });
+      } else {
+        toast({
+          title: "✅ Order Placed Successfully!",
+          description: `Order ID: ${orderId}. Your order will be delivered soon.`
+        });
+        
+        navigate("/profile", { replace: true });
+      }
+
+      try {
+        await clearCart();
+        console.log("✅ Cart cleared");
+      } catch (clearError) {
+        console.warn("⚠️ Could not clear cart:", clearError);
+      }
+
+    } catch (error) {
+      const apiError = error as AxiosError<{ message?: string }> | Error;
+      
+      let errorMessage = "Failed to create order";
+      let errorStatus: number | undefined;
+      let errorData: unknown;
+
+      if (error instanceof AxiosError) {
+        errorStatus = error.response?.status;
+        errorMessage = error.response?.data?.message || error.message;
+        errorData = error.response?.data;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      console.error("❌ Order Error Details:", {
+        status: errorStatus,
+        message: errorMessage,
+        data: errorData,
+        fullError: error
       });
 
-      // Clear cart from localStorage if using local cart
-      if (stateData.isLocalCart) {
-        const cartKey = `cart_${user?.id || "guest"}`;
-        localStorage.removeItem(cartKey);
-      }
-
-      // Redirect based on payment method
-      if (paymentMethod === "COD") {
-        // For COD: Navigate to order confirmation
-        navigate(`/order-confirmation/${orderId}`);
-      } else if (paymentMethod === "UPI") {
-        // For UPI: Navigate to Payment page with OCR upload
-        navigate("/payment", {
-          state: {
-            orderId: orderId,
-            totalAmount: totalAmount,
-            items: orderData.items,
-            isLocalOrder: false
-          }
-        });
-      }
-    } catch (error) {
-      console.error("❌ Order Error:", error);
-      
-      let errorMessage = "Failed to place order";
-
-      // ✅ FIXED: Proper error handling with type checking
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === "object" && error !== null) {
-        const err = error as Record<string, unknown>;
-        if (err.response && typeof err.response === "object") {
-          const response = err.response as Record<string, unknown>;
-          if (response.data && typeof response.data === "object") {
-            const data = response.data as Record<string, unknown>;
-            if (typeof data.message === "string") {
-              errorMessage = data.message;
-            }
-          }
-        } else if (typeof err.message === "string") {
-          errorMessage = err.message;
+      let displayMessage = errorMessage;
+      if (errorStatus === 401) {
+        displayMessage = "Authentication expired. Please login again.";
+      } else if (errorStatus === 400) {
+        if (typeof errorData === "object" && errorData !== null && "message" in errorData) {
+          displayMessage = (errorData as { message?: string }).message || "Invalid order data. Please check your items and address.";
+        } else {
+          displayMessage = "Invalid order data. Please check your items and address.";
         }
+      } else if (errorStatus === 500) {
+        displayMessage = "Server error. Please check the console for details.";
+      } else if (!navigator.onLine) {
+        displayMessage = "No internet connection. Please check your network.";
       }
 
       toast({
-        title: "Error",
-        description: errorMessage,
+        title: "Error Creating Order",
+        description: displayMessage,
         variant: "destructive"
       });
     } finally {
@@ -267,40 +327,38 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     }
   };
 
-  if (!isAuthenticated || !cartItems || cartItems.length === 0) {
+  if (!cartItems || cartItems.length === 0) {
     return (
-      <motion.div
+      <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4"
+        className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center"
       >
-        <Card className="p-8 max-w-md w-full text-center">
-          <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Loading Checkout...</h2>
-          <p className="text-slate-600">Preparing your order</p>
-          <Loader className="w-6 h-6 animate-spin mx-auto mt-4" />
+        <Card className="p-8 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold mb-2">Cart is Empty</h2>
+          <p className="text-slate-600 mb-4">Redirecting to products...</p>
         </Card>
       </motion.div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4"
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-8 px-4"
     >
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-800">Checkout</h1>
-          <p className="text-slate-600 mt-2">Complete your purchase securely</p>
-        </div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-8">
+          <h1 className="text-4xl font-bold text-slate-900">Secure Checkout</h1>
+          <p className="text-slate-600 mt-2">Complete your purchase with confidence</p>
+        </motion.div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Checkout Form */}
           <div className="lg:col-span-2 space-y-6">
             <AnimatePresence mode="wait">
-              {/* Step 1: Payment Method */}
               {step === "payment-method" && (
                 <motion.div
                   key="payment-method"
@@ -319,7 +377,6 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
                       onValueChange={(value) => setPaymentMethod(value as "COD" | "UPI")}
                     >
                       <div className="space-y-3">
-                        {/* COD Option */}
                         <div 
                           className="border-2 border-transparent rounded-lg p-4 cursor-pointer transition-all hover:border-slate-200"
                           onClick={() => setPaymentMethod("COD")}
@@ -335,7 +392,6 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
                           </div>
                         </div>
 
-                        {/* UPI Option */}
                         <div 
                           className="border-2 border-transparent rounded-lg p-4 cursor-pointer transition-all hover:border-slate-200"
                           onClick={() => setPaymentMethod("UPI")}
@@ -387,25 +443,28 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
                   <Button
                     onClick={() => {
                       if (paymentMethod === "UPI") {
-                        // Skip address for UPI, go directly to create order
                         handlePlaceOrder();
                       } else {
-                        // For COD, go to address selection
                         setStep("address");
                       }
                     }}
                     disabled={isLoading}
                     className="w-full bg-purple-600 hover:bg-purple-700"
                   >
-                    {paymentMethod === "UPI" 
-                      ? (isLoading ? "Creating Order..." : "Create Order & Pay")
-                      : "Continue to Address"
-                    }
+                    {isLoading ? (
+                      <>
+                        <Loader className="w-4 h-4 mr-2 animate-spin" />
+                        Creating Order...
+                      </>
+                    ) : (
+                      paymentMethod === "UPI" 
+                        ? "Create Order & Pay"
+                        : "Continue to Address"
+                    )}
                   </Button>
                 </motion.div>
               )}
 
-              {/* Step 2: Address Selection (COD only) */}
               {step === "address" && (
                 <motion.div
                   key="address"
@@ -435,13 +494,19 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
                       disabled={!selectedAddress || isLoading}
                       className="flex-1 bg-purple-600 hover:bg-purple-700"
                     >
-                      {isLoading ? "Placing Order..." : "Place Order"}
+                      {isLoading ? (
+                        <>
+                          <Loader className="w-4 h-4 mr-2 animate-spin" />
+                          Placing Order...
+                        </>
+                      ) : (
+                        "Place Order"
+                      )}
                     </Button>
                   </div>
                 </motion.div>
               )}
 
-              {/* Step 3: Add New Address Form (COD only) */}
               {step === "address-form" && (
                 <motion.div
                   key="address-form"
@@ -459,7 +524,6 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
             </AnimatePresence>
           </div>
 
-          {/* Order Summary Sidebar */}
           <div>
             <motion.div
               initial={{ opacity: 0, y: 20 }}

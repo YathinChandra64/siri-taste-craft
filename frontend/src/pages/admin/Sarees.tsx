@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Upload, Edit, Trash2, Eye, Search, FileDown } from "lucide-react";
+import { Plus, Upload, Edit, Trash2, Eye, Search, FileDown, X } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -72,7 +72,9 @@ const AdminSarees = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSaree, setSelectedSaree] = useState<Saree | null>(null);
+  const [editingSaree, setEditingSaree] = useState<Saree | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fileError, setFileError] = useState("");
@@ -112,6 +114,7 @@ const AdminSarees = () => {
     fetchSarees();
   }, [fetchSarees]);
 
+  // ✅ FIXED: Add Saree Handler
   const handleAddSaree = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -169,148 +172,60 @@ const AdminSarees = () => {
     }
   };
 
-  // ✅ FIXED: Parse Excel file and extract data with proper typing
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setFileError("");
-    setParsedSarees([]);
-
-    try {
-      // Validate file type
-      if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
-        setFileError("Please upload a valid Excel file (.xlsx or .xls)");
-        return;
-      }
-
-      // Read file as array buffer
-      const fileReader = new FileReader();
-      fileReader.onload = async (event) => {
-        try {
-          const data = event.target?.result;
-          if (!data) {
-            setFileError("Failed to read file");
-            return;
-          }
-
-          // ✅ FIXED: Use dynamic import to handle xlsx properly
-          const { read, utils } = await import("xlsx");
-          
-          // Parse Excel file
-          const workbook = read(data, { type: "array" });
-          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-          
-          if (!worksheet) {
-            setFileError("No data found in Excel file");
-            return;
-          }
-
-          // Convert to JSON
-          const jsonData: ExcelRow[] = utils.sheet_to_json(worksheet);
-
-          if (jsonData.length === 0) {
-            setFileError("Excel file is empty");
-            return;
-          }
-
-          // ✅ FIXED: Validate required fields with proper typing
-          const validatedData: ParsedSaree[] = jsonData.map((row: ExcelRow, index: number) => {
-            const saree: ParsedSaree = {
-              name: row.name || row.Name || "",
-              description: row.description || row.Description || "",
-              price: parseFloat(String(row.price || row.Price || 0)),
-              stock: parseInt(String(row.stock || row.Stock || 0)),
-              category: row.category || row.Category || "Traditional",
-              material: row.material || row.Material || "",
-              color: row.color || row.Color || "",
-              imageUrl: row.imageUrl || row.ImageUrl || "",
-              sku: row.sku || row.SKU || ""
-            };
-
-            // Validate required fields
-            if (!saree.name || !saree.description || !saree.price || !saree.stock) {
-              throw new Error(
-                `Row ${index + 2}: Missing required fields (name, description, price, stock)`
-              );
-            }
-
-            return saree;
-          });
-
-          setParsedSarees(validatedData);
-          toast({
-            title: "Success",
-            description: `${validatedData.length} sarees loaded from Excel file`,
-          });
-
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : "Failed to parse Excel file";
-          setFileError(errorMsg);
-          toast({
-            title: "Error",
-            description: errorMsg,
-            variant: "destructive",
-          });
-        }
-      };
-
-      fileReader.readAsArrayBuffer(file);
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Failed to read file";
-      setFileError(errorMsg);
-    }
-  };
-
-  // ✅ FIXED: Upload parsed sarees to backend
-  const handleBulkUpload = async (e: React.FormEvent) => {
+  // ✅ NEW: Edit Saree Handler
+  const handleEditSaree = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingSaree) return;
+
     setIsSubmitting(true);
 
     try {
-      if (parsedSarees.length === 0) {
-        toast({
-          title: "Error",
-          description: "Please upload and parse an Excel file first",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
       const token = localStorage.getItem("authToken");
-      const response = await fetch("http://localhost:5000/api/sarees/bulk/upload", {
-        method: "POST",
+      const response = await fetch(`http://localhost:5000/api/sarees/${editingSaree._id}`, {
+        method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(parsedSarees)
+        body: JSON.stringify({
+          ...formData,
+          price: parseFloat(formData.price),
+          stock: parseInt(formData.stock)
+        })
       });
 
       if (response.ok) {
-        const result = await response.json();
         toast({
           title: "Success!",
-          description: `${result.count} sarees uploaded successfully`,
+          description: "Saree updated successfully",
         });
-        setShowBulkDialog(false);
-        setParsedSarees([]);
-        setFileError("");
+        setShowEditDialog(false);
+        setEditingSaree(null);
+        setFormData({
+          name: "",
+          description: "",
+          price: "",
+          category: "Traditional",
+          material: "",
+          color: "",
+          stock: "",
+          imageUrl: "",
+          sku: ""
+        });
         fetchSarees();
       } else {
         const error = await response.json();
         toast({
-          title: "Upload Failed",
-          description: error.message || "Failed to upload sarees",
+          title: "Error",
+          description: error.message || "Failed to update saree",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Failed to bulk upload:", error);
+      console.error("Failed to update saree:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to upload sarees",
+        description: "Failed to update saree",
         variant: "destructive",
       });
     } finally {
@@ -318,6 +233,24 @@ const AdminSarees = () => {
     }
   };
 
+  // ✅ NEW: Open Edit Dialog
+  const openEditDialog = (saree: Saree) => {
+    setEditingSaree(saree);
+    setFormData({
+      name: saree.name,
+      description: saree.description,
+      price: saree.price.toString(),
+      category: saree.category,
+      material: "",
+      color: "",
+      stock: saree.stock.toString(),
+      imageUrl: saree.imageUrl,
+      sku: ""
+    });
+    setShowEditDialog(true);
+  };
+
+  // ✅ NEW: Delete Saree
   const handleDeleteSaree = async (sareeId: string) => {
     if (!confirm("Are you sure you want to delete this saree?")) return;
 
@@ -326,16 +259,23 @@ const AdminSarees = () => {
       const response = await fetch(`http://localhost:5000/api/sarees/${sareeId}`, {
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
         }
       });
 
       if (response.ok) {
         toast({
-          title: "Deleted",
+          title: "Success!",
           description: "Saree deleted successfully",
         });
         fetchSarees();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete saree",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Failed to delete saree:", error);
@@ -347,195 +287,297 @@ const AdminSarees = () => {
     }
   };
 
-  // ✅ FIXED: Download Excel template with proper typing
-  const downloadTemplate = async () => {
+  // File upload handler (keeping original logic)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFileError("");
+    setParsedSarees([]);
+
     try {
-      const { utils, writeFile } = await import("xlsx");
-      
-      const templateData: ParsedSaree[] = [
-        {
-          name: "Silk Saree",
-          description: "Beautiful silk saree with traditional design",
-          price: 5000,
-          stock: 10,
-          category: "Silk",
-          material: "Silk",
-          color: "Red",
-          imageUrl: "https://example.com/image.jpg",
-          sku: "SAR-001"
-        },
-        {
-          name: "Cotton Saree",
-          description: "Comfortable cotton saree for daily wear",
-          price: 2000,
-          stock: 20,
-          category: "Cotton",
-          material: "Cotton",
-          color: "Blue",
-          imageUrl: "https://example.com/image.jpg",
-          sku: "SAR-002"
+      if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
+        setFileError("Please upload a valid Excel file (.xlsx or .xls)");
+        return;
+      }
+
+      const fileReader = new FileReader();
+      fileReader.onload = async (event) => {
+        try {
+          const data = event.target?.result;
+          if (!data) {
+            setFileError("Failed to read file");
+            return;
+          }
+
+          const { read, utils } = await import("xlsx");
+          const workbook = read(data, { type: "array" });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          
+          if (!worksheet) {
+            setFileError("No data found in Excel file");
+            return;
+          }
+
+          const jsonData: ExcelRow[] = utils.sheet_to_json(worksheet);
+
+          if (jsonData.length === 0) {
+            setFileError("Excel file is empty");
+            return;
+          }
+
+          const validatedData: ParsedSaree[] = jsonData.map((row: ExcelRow) => ({
+            name: row.name || row.Name || "",
+            description: row.description || row.Description || "",
+            price: parseFloat(String(row.price || row.Price || 0)),
+            stock: parseInt(String(row.stock || row.Stock || 0)),
+            category: row.category || row.Category || "Traditional",
+            material: row.material || row.Material || "",
+            color: row.color || row.Color || "",
+            imageUrl: row.imageUrl || row.ImageUrl || "",
+            sku: row.sku || row.SKU || ""
+          }));
+
+          setParsedSarees(validatedData);
+        } catch (error) {
+          console.error("Error parsing file:", error);
+          setFileError("Error parsing Excel file. Please check format.");
         }
-      ];
-
-      const worksheet = utils.json_to_sheet(templateData);
-      const workbook = utils.book_new();
-      utils.book_append_sheet(workbook, worksheet, "Sarees");
-      writeFile(workbook, "saree_template.xlsx");
-
-      toast({
-        title: "Template Downloaded",
-        description: "Fill in the template and upload it back",
-      });
+      };
+      fileReader.readAsArrayBuffer(file);
     } catch (error) {
-      console.error("Failed to download template:", error);
-      toast({
-        title: "Error",
-        description: "Failed to download template",
-        variant: "destructive",
-      });
+      console.error("File upload error:", error);
+      setFileError("Failed to upload file");
     }
   };
 
-  const filteredSarees = sarees.filter(s =>
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.category.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleBulkUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch("http://localhost:5000/api/sarees/bulk", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ sarees: parsedSarees })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success!",
+          description: `${parsedSarees.length} sarees uploaded successfully`,
+        });
+        setShowBulkDialog(false);
+        setParsedSarees([]);
+        fetchSarees();
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to upload sarees",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Bulk upload error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload sarees",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const template = `Name,Description,Price,Stock,Category,Material,Color,ImageUrl,SKU
+Gadwal pattu,Beautiful traditional saree,4000,10,Traditional,Cotton,Red,https://example.com/img1.jpg,SAR-001
+Kurnool pattu,Designer saree,6000,5,Designer,Silk,Blue,https://example.com/img2.jpg,SAR-002`;
+
+    const element = document.createElement("a");
+    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(template));
+    element.setAttribute("download", "sarees_template.csv");
+    element.style.display = "none";
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  const filteredSarees = sarees.filter(saree =>
+    saree.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    saree.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <AnimatedBackground />
 
-      <div className="container mx-auto px-4 py-12 relative z-10">
+      <div className="relative z-10 p-6">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="px-4 py-1 rounded-full bg-purple-100 dark:bg-purple-900">
-              <span className="text-sm font-bold text-purple-700 dark:text-purple-200">SAREE MANAGEMENT</span>
-            </div>
-          </div>
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-2">Manage Sarees</h1>
-              <p className="text-muted-foreground">Add, edit, or delete sarees from your inventory</p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => setShowAddDialog(true)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus size={18} className="mr-2" />
-                Single Saree
-              </Button>
-              <Button
-                onClick={() => setShowBulkDialog(true)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Upload size={18} className="mr-2" />
-                Bulk Upload
-              </Button>
-            </div>
-          </div>
+          <h1 className="text-4xl font-bold text-white mb-2">Manage Sarees</h1>
+          <p className="text-purple-200">Add, edit, and manage your saree collection</p>
         </motion.div>
 
-        {/* Search */}
-        <div className="mb-8 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-          <Input
-            type="text"
-            placeholder="Search sarees..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-12 py-6"
-          />
-        </div>
-
-        {/* Sarees Grid */}
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full"
+        {/* Controls */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row gap-4 mb-8"
+        >
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+            <Input
+              placeholder="Search sarees..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
             />
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSarees.map((saree, index) => (
-              <motion.div
-                key={saree._id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card className="overflow-hidden hover:shadow-lg transition-all duration-300">
-                  <div className="relative aspect-square overflow-hidden bg-muted">
-                    <img
-                      src={saree.imageUrl}
-                      alt={saree.name}
-                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 right-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        saree.stock > 0
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}>
-                        {saree.stock > 0 ? `${saree.stock} in stock` : "Out of stock"}
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="p-4">
-                    <h3 className="font-bold text-lg mb-1 line-clamp-2">{saree.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">{saree.category}</p>
-                    <p className="text-2xl font-bold text-primary mb-4">₹{saree.price.toLocaleString()}</p>
+          <Button
+            onClick={() => {
+              setFormData({
+                name: "",
+                description: "",
+                price: "",
+                category: "Traditional",
+                material: "",
+                color: "",
+                stock: "",
+                imageUrl: "",
+                sku: ""
+              });
+              setShowAddDialog(true);
+            }}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus size={20} className="mr-2" />
+            Add Saree
+          </Button>
 
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => setSelectedSaree(saree)}
-                      >
-                        <Eye size={16} className="mr-1" />
-                        View
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-orange-600 hover:bg-orange-700"
-                      >
-                        <Edit size={16} className="mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteSaree(saree._id)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
+          <Button
+            onClick={() => setShowBulkDialog(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Upload size={20} className="mr-2" />
+            Bulk Upload
+          </Button>
+        </motion.div>
+
+        {/* ✅ FIXED: Better grid layout - 4-5 cards per row */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4"
+        >
+          {filteredSarees.map((saree, index) => (
+            <motion.div
+              key={saree._id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Card className="h-full overflow-hidden bg-slate-800 border-purple-500/20 hover:border-purple-500/50 transition-all hover:shadow-lg hover:shadow-purple-500/20">
+                {/* Image */}
+                <div className="relative h-40 overflow-hidden bg-slate-700">
+                  <img
+                    src={saree.imageUrl}
+                    alt={saree.name}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setSelectedSaree(saree)}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Eye size={16} />
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => openEditDialog(saree)}
+                      className="bg-orange-600 hover:bg-orange-700"
+                    >
+                      <Edit size={16} />
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleDeleteSaree(saree._id)}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
                   </div>
-                </Card>
-              </motion.div>
-            ))}
+                </div>
+
+                {/* Content */}
+                <div className="p-3">
+                  <h3 className="font-semibold text-white text-sm truncate">{saree.name}</h3>
+                  <p className="text-xs text-purple-300 mb-2">{saree.category}</p>
+                  <p className="text-lg font-bold text-green-400">₹{saree.price.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400">Stock: {saree.stock}</p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 p-3 border-t border-purple-500/20">
+                  <Button
+                    size="sm"
+                    onClick={() => setSelectedSaree(saree)}
+                    variant="outline"
+                    className="flex-1 text-xs h-8"
+                  >
+                    View
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => openEditDialog(saree)}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-xs h-8"
+                  >
+                    Edit
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {filteredSarees.length === 0 && (
+          <div className="text-center text-gray-400 mt-12">
+            <p>No sarees found</p>
           </div>
         )}
 
-        {/* Add Single Saree Dialog */}
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        {/* Add/Edit Dialog */}
+        <Dialog open={showAddDialog || showEditDialog} onOpenChange={(open) => {
+          if (!open) {
+            setShowAddDialog(false);
+            setShowEditDialog(false);
+            setEditingSaree(null);
+          }
+        }}>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Saree</DialogTitle>
-              <DialogDescription>Fill in the details to add a new saree</DialogDescription>
+              <DialogTitle>{editingSaree ? "Edit Saree" : "Add New Saree"}</DialogTitle>
+              <DialogDescription>
+                {editingSaree ? "Update the saree details" : "Fill in the details to add a new saree"}
+              </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleAddSaree} className="space-y-4">
+            <form onSubmit={editingSaree ? handleEditSaree : handleAddSaree} className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Name *</label>
                 <Input
@@ -638,14 +680,18 @@ const AdminSarees = () => {
                 />
               </div>
 
-              <Button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-700">
-                {isSubmitting ? "Adding..." : "Add Saree"}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className={`w-full ${editingSaree ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700"}`}
+              >
+                {isSubmitting ? "Saving..." : (editingSaree ? "Update Saree" : "Add Saree")}
               </Button>
             </form>
           </DialogContent>
         </Dialog>
 
-        {/* Bulk Upload Dialog - Excel File */}
+        {/* Bulk Upload Dialog */}
         <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
@@ -654,7 +700,6 @@ const AdminSarees = () => {
             </DialogHeader>
 
             <form onSubmit={handleBulkUpload} className="space-y-4">
-              {/* Download Template Button */}
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <Button
                   type="button"
@@ -670,7 +715,6 @@ const AdminSarees = () => {
                 </p>
               </div>
 
-              {/* File Upload */}
               <div>
                 <label className="text-sm font-medium block mb-2">Upload Excel File *</label>
                 <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
@@ -689,14 +733,12 @@ const AdminSarees = () => {
                 </div>
               </div>
 
-              {/* Error Message */}
               {fileError && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-sm">
                   {fileError}
                 </div>
               )}
 
-              {/* Preview of Parsed Data */}
               {parsedSarees.length > 0 && (
                 <div>
                   <p className="text-sm font-medium mb-2">
@@ -726,7 +768,7 @@ const AdminSarees = () => {
           </DialogContent>
         </Dialog>
 
-        {/* View Saree Details */}
+        {/* View Dialog */}
         {selectedSaree && (
           <Dialog open={!!selectedSaree} onOpenChange={() => setSelectedSaree(null)}>
             <DialogContent className="max-w-2xl">
@@ -735,7 +777,7 @@ const AdminSarees = () => {
                 <div>
                   <h2 className="text-2xl font-bold mb-2">{selectedSaree.name}</h2>
                   <p className="text-muted-foreground mb-4">{selectedSaree.description}</p>
-                  <p className="text-3xl font-bold text-primary mb-4">₹{selectedSaree.price.toLocaleString()}</p>
+                  <p className="text-3xl font-bold text-green-500 mb-4">₹{selectedSaree.price.toLocaleString()}</p>
                   <div className="space-y-2 mb-4">
                     <p><span className="font-semibold">Category:</span> {selectedSaree.category}</p>
                     <p><span className="font-semibold">Stock:</span> {selectedSaree.stock}</p>

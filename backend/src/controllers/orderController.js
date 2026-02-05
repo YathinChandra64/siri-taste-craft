@@ -3,7 +3,7 @@ import Order from "../models/Order.js";
 import Saree from "../models/Saree.js";
 import Address from "../models/Address.js";
 
-// 🛒 Place Order - Updated with address & payment method (FIXED: address optional for UPI)
+// 🛒 Place Order - FIXED VERSION
 export const placeOrder = async (req, res) => {
   try {
     const { items, totalAmount, paymentMethod, addressId, newAddress } = req.body;
@@ -15,11 +15,13 @@ export const placeOrder = async (req, res) => {
       paymentMethod,
       addressId,
       newAddressProvided: !!newAddress,
-      userId
+      userId,
+      itemsDetail: items
     });
 
     // ✅ Validation
-    if (!items || items.length === 0) {
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      console.error("❌ No items provided");
       return res.status(400).json({ 
         success: false,
         message: "No items in order"
@@ -27,6 +29,7 @@ export const placeOrder = async (req, res) => {
     }
 
     if (!totalAmount || totalAmount <= 0) {
+      console.error("❌ Invalid total amount:", totalAmount);
       return res.status(400).json({ 
         success: false,
         message: "Invalid total amount"
@@ -35,13 +38,14 @@ export const placeOrder = async (req, res) => {
 
     // ✅ Validate payment method
     if (!paymentMethod || !["COD", "UPI"].includes(paymentMethod)) {
+      console.error("❌ Invalid payment method:", paymentMethod);
       return res.status(400).json({ 
         success: false,
         message: "Invalid payment method. Must be 'COD' or 'UPI'"
       });
     }
 
-    // ✅ FIXED: Address is REQUIRED for COD, OPTIONAL for UPI
+    // ✅ Address handling - REQUIRED for COD, OPTIONAL for UPI
     let deliveryAddress = null;
 
     if (paymentMethod === "COD") {
@@ -51,6 +55,7 @@ export const placeOrder = async (req, res) => {
         const { fullName, mobileNumber, houseFlat, streetArea, city, state, pincode, addressType } = newAddress;
         
         if (!fullName || !mobileNumber || !houseFlat || !streetArea || !city || !state || !pincode || !addressType) {
+          console.error("❌ Missing address fields");
           return res.status(400).json({
             success: false,
             message: "All address fields are required for COD"
@@ -58,6 +63,7 @@ export const placeOrder = async (req, res) => {
         }
 
         if (!/^\d{10}$/.test(mobileNumber)) {
+          console.error("❌ Invalid mobile number:", mobileNumber);
           return res.status(400).json({
             success: false,
             message: "Mobile number must be 10 digits"
@@ -65,6 +71,7 @@ export const placeOrder = async (req, res) => {
         }
 
         if (!/^\d{6}$/.test(pincode)) {
+          console.error("❌ Invalid pincode:", pincode);
           return res.status(400).json({
             success: false,
             message: "Pincode must be 6 digits"
@@ -72,6 +79,7 @@ export const placeOrder = async (req, res) => {
         }
 
         if (!["Home", "Work"].includes(addressType)) {
+          console.error("❌ Invalid address type:", addressType);
           return res.status(400).json({
             success: false,
             message: "Address type must be 'Home' or 'Work'"
@@ -87,6 +95,7 @@ export const placeOrder = async (req, res) => {
         });
 
         if (!savedAddress) {
+          console.error("❌ Address not found:", addressId);
           return res.status(404).json({
             success: false,
             message: "Address not found"
@@ -105,6 +114,7 @@ export const placeOrder = async (req, res) => {
         };
       } else {
         // COD requires address
+        console.error("❌ No address provided for COD");
         return res.status(400).json({
           success: false,
           message: "Delivery address is required for COD"
@@ -141,8 +151,11 @@ export const placeOrder = async (req, res) => {
     const processedItems = [];
 
     for (const item of items) {
+      console.log("Processing item:", item);
+      
       // Validate item has required fields
       if (!item.product || !item.quantity) {
+        console.error("❌ Item missing product or quantity:", item);
         return res.status(400).json({ 
           success: false,
           message: "Each item must have product ID and quantity"
@@ -155,6 +168,7 @@ export const placeOrder = async (req, res) => {
       if (mongoose.Types.ObjectId.isValid(item.product)) {
         productId = new mongoose.Types.ObjectId(item.product);
       } else {
+        console.error("❌ Invalid product ID format:", item.product);
         return res.status(400).json({
           success: false,
           message: `Invalid product ID format: "${item.product}"`
@@ -165,6 +179,7 @@ export const placeOrder = async (req, res) => {
       const saree = await Saree.findById(productId);
 
       if (!saree) {
+        console.error("❌ Saree not found:", item.product);
         return res.status(404).json({
           success: false,
           message: `Saree not found with ID: ${item.product}`
@@ -173,6 +188,7 @@ export const placeOrder = async (req, res) => {
 
       // Check stock availability
       if (saree.stock < item.quantity) {
+        console.error("❌ Insufficient stock for", saree.name);
         return res.status(400).json({
           success: false,
           message: `Insufficient stock for "${saree.name}". Available: ${saree.stock}, Requested: ${item.quantity}`
@@ -182,6 +198,7 @@ export const placeOrder = async (req, res) => {
       // ✅ Deduct stock from saree
       saree.stock = (saree.stock || 0) - item.quantity;
       await saree.save();
+      console.log("✅ Stock updated for:", saree.name);
 
       // Build processed item with correct data
       processedItems.push({
@@ -192,8 +209,11 @@ export const placeOrder = async (req, res) => {
       });
 
       // Calculate total
-      calculatedTotal += (item.price || saree.price) * item.quantity;
+      const itemPrice = item.price || saree.price;
+      calculatedTotal += itemPrice * item.quantity;
     }
+
+    console.log("✅ All items processed. Calculated total:", calculatedTotal);
 
     // ✅ Determine payment and order status based on payment method
     let paymentStatus = "COD_PENDING";
@@ -221,6 +241,8 @@ export const placeOrder = async (req, res) => {
     if (deliveryAddress) {
       orderData.address = deliveryAddress;
     }
+
+    console.log("📦 Creating order with data:", JSON.stringify(orderData, null, 2));
 
     const order = await Order.create(orderData);
 
@@ -261,7 +283,8 @@ export const placeOrder = async (req, res) => {
     console.error("❌ Error placing order:", error);
     return res.status(500).json({ 
       success: false,
-      message: error.message || "Error placing order"
+      message: error instanceof Error ? error.message : "Error placing order",
+      error: process.env.NODE_ENV === "development" ? error : undefined
     });
   }
 };
@@ -285,7 +308,7 @@ export const getMyOrders = async (req, res) => {
     console.error("❌ Error fetching orders:", error);
     return res.status(500).json({ 
       success: false,
-      message: error.message || "Error fetching orders"
+      message: error instanceof Error ? error.message : "Error fetching orders"
     });
   }
 };
@@ -316,7 +339,7 @@ export const getOrderDetails = async (req, res) => {
     console.error("❌ Error fetching order details:", error);
     return res.status(500).json({ 
       success: false,
-      message: error.message || "Error fetching order details"
+      message: error instanceof Error ? error.message : "Error fetching order details"
     });
   }
 };
@@ -339,7 +362,7 @@ export const getAllOrders = async (req, res) => {
     console.error("❌ Error fetching all orders:", error);
     return res.status(500).json({ 
       success: false,
-      message: error.message || "Error fetching all orders"
+      message: error instanceof Error ? error.message : "Error fetching all orders"
     });
   }
 };
@@ -369,7 +392,7 @@ export const getOrderById = async (req, res) => {
     console.error("❌ Error fetching order:", error);
     return res.status(500).json({ 
       success: false,
-      message: error.message || "Error fetching order"
+      message: error instanceof Error ? error.message : "Error fetching order"
     });
   }
 };
@@ -409,7 +432,7 @@ export const updateOrderStatus = async (req, res) => {
     console.error("❌ Error updating order status:", error);
     return res.status(500).json({ 
       success: false,
-      message: error.message || "Error updating order status"
+      message: error instanceof Error ? error.message : "Error updating order status"
     });
   }
 };
@@ -448,7 +471,7 @@ export const cancelOrder = async (req, res) => {
     console.error("❌ Error cancelling order:", error);
     return res.status(500).json({ 
       success: false,
-      message: error.message || "Error cancelling order"
+      message: error instanceof Error ? error.message : "Error cancelling order"
     });
   }
 };
@@ -491,7 +514,7 @@ export const verifyPayment = async (req, res) => {
     console.error("❌ Error verifying payment:", error);
     return res.status(500).json({ 
       success: false,
-      message: error.message || "Error verifying payment"
+      message: error instanceof Error ? error.message : "Error verifying payment"
     });
   }
 };

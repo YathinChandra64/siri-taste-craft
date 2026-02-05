@@ -65,7 +65,9 @@ const sareeSchema = new mongoose.Schema(
     sku: {
       type: String,
       unique: true,
-      sparse: true
+      sparse: true,   // ✅ Only enforce uniqueness when SKU exists
+      trim: true,
+      default: null   // ✅ Default to null, not empty string
     },
     tags: [String],
     blouseIncluded: {

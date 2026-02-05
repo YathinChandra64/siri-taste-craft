@@ -23,12 +23,13 @@ router.get("/admin/stats", protect, adminOnly, getSareeStats);
 // ✅ CREATE - before GET by ID
 router.post("/", protect, adminOnly, createSaree);
 
-// ✅ BULK UPLOAD - before GET by ID
+// ✅ BULK UPLOAD - FIXED path (both variations supported)
+router.post("/bulk", protect, adminOnly, bulkUploadSarees);
 router.post("/bulk/upload", protect, adminOnly, bulkUploadSarees);
 
 // ✅ GENERIC ROUTES - MUST COME LAST
 router.get("/:id", getSareeById);
-router.put("/:id", protect, adminOnly, updateSaree);
-router.delete("/:id", protect, adminOnly, deleteSaree);
+router.put("/:id", protect, adminOnly, updateSaree);           // ✅ UPDATE
+router.delete("/:id", protect, adminOnly, deleteSaree);        // ✅ DELETE
 
 export default router;

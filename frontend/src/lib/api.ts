@@ -86,37 +86,91 @@ const API = axios.create({
   },
 });
 
-// 🔐 Attach JWT automatically to all requests
+// ✅ IMPROVED: Request interceptor with better logging
 API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("authToken");
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log("✅ Auth token attached for:", config.url);
+    } else {
+      console.warn("⚠️ No auth token found for request to:", config.url);
     }
+    
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error("❌ Request interceptor error:", error);
+    return Promise.reject(error);
+  }
 );
 
-// 🚨 Handle expired token (FIXED: Prevent redirect loops)
+// ✅ IMPROVED: Response interceptor with better error handling
 API.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log("✅ Response received:", {
+      status: response.status,
+      url: response.config.url,
+      dataKeys: Object.keys(response.data || {})
+    });
+    return response;
+  },
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const message = error.response?.data?.message || error.message;
+    
+    console.error("❌ Response Error:", {
+      status,
+      message,
+      url: error.config?.url,
+      data: error.response?.data,
+      timestamp: new Date().toISOString()
+    });
+
+    // ✅ Handle 401 (Unauthorized) with improved logic
+    if (status === 401) {
+      console.warn("🔐 Authentication failed:", {
+        reason: message,
+        token: localStorage.getItem("authToken") ? "exists" : "missing"
+      });
+      
       localStorage.removeItem("authToken");
       localStorage.removeItem("user");
       
-      // ✅ FIXED: Check if we're already on login/signup to prevent loops
+      // Prevent redirect loops
       if (typeof window !== "undefined") {
         const currentPath = window.location.pathname;
-        const isAuthPage = currentPath === "/login" || currentPath === "/signup";
+        const isAuthPage = ["/login", "/signup"].includes(currentPath);
         
-        // Only redirect if not already on authentication pages
         if (!isAuthPage) {
-          window.location.href = "/login";
+          // Use a slight delay to avoid rapid redirects
+          const redirectTimer = setTimeout(() => {
+            window.location.href = "/login?reason=session_expired&from=" + encodeURIComponent(currentPath);
+          }, 100);
+          
+          // Cleanup on unmount (if in React component)
+          return Promise.reject(error);
         }
       }
     }
+    
+    // ✅ Handle 500 (Server Error) with logging
+    if (status === 500) {
+      console.error("💥 Server Error Details:", {
+        status: 500,
+        url: error.config?.url,
+        method: error.config?.method,
+        data: error.response?.data,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // ✅ Handle 403 (Forbidden)
+    if (status === 403) {
+      console.error("🔒 Access Forbidden:", message);
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -369,7 +423,17 @@ export const getSareeById = async (id: string): Promise<unknown> => {
 // EXISTING: CART ENDPOINTS
 // ======================================
 
+/**
+ * Get user's cart with token validation
+ */
 export const getCart = async (): Promise<unknown> => {
+  const token = localStorage.getItem("authToken");
+  
+  if (!token) {
+    console.warn("⚠️ No auth token found for cart request");
+    throw new Error("Authentication required. Please login first.");
+  }
+  
   const response = await API.get("/cart");
   return response.data;
 };
@@ -378,6 +442,12 @@ export const addToCart = async (
   productId: string,
   quantity: number
 ): Promise<unknown> => {
+  const token = localStorage.getItem("authToken");
+  
+  if (!token) {
+    throw new Error("Authentication required. Please login first.");
+  }
+  
   const response = await API.post("/cart", { productId, quantity });
   return response.data;
 };
@@ -404,7 +474,36 @@ export const clearCart = async (): Promise<unknown> => {
 // EXISTING: ORDER ENDPOINTS
 // ======================================
 
+/**
+ * Create a new order with proper validation
+ */
 export const createOrder = async (orderData: OrderData): Promise<unknown> => {
+  const token = localStorage.getItem("authToken");
+  
+  if (!token) {
+    console.error("❌ No auth token found for order creation");
+    throw new Error("Authentication required. Please login first.");
+  }
+  
+  // ✅ Validate order data structure
+  if (!orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
+    throw new Error("Order must contain at least one item");
+  }
+  
+  if (!orderData.totalAmount || typeof orderData.totalAmount !== "number" || orderData.totalAmount <= 0) {
+    throw new Error("Order total amount must be a positive number");
+  }
+  
+  if (!["COD", "UPI"].includes(orderData.paymentMethod as string)) {
+    throw new Error("Payment method must be either COD or UPI");
+  }
+  
+  console.log("📤 Creating order with validated data:", {
+    itemCount: orderData.items.length,
+    totalAmount: orderData.totalAmount,
+    paymentMethod: orderData.paymentMethod
+  });
+  
   const response = await API.post("/orders", orderData);
   return response.data;
 };
