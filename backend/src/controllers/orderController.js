@@ -37,13 +37,12 @@ export const placeOrder = async (req, res) => {
     }
 
     // ✅ Validate payment method
-    if (!paymentMethod || !["COD", "UPI"].includes(paymentMethod)) {
-      console.error("❌ Invalid payment method:", paymentMethod);
-      return res.status(400).json({ 
-        success: false,
-        message: "Invalid payment method. Must be 'COD' or 'UPI'"
-      });
-    }
+    if (!paymentMethod || !["COD", "UPI", "RAZORPAY"].includes(paymentMethod)) {
+  return res.status(400).json({ 
+    success: false,
+    message: "Invalid payment method. Must be 'COD', 'UPI', or 'RAZORPAY'"
+  });
+}
 
     // ✅ Address handling - REQUIRED for COD, OPTIONAL for UPI
     let deliveryAddress = null;
@@ -217,15 +216,19 @@ export const placeOrder = async (req, res) => {
 
     // ✅ Determine payment and order status based on payment method
     let paymentStatus = "COD_PENDING";
-    let orderStatus = "PLACED";
+let orderStatus = "PLACED";
 
-    if (paymentMethod === "UPI") {
-      paymentStatus = "PENDING";
-      orderStatus = "PENDING_PAYMENT";
-    } else if (paymentMethod === "COD") {
-      paymentStatus = "COD_PENDING";
-      orderStatus = "PLACED";
-    }
+if (paymentMethod === "UPI") {
+  paymentStatus = "PENDING";
+  orderStatus = "PENDING_PAYMENT";
+} else if (paymentMethod === "COD") {
+  paymentStatus = "COD_PENDING";
+  orderStatus = "PLACED";
+} else if (paymentMethod === "RAZORPAY") {
+  // Razorpay doesn't use paymentStatus, uses orderStatus instead
+  orderStatus = "CREATED";
+  paymentStatus = "PENDING";  // Set a default
+}
 
     // ✅ Create order with address (optional for UPI) and payment method
     const orderData = {

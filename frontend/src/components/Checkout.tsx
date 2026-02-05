@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Loader, CreditCard, QrCode, Copy, CheckCircle } from "lucide-react";
+import { AlertCircle, Loader, CreditCard } from "lucide-react";
 import { Address } from "@/types/checkout";
 import AddressSelection from "@/components/AddressSelection";
 import AddressForm from "@/components/AddressForm";
@@ -37,13 +37,6 @@ interface LocationState {
   isLocalCart?: boolean;
 }
 
-interface UPIConfig {
-  upiId: string;
-  merchantName: string;
-  qrCodeImage: string;
-  instructions: string;
-}
-
 interface OrderResponse {
   _id?: string;
   id?: string;
@@ -63,19 +56,21 @@ interface OrderItem {
 interface OrderData {
   items: OrderItem[];
   totalAmount: number;
-  paymentMethod: "COD" | "UPI";
+  paymentMethod: "COD" | "RAZORPAY";
   addressId?: string;
   newAddress?: Address;
 }
 
-interface ApiErrorResponse {
-  response?: {
-    status?: number;
-    data?: {
-      message?: string;
-    };
-  };
-  message?: string;
+interface RazorpayResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
 }
 
 type CheckoutStep = "payment-method" | "address" | "address-form";
@@ -103,13 +98,10 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
   }, [propsCartItems, stateData.cartItems, propsTotalAmount, stateData.totalAmount]);
 
   const [step, setStep] = useState<CheckoutStep>("payment-method");
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "UPI">("COD");
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "RAZORPAY">("COD");
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [newAddress, setNewAddress] = useState<Address | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [upiConfig, setUpiConfig] = useState<UPIConfig | null>(null);
-  const [upiLoading, setUpiLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -136,30 +128,17 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     }
   }, [cartItems, navigate, toast]);
 
-  const fetchUPIConfig = useCallback(async () => {
-    try {
-      setUpiLoading(true);
-      const response = await fetch("http://localhost:5000/api/upi/config");
-      const data = await response.json();
-      setUpiConfig(data);
-      console.log("✅ UPI Config loaded:", data);
-    } catch (error) {
-      console.error("❌ Failed to load UPI config:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load UPI payment details",
-        variant: "destructive"
-      });
-    } finally {
-      setUpiLoading(false);
-    }
-  }, [toast]);
-
+  // Load Razorpay script
   useEffect(() => {
-    if (paymentMethod === "UPI" && !upiConfig) {
-      fetchUPIConfig();
-    }
-  }, [paymentMethod, upiConfig, fetchUPIConfig]);
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   const handleAddressSubmit = async (address: Address) => {
     try {
@@ -183,8 +162,117 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     }
   };
 
+  const handleRazorpayPayment = async (orderId: string) => {
+    try {
+      // Create Razorpay order on backend
+      const token = localStorage.getItem("token");
+      
+      const createOrderResponse = await fetch("http://localhost:5000/api/payments/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ orderId })
+      });
+
+      const createOrderData = await createOrderResponse.json();
+
+      if (!createOrderData.success) {
+        throw new Error(createOrderData.message || "Failed to create Razorpay order");
+      }
+
+      const { razorpayOrderId, amount, currency } = createOrderData;
+
+      // Open Razorpay checkout
+      const options = {
+        key: "rzp_test_YOUR_KEY_ID", // Replace with your Razorpay key from env
+        amount: amount,
+        currency: currency,
+        name: "Siri Taste Craft",
+        description: "Order Payment",
+        order_id: razorpayOrderId,
+        handler: async function (response: RazorpayResponse) {
+          try {
+            // Verify payment on backend
+            const verifyResponse = await fetch("http://localhost:5000/api/payments/verify", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+                orderId: orderId
+              })
+            });
+
+            const verifyData = await verifyResponse.json();
+
+            if (verifyData.success) {
+              toast({
+                title: "Payment Successful",
+                description: "Your order has been placed successfully"
+              });
+
+              // Clear cart
+              if (stateData.isLocalCart) {
+                localStorage.removeItem("cart");
+              } else {
+                await clearCart();
+              }
+
+              navigate("/profile", { state: { tab: "orders" } });
+            } else {
+              throw new Error(verifyData.message || "Payment verification failed");
+            }
+          } catch (error) {
+            console.error("Payment verification error:", error);
+            toast({
+              title: "Payment Verification Failed",
+              description: error instanceof Error ? error.message : "Please contact support",
+              variant: "destructive"
+            });
+          }
+        },
+        prefill: {
+          name: user?.name || "",
+          email: user?.email || "",
+          contact: selectedAddress?.mobileNumber || ""
+        },
+        theme: {
+          color: "#9333ea"
+        },
+        modal: {
+          ondismiss: function() {
+            setIsLoading(false);
+            toast({
+              title: "Payment Cancelled",
+              description: "You cancelled the payment",
+              variant: "destructive"
+            });
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+
+    } catch (error) {
+      console.error("Razorpay error:", error);
+      toast({
+        title: "Payment Error",
+        description: error instanceof Error ? error.message : "Failed to initiate payment",
+        variant: "destructive"
+      });
+      setIsLoading(false);
+    }
+  };
+
   const handlePlaceOrder = async () => {
-    if (paymentMethod === "COD" && !selectedAddress && !newAddress) {
+    if (!selectedAddress && !newAddress) {
       toast({
         title: "Error",
         description: "Please select or add a delivery address",
@@ -196,7 +284,7 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     try {
       setIsLoading(true);
 
-      // ✅ FIX: Build items array with exact structure backend expects
+      // Build items array
       const orderItems: OrderItem[] = cartItems.map((item) => {
         const productId = item.saree._id;
         
@@ -212,143 +300,81 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
         };
       });
 
-      // ✅ FIX: Calculate total from items to ensure accuracy
       const calculatedTotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
       const orderData: OrderData = {
         items: orderItems,
-        totalAmount: calculatedTotal || totalAmount,
-        paymentMethod,
-        ...(paymentMethod === "COD" && selectedAddress?._id && { addressId: selectedAddress._id }),
-        ...(paymentMethod === "COD" && newAddress && { newAddress })
+        totalAmount: calculatedTotal,
+        paymentMethod: paymentMethod
       };
 
-      if (!orderData.items.length) {
-        throw new Error("No items in order");
-      }
-      if (orderData.totalAmount <= 0) {
-        throw new Error("Invalid total amount");
-      }
-      if (![orderData.paymentMethod].some(method => ["COD", "UPI"].includes(method))) {
-        throw new Error("Invalid payment method");
+      if (selectedAddress?._id) {
+        orderData.addressId = selectedAddress._id;
+      } else if (newAddress) {
+        orderData.newAddress = newAddress;
       }
 
-      console.log("📤 Creating Order with data:", {
-        itemsCount: orderData.items.length,
-        items: orderData.items,
-        totalAmount: orderData.totalAmount,
-        paymentMethod: orderData.paymentMethod,
-        hasAddress: !!(selectedAddress?._id || newAddress)
-      });
+      console.log("📦 Placing order:", orderData);
 
-      // ✅ FIX: Send exact order structure
-      const result = await createOrder(orderData as never);
+      const response = await createOrder(orderData);
+      const data = response as OrderResponse;
 
-      console.log("✅ Order Created Successfully:", result);
-
-      const orderResponse = result as unknown as OrderResponse;
-      const orderId = orderResponse._id || orderResponse.id || orderResponse.orderId;
-
-      if (!orderId) {
-        console.error("❌ No order ID in response:", orderResponse);
-        throw new Error("Order created but ID not returned");
+      if (!data.success) {
+        throw new Error(data.message || "Failed to create order");
       }
 
-      if (paymentMethod === "UPI") {
-        toast({
-          title: "✅ Order Created!",
-          description: `Order ID: ${orderId}. Proceeding to payment...`
-        });
-        
-        navigate("/payment", { 
-          state: { orderId, totalAmount: orderData.totalAmount, paymentMethod },
-          replace: true 
-        });
+      const createdOrderId = data._id || data.id || data.orderId;
+
+      if (!createdOrderId) {
+        throw new Error("No order ID returned from server");
+      }
+
+      console.log("✅ Order created:", createdOrderId);
+
+      // Handle payment based on method
+      if (paymentMethod === "RAZORPAY") {
+        await handleRazorpayPayment(createdOrderId);
       } else {
+        // COD flow
         toast({
-          title: "✅ Order Placed Successfully!",
-          description: `Order ID: ${orderId}. Your order will be delivered soon.`
+          title: "Order Placed Successfully",
+          description: "Your order has been placed. Pay on delivery."
         });
-        
-        navigate("/profile", { replace: true });
-      }
 
-      try {
-        await clearCart();
-        console.log("✅ Cart cleared");
-      } catch (clearError) {
-        console.warn("⚠️ Could not clear cart:", clearError);
+        if (stateData.isLocalCart) {
+          localStorage.removeItem("cart");
+        } else {
+          await clearCart();
+        }
+
+        navigate("/profile", { state: { tab: "orders" } });
       }
 
     } catch (error) {
-      const apiError = error as AxiosError<{ message?: string }> | Error;
+      console.error("❌ Error placing order:", error);
       
-      let errorMessage = "Failed to create order";
-      let errorStatus: number | undefined;
-      let errorData: unknown;
-
-      if (error instanceof AxiosError) {
-        errorStatus = error.response?.status;
-        errorMessage = error.response?.data?.message || error.message;
-        errorData = error.response?.data;
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
+      const axiosError = error as AxiosError;
+      const errorMessage = 
+        (axiosError.response?.data as { message?: string })?.message ||
+        (error instanceof Error ? error.message : "Failed to place order");
       
-      console.error("❌ Order Error Details:", {
-        status: errorStatus,
-        message: errorMessage,
-        data: errorData,
-        fullError: error
-      });
-
-      let displayMessage = errorMessage;
-      if (errorStatus === 401) {
-        displayMessage = "Authentication expired. Please login again.";
-      } else if (errorStatus === 400) {
-        if (typeof errorData === "object" && errorData !== null && "message" in errorData) {
-          displayMessage = (errorData as { message?: string }).message || "Invalid order data. Please check your items and address.";
-        } else {
-          displayMessage = "Invalid order data. Please check your items and address.";
-        }
-      } else if (errorStatus === 500) {
-        displayMessage = "Server error. Please check the console for details.";
-      } else if (!navigator.onLine) {
-        displayMessage = "No internet connection. Please check your network.";
-      }
-
       toast({
-        title: "Error Creating Order",
-        description: displayMessage,
+        title: "Order Failed",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      if (paymentMethod === "COD") {
+        setIsLoading(false);
+      }
     }
   };
 
-  if (!cartItems || cartItems.length === 0) {
-    return (
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center"
-      >
-        <Card className="p-8 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">Cart is Empty</h2>
-          <p className="text-slate-600 mb-4">Redirecting to products...</p>
-        </Card>
-      </motion.div>
-    );
-  }
-
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-8 px-4"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 py-12 px-4"
     >
       <div className="max-w-7xl mx-auto">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-8">
@@ -374,7 +400,7 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
                     </h3>
                     <RadioGroup 
                       value={paymentMethod} 
-                      onValueChange={(value) => setPaymentMethod(value as "COD" | "UPI")}
+                      onValueChange={(value) => setPaymentMethod(value as "COD" | "RAZORPAY")}
                     >
                       <div className="space-y-3">
                         <div 
@@ -386,7 +412,7 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
                             <Label htmlFor="cod" className="flex-1 cursor-pointer">
                               <div className="font-semibold">Cash on Delivery (COD)</div>
                               <p className="text-sm text-slate-500 mt-1">
-                                Pay when your order is delivered. Delivery address required.
+                                Pay when your order is delivered
                               </p>
                             </Label>
                           </div>
@@ -394,14 +420,14 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
 
                         <div 
                           className="border-2 border-transparent rounded-lg p-4 cursor-pointer transition-all hover:border-slate-200"
-                          onClick={() => setPaymentMethod("UPI")}
+                          onClick={() => setPaymentMethod("RAZORPAY")}
                         >
                           <div className="flex items-center gap-3">
-                            <RadioGroupItem value="UPI" id="upi" />
-                            <Label htmlFor="upi" className="flex-1 cursor-pointer">
-                              <div className="font-semibold">Pay with UPI</div>
+                            <RadioGroupItem value="RAZORPAY" id="razorpay" />
+                            <Label htmlFor="razorpay" className="flex-1 cursor-pointer">
+                              <div className="font-semibold">Pay Online (Razorpay)</div>
                               <p className="text-sm text-slate-500 mt-1">
-                                Fast and secure. Upload payment screenshot with automatic UTR extraction.
+                                Pay securely with UPI, Cards, Netbanking, or Wallets
                               </p>
                             </Label>
                           </div>
@@ -425,42 +451,27 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
                     </motion.div>
                   )}
 
-                  {paymentMethod === "UPI" && (
+                  {paymentMethod === "RAZORPAY" && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3"
+                      className="bg-purple-50 border border-purple-200 rounded-lg p-4 flex gap-3"
                     >
-                      <QrCode className="w-5 h-5 text-blue-700 flex-shrink-0 mt-0.5" />
-                      <div className="text-sm text-blue-700">
-                        <p className="font-semibold">Pay now via UPI</p>
-                        <p className="mt-1">No address needed! After payment, upload the receipt screenshot</p>
-                        <p className="mt-2 text-xs">Our system will automatically extract the UTR using OCR</p>
+                      <CreditCard className="w-5 h-5 text-purple-700 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm text-purple-700">
+                        <p className="font-semibold">Secure Online Payment</p>
+                        <p className="mt-1">Pay ₹{totalAmount.toFixed(2)} now via Razorpay</p>
+                        <p className="mt-2 text-xs">Next step: Select your delivery address</p>
                       </div>
                     </motion.div>
                   )}
 
                   <Button
-                    onClick={() => {
-                      if (paymentMethod === "UPI") {
-                        handlePlaceOrder();
-                      } else {
-                        setStep("address");
-                      }
-                    }}
+                    onClick={() => setStep("address")}
                     disabled={isLoading}
                     className="w-full bg-purple-600 hover:bg-purple-700"
                   >
-                    {isLoading ? (
-                      <>
-                        <Loader className="w-4 h-4 mr-2 animate-spin" />
-                        Creating Order...
-                      </>
-                    ) : (
-                      paymentMethod === "UPI" 
-                        ? "Create Order & Pay"
-                        : "Continue to Address"
-                    )}
+                    Continue to Address
                   </Button>
                 </motion.div>
               )}
@@ -497,10 +508,10 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
                       {isLoading ? (
                         <>
                           <Loader className="w-4 h-4 mr-2 animate-spin" />
-                          Placing Order...
+                          {paymentMethod === "RAZORPAY" ? "Processing..." : "Placing Order..."}
                         </>
                       ) : (
-                        "Place Order"
+                        paymentMethod === "RAZORPAY" ? "Proceed to Payment" : "Place Order"
                       )}
                     </Button>
                   </div>

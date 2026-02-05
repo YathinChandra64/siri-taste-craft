@@ -494,9 +494,9 @@ export const createOrder = async (orderData: OrderData): Promise<unknown> => {
     throw new Error("Order total amount must be a positive number");
   }
   
-  if (!["COD", "UPI"].includes(orderData.paymentMethod as string)) {
-    throw new Error("Payment method must be either COD or UPI");
-  }
+  if (!["COD", "UPI", "RAZORPAY"].includes(orderData.paymentMethod as string)) {
+  throw new Error("Payment method must be either COD, UPI, or RAZORPAY");
+}
   
   console.log("📤 Creating order with validated data:", {
     itemCount: orderData.items.length,

@@ -36,15 +36,14 @@ const orderSchema = new mongoose.Schema(
       required: true
     },
 
-    // ✅ PAYMENT METHOD (determine if address is needed)
+    // ✅ UPDATED: Support both UPI and RAZORPAY
     paymentMethod: {
       type: String,
-      enum: ["COD", "UPI"],
+      enum: ["COD", "UPI", "RAZORPAY"],  // ✅ ADDED RAZORPAY
       required: true
     },
 
-    // ✅ DELIVERY ADDRESS FIELDS (CONDITIONALLY REQUIRED)
-    // Required only for COD, optional for UPI
+    // DELIVERY ADDRESS (keep existing logic)
     address: {
       fullName: {
         type: String,
@@ -97,40 +96,48 @@ const orderSchema = new mongoose.Schema(
       }
     },
 
-    // ✅ ORDER STATUS
+    // ✅ UPDATED: Support both old and new order statuses
     orderStatus: {
       type: String,
       enum: [
-        "PENDING_PAYMENT",  // For UPI: waiting for payment
-        "PLACED",           // For COD: order created
-        "CONFIRMED",        // After payment/confirmation
-        "PROCESSING",       // Being prepared
-        "SHIPPED",          // On the way
-        "DELIVERED",        // Delivered
-        "CANCELLED"         // Cancelled
+        // Old UPI statuses (keep for backward compatibility)
+        "PENDING_PAYMENT",
+        "PLACED",
+        "CONFIRMED",
+        "PROCESSING",
+        "SHIPPED",
+        "DELIVERED",
+        "CANCELLED",
+        // New Razorpay statuses
+        "CREATED",
+        "PAYMENT_PENDING",
+        "PAID"
       ],
       default: function () {
-        return this.paymentMethod === "COD" ? "PLACED" : "PENDING_PAYMENT";
+        if (this.paymentMethod === "COD") return "PLACED";
+        if (this.paymentMethod === "UPI") return "PENDING_PAYMENT";
+        if (this.paymentMethod === "RAZORPAY") return "CREATED";
+        return "CREATED";
       }
     },
 
-    // ✅ PAYMENT STATUS
+    // ✅ KEEP OLD: UPI Payment Status (for existing UPI orders)
     paymentStatus: {
       type: String,
       enum: [
-        "COD_PENDING",           // Cash on Delivery - payment pending at delivery
-        "PENDING",               // For UPI - waiting for payment submission
-        "PAYMENT_SUBMITTED",     // Payment screenshot submitted
-        "VERIFIED",              // Payment verified by admin
-        "REJECTED",              // Payment rejected
-        "COMPLETED"              // Payment completed
+        "COD_PENDING",
+        "PENDING",
+        "PAYMENT_SUBMITTED",
+        "VERIFIED",
+        "REJECTED",
+        "COMPLETED"
       ],
       default: function () {
         return this.paymentMethod === "COD" ? "COD_PENDING" : "PENDING";
       }
     },
 
-    // ✅ PAYMENT PROOF & REFERENCE (for UPI)
+    // ✅ KEEP OLD: UPI Payment fields (for existing UPI orders)
     paymentReference: {
       type: String,
       default: null
@@ -146,12 +153,27 @@ const orderSchema = new mongoose.Schema(
       default: null
     },
 
+    // ✅ ADD NEW: Razorpay fields (only used for RAZORPAY orders)
+    razorpayOrderId: {
+      type: String,
+      default: null
+    },
+
+    razorpayPaymentId: {
+      type: String,
+      default: null
+    },
+
+    razorpaySignature: {
+      type: String,
+      default: null
+    },
+
     paymentVerifiedAt: {
       type: Date,
       default: null
     },
 
-    // Admin notes
     adminNotes: {
       type: String,
       default: null
@@ -160,7 +182,10 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ INDEXES FOR PERFORMANCE
+// ✅ ADD NEW INDEX for Razorpay
+orderSchema.index({ razorpayOrderId: 1 });
+
+// Keep existing indexes
 orderSchema.index({ user: 1, orderStatus: 1 });
 orderSchema.index({ user: 1, paymentMethod: 1 });
 orderSchema.index({ createdAt: -1 });

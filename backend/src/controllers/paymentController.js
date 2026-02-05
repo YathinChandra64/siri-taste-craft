@@ -3,10 +3,13 @@ import User from "../models/User.js";
 import Admin from "../models/Admin.js";
 import Notification from "../models/Notification.js";
 import mongoose from "mongoose";
+import crypto from "crypto";
+import razorpayInstance from "../config/razorpay.js";
 
-// ✅ FIXED: Complete Payment Controller with proper MongoDB validation
+// ========================================
+// EXISTING UPI FUNCTIONS (KEEP ALL)
+// ========================================
 
-// 📸 Upload UPI QR Code (Admin only)
 export const uploadUpiQrCode = async (req, res) => {
   try {
     const { qrCodeUrl, upiId } = req.body;
@@ -18,23 +21,20 @@ export const uploadUpiQrCode = async (req, res) => {
       });
     }
 
-    // ✅ Validate UPI ID format (optional but good practice)
     if (upiId) {
       const upiRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z]{3,}$/;
       if (!upiRegex.test(upiId)) {
         console.warn(`⚠️  UPI ID format warning: ${upiId} may not be valid`);
-        // Don't block, just warn
       }
     }
 
-    // Update admin settings with UPI QR code
     const admin = await Admin.findOneAndUpdate(
       { role: "admin" },
       { 
         upiQrCode: qrCodeUrl,
         upiId: upiId,
         upiUpdatedAt: new Date(),
-        enablePayments: true // Auto-enable payments when UPI is configured
+        enablePayments: true
       },
       { new: true, upsert: true }
     );
@@ -61,7 +61,6 @@ export const uploadUpiQrCode = async (req, res) => {
   }
 };
 
-// 🔍 Get UPI QR Code (Public - for customers to see)
 export const getUpiQrCode = async (req, res) => {
   try {
     const admin = await Admin.findOne({ role: "admin" });
@@ -102,7 +101,6 @@ export const getUpiQrCode = async (req, res) => {
   }
 };
 
-// 📝 Create Order (Awaiting Payment)
 export const createOrder = async (req, res) => {
   try {
     const { items, totalAmount } = req.body;
@@ -129,7 +127,6 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // ✅ Validate user ID
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({
         success: false,
@@ -137,7 +134,6 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Create order with "pending_payment" status
     const order = await Order.create({
       user: new mongoose.Types.ObjectId(userId),
       items,
@@ -167,7 +163,6 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// 📸 Submit Payment Proof (Customer uploads screenshot)
 export const submitPaymentProof = async (req, res) => {
   try {
     const { orderId, paymentReference, paymentProofUrl } = req.body;
@@ -187,7 +182,6 @@ export const submitPaymentProof = async (req, res) => {
       });
     }
 
-    // Find order
     const order = await Order.findById(orderId).populate("user");
 
     if (!order) {
@@ -197,7 +191,6 @@ export const submitPaymentProof = async (req, res) => {
       });
     }
 
-    // Verify order belongs to user
     if (order.user._id.toString() !== userId.toString()) {
       return res.status(403).json({ 
         success: false,
@@ -205,7 +198,6 @@ export const submitPaymentProof = async (req, res) => {
       });
     }
 
-    // Check order status
     if (order.status !== "pending_payment") {
       return res.status(400).json({ 
         success: false,
@@ -213,17 +205,15 @@ export const submitPaymentProof = async (req, res) => {
       });
     }
 
-    // Update order with payment proof
     order.paymentReference = paymentReference;
     order.paymentProof = paymentProofUrl;
     order.status = "payment_submitted";
     order.paymentSubmittedAt = new Date();
     await order.save();
 
-    // ✅ Create in-app notification for admin
     await Notification.create({
       type: "payment_received",
-      targetUser: null, // null = for admin
+      targetUser: null,
       title: "Payment Received! 💰",
       message: `Customer ${order.user.name} submitted payment proof for Order #${orderId.slice(-6).toUpperCase()}. Amount: ₹${order.totalAmount}. Please verify.`,
       orderId: orderId,
@@ -249,7 +239,6 @@ export const submitPaymentProof = async (req, res) => {
   }
 };
 
-// ✅ Verify Payment (Admin only)
 export const verifyPayment = async (req, res) => {
   try {
     const { orderId, isVerified } = req.body;
@@ -268,7 +257,6 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
-    // Find order
     const order = await Order.findByIdAndUpdate(
       orderId,
       {
@@ -285,7 +273,6 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
-    // ✅ Create in-app notification for customer
     await Notification.create({
       type: isVerified ? "order_confirmed" : "payment_rejected",
       targetUser: order.user._id,
@@ -315,7 +302,6 @@ export const verifyPayment = async (req, res) => {
   }
 };
 
-// 📋 Get Pending Payment Orders (Admin only)
 export const getPendingPaymentOrders = async (req, res) => {
   try {
     const orders = await Order.find({ 
@@ -338,7 +324,6 @@ export const getPendingPaymentOrders = async (req, res) => {
   }
 };
 
-// 🔔 Get Order Status (Customer)
 export const getOrderStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -360,7 +345,6 @@ export const getOrderStatus = async (req, res) => {
       });
     }
 
-    // Verify order belongs to user
     if (order.user.toString() !== userId.toString()) {
       return res.status(403).json({ 
         success: false,
@@ -381,7 +365,6 @@ export const getOrderStatus = async (req, res) => {
   }
 };
 
-// ✅ Get Notifications (Customer & Admin)
 export const getNotifications = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
@@ -396,12 +379,10 @@ export const getNotifications = async (req, res) => {
 
     let notifications;
     if (isAdmin) {
-      // Admin sees all notifications (where targetUser is null = admin notifications)
       notifications = await Notification.find({ targetUser: null })
         .sort({ createdAt: -1 })
         .limit(50);
     } else {
-      // Customer sees only their notifications
       notifications = await Notification.find({ targetUser: new mongoose.Types.ObjectId(userId) })
         .sort({ createdAt: -1 })
         .limit(50);
@@ -421,7 +402,6 @@ export const getNotifications = async (req, res) => {
   }
 };
 
-// ✅ Mark Notification as Read
 export const markNotificationAsRead = async (req, res) => {
   try {
     const { notificationId } = req.params;
@@ -459,7 +439,6 @@ export const markNotificationAsRead = async (req, res) => {
   }
 };
 
-// ✅ Clear All Notifications (Customer & Admin)
 export const clearNotifications = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
@@ -489,6 +468,124 @@ export const clearNotifications = async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: error.message 
+    });
+  }
+};
+
+// ========================================
+// NEW RAZORPAY FUNCTIONS (ADD THESE)
+// ========================================
+
+export const createRazorpayOrder = async (req, res) => {
+  try {
+    const { orderId } = req.body;
+    const userId = req.user.id;
+
+    const order = await Order.findOne({ _id: orderId, user: userId });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    if (order.paymentMethod !== "RAZORPAY") {
+      return res.status(400).json({
+        success: false,
+        message: "This order does not use Razorpay payment method"
+      });
+    }
+
+    if (order.orderStatus === "PAID" || order.orderStatus === "CONFIRMED") {
+      return res.status(400).json({
+        success: false,
+        message: "Order is already paid"
+      });
+    }
+
+    const razorpayOrderOptions = {
+      amount: Math.round(order.totalAmount * 100),
+      currency: "INR",
+      receipt: `order_${order._id}`,
+      notes: {
+        orderId: order._id.toString(),
+        userId: userId.toString()
+      }
+    };
+
+    const razorpayOrder = await razorpayInstance.orders.create(razorpayOrderOptions);
+
+    order.razorpayOrderId = razorpayOrder.id;
+    order.orderStatus = "PAYMENT_PENDING";
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Razorpay order created successfully",
+      razorpayOrderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      orderId: order._id
+    });
+
+  } catch (error) {
+    console.error("❌ Error creating Razorpay order:", error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Error creating Razorpay order"
+    });
+  }
+};
+
+export const verifyRazorpayPayment = async (req, res) => {
+  try {
+    const { razorpayOrderId, razorpayPaymentId, razorpaySignature, orderId } = req.body;
+    const userId = req.user.id;
+
+    const order = await Order.findOne({ _id: orderId, user: userId });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    const generatedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest("hex");
+
+    if (generatedSignature !== razorpaySignature) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment verification failed"
+      });
+    }
+
+    order.razorpayPaymentId = razorpayPaymentId;
+    order.razorpaySignature = razorpaySignature;
+    order.orderStatus = "PAID";
+    order.paymentStatus = "VERIFIED";
+    order.paymentVerifiedAt = new Date();
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment verified successfully",
+      order: {
+        _id: order._id,
+        orderStatus: order.orderStatus,
+        razorpayPaymentId: order.razorpayPaymentId
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Error verifying payment:", error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Error verifying payment"
     });
   }
 };

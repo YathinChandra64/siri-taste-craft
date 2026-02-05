@@ -13,6 +13,11 @@ import {
   clearNotifications
 } from "../controllers/paymentController.js";
 
+import { 
+  createRazorpayOrder, 
+  verifyRazorpayPayment 
+} from "../controllers/paymentController.js";
+
 const router = express.Router();
 
 // 🔓 PUBLIC ROUTES
@@ -47,5 +52,8 @@ router.get("/pending-orders", protect, adminOnly, getPendingPaymentOrders);
 
 // Verify payment
 router.post("/verify-payment", protect, adminOnly, verifyPayment);
+
+router.post("/create-order", protect, createRazorpayOrder);
+router.post("/verify", protect, verifyRazorpayPayment);
 
 export default router;
