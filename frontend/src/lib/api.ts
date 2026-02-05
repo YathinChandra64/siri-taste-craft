@@ -98,16 +98,23 @@ API.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// 🚨 Handle expired token
+// 🚨 Handle expired token (FIXED: Prevent redirect loops)
 API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("authToken");
       localStorage.removeItem("user");
-      // Optionally redirect to login
+      
+      // ✅ FIXED: Check if we're already on login/signup to prevent loops
       if (typeof window !== "undefined") {
-        window.location.href = "/login";
+        const currentPath = window.location.pathname;
+        const isAuthPage = currentPath === "/login" || currentPath === "/signup";
+        
+        // Only redirect if not already on authentication pages
+        if (!isAuthPage) {
+          window.location.href = "/login";
+        }
       }
     }
     return Promise.reject(error);

@@ -19,23 +19,42 @@ const NotificationsPanel = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null); // ✅ ADDED: Error state
 
-  // ✅ Fetch notifications on mount and periodically
+  // ✅ FIXED: Better fetch logic with proper error handling
   useEffect(() => {
+    // Only attempt to fetch if user has a token
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      setError(null);
+      setNotifications([]);
+      return;
+    }
+
+    // Fetch on mount
     fetchNotifications();
     
-    // Refresh every 10 seconds
-    const interval = setInterval(fetchNotifications, 10000);
+    // Refresh every 10 seconds, but only if authenticated
+    const interval = setInterval(() => {
+      const currentToken = localStorage.getItem("authToken");
+      if (currentToken) {
+        fetchNotifications();
+      }
+    }, 10000);
+
     return () => clearInterval(interval);
   }, []);
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
+    setError(null); // ✅ Clear previous errors
+    
     try {
       const token = localStorage.getItem("authToken");
       
       if (!token) {
         setLoading(false);
+        setNotifications([]);
         return;
       }
 
@@ -45,16 +64,37 @@ const NotificationsPanel = () => {
         }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        // ✅ Handle both array and object responses
-        const notificationsArray = Array.isArray(data) 
-          ? data 
-          : data.notifications || [];
-        setNotifications(notificationsArray);
+      // ✅ FIXED: Handle 401 gracefully without redirect loops
+      if (response.status === 401) {
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
+        setError("Session expired. Please login again.");
+        setNotifications([]);
+        setLoading(false);
+        return;
       }
+
+      // ✅ Handle other error statuses
+      if (!response.ok) {
+        setError(`Failed to load notifications (${response.status})`);
+        console.error(`Notification fetch failed: ${response.status}`);
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      // Handle both array and object responses
+      const notificationsArray = Array.isArray(data) 
+        ? data 
+        : data.notifications || [];
+      setNotifications(notificationsArray);
+      setError(null); // ✅ Clear error on success
     } catch (error) {
+      // ✅ Graceful error handling - don't crash
       console.error("Failed to fetch notifications:", error);
+      setError("Connection error. Notifications unavailable.");
+      // Keep existing notifications instead of clearing
+      setNotifications(prev => prev);
     } finally {
       setLoading(false);
     }
@@ -197,6 +237,13 @@ const NotificationsPanel = () => {
 
             {/* Notifications List */}
             <div className="flex-1 overflow-y-auto">
+              {/* ✅ ADDED: Error message display */}
+              {error && !loading && (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 text-red-600 text-sm">
+                  {error}
+                </div>
+              )}
+
               {loading ? (
                 <div className="p-8 text-center">
                   <motion.div
