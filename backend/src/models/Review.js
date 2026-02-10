@@ -1,4 +1,6 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose from 'mongoose';
+
+const Schema = mongoose.Schema;
 
 /**
  * Review Model - For customer reviews on sarees
@@ -87,6 +89,7 @@ const reviewSchema = new Schema(
       ref: 'User',
       default: [],
     },
+  },
   {
     timestamps: true,
   }

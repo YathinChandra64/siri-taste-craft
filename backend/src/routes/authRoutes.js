@@ -1,6 +1,6 @@
 import express from "express";
 import { register, login, getMe } from "../controllers/authController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { authenticate } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -8,6 +8,6 @@ router.post("/register", register);
 router.post("/login", login);
 
 // ✅ NEW: Get current user (for checking auth on page refresh)
-router.get("/me", protect, getMe);
+router.get("/me", authenticate, getMe);
 
 export default router;

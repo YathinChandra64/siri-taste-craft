@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import { Request, Response, NextFunction } from 'express';
 import User from '../models/User.js';
 
 /**
@@ -7,24 +6,11 @@ import User from '../models/User.js';
  * Handles JWT verification and role-based access control
  */
 
-// Extend Express Request to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
-
 /**
- * Authenticate middleware
+ * Authenticate middleware (alias: protect)
  * Verifies JWT token and adds user to request
  */
-export const authenticate = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const authenticate = async (req, res, next) => {
   try {
     // ✅ Get token from header
     const token = req.headers.authorization?.split(' ')[1];
@@ -37,7 +23,7 @@ export const authenticate = async (
     }
 
     // ✅ Verify token
-    const decoded: any = jwt.verify(
+    const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || 'your-secret-key'
     );
@@ -57,7 +43,7 @@ export const authenticate = async (
 
     console.log(`✅ User authenticated: ${user.email}`);
     next();
-  } catch (error: any) {
+  } catch (error) {
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
@@ -81,11 +67,17 @@ export const authenticate = async (
 };
 
 /**
+ * Protect middleware (alias for authenticate)
+ * Used in routes for backward compatibility
+ */
+export const protect = authenticate;
+
+/**
  * Authorize middleware
  * Checks if user has required role
  */
-export const authorize = (requiredRole: string) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const authorize = (requiredRole) => {
+  return (req, res, next) => {
     try {
       // ✅ Check if user is authenticated
       if (!req.user) {
@@ -120,20 +112,22 @@ export const authorize = (requiredRole: string) => {
 };
 
 /**
+ * Admin-only middleware
+ * Checks if user has admin role
+ */
+export const adminOnly = authorize('admin');
+
+/**
  * Optional authentication middleware
  * User is not required, but will be attached if token is provided
  */
-export const optionalAuth = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const optionalAuth = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
 
     if (token) {
       try {
-        const decoded: any = jwt.verify(
+        const decoded = jwt.verify(
           token,
           process.env.JWT_SECRET || 'your-secret-key'
         );
@@ -161,8 +155,8 @@ export const optionalAuth = async (
  * Check ownership middleware
  * Verifies that user owns the resource
  */
-export const checkOwnership = (resourceField: string = 'userId') => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+export const checkOwnership = (resourceField = 'userId') => {
+  return async (req, res, next) => {
     try {
       const userId = req.user._id.toString();
       const resourceUserId = req.body[resourceField] || req.query[resourceField];
@@ -189,10 +183,10 @@ export const checkOwnership = (resourceField: string = 'userId') => {
  * Rate limiting middleware (simple implementation)
  * Prevents abuse by limiting requests per IP
  */
-const requestCounts = new Map<string, number[]>();
+const requestCounts = new Map();
 
-export const rateLimit = (maxRequests: number = 100, windowMs: number = 60000) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const rateLimit = (maxRequests = 100, windowMs = 60000) => {
+  return (req, res, next) => {
     const ip = req.ip || 'unknown';
     const now = Date.now();
     const windowStart = now - windowMs;
@@ -232,8 +226,8 @@ export const rateLimit = (maxRequests: number = 100, windowMs: number = 60000) =
  * Input validation middleware
  * Sanitizes and validates input data
  */
-export const validateInput = (schema: any) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const validateInput = (schema) => {
+  return (req, res, next) => {
     try {
       const { error, value } = schema.validate(req.body, {
         abortEarly: false,
@@ -241,7 +235,7 @@ export const validateInput = (schema: any) => {
       });
 
       if (error) {
-        const details = error.details.map((d: any) => ({
+        const details = error.details.map((d) => ({
           field: d.path.join('.'),
           message: d.message,
         }));
@@ -267,7 +261,9 @@ export const validateInput = (schema: any) => {
 
 export default {
   authenticate,
+  protect,
   authorize,
+  adminOnly,
   optionalAuth,
   checkOwnership,
   rateLimit,

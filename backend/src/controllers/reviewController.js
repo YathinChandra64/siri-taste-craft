@@ -2,7 +2,6 @@ import Review from '../models/Review.js';
 import Saree from '../models/Saree.js';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
-import { Request, Response } from 'express';
 
 /**
  * Review Controller
@@ -16,7 +15,7 @@ import { Request, Response } from 'express';
 /**
  * Check if user is a verified buyer (has purchased this saree)
  */
-const isVerifiedBuyer = async (userId: string, sareeId: string) => {
+const isVerifiedBuyer = async (userId, sareeId) => {
   try {
     const order = await Order.findOne({
       userId,
@@ -33,7 +32,7 @@ const isVerifiedBuyer = async (userId: string, sareeId: string) => {
 /**
  * Calculate and update saree rating statistics
  */
-const updateSareeRatings = async (sareeId: string) => {
+const updateSareeRatings = async (sareeId) => {
   try {
     const reviews = await Review.find({
       sareeId,
@@ -56,7 +55,7 @@ const updateSareeRatings = async (sareeId: string) => {
     // Calculate rating distribution
     const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     reviews.forEach((r) => {
-      distribution[r.rating as keyof typeof distribution]++;
+      distribution[r.rating]++;
     });
 
     // Update saree
@@ -80,13 +79,13 @@ const updateSareeRatings = async (sareeId: string) => {
  * POST /api/sarees/:sareeId/reviews
  * Create a new review
  */
-export const createReview = async (req: Request, res: Response) => {
+export const createReview = async (req, res) => {
   try {
     const { sareeId } = req.params;
     const { rating, title, comment } = req.body;
-    const userId = (req as any).user._id;
-    const userEmail = (req as any).user.email;
-    const userName = (req as any).user.name || 'Anonymous';
+    const userId = req.user._id;
+    const userEmail = req.user.email;
+    const userName = req.user.name || 'Anonymous';
 
     // ✅ Input Validation
     if (!rating || rating < 1 || rating > 5) {
@@ -144,7 +143,7 @@ export const createReview = async (req: Request, res: Response) => {
     const review = new Review({
       sareeId,
       userId,
-      orderId: (req as any).user.lastOrderId || null, // Get from order
+      orderId: req.user.lastOrderId || null,
       userName,
       userEmail,
       rating,
@@ -181,13 +180,13 @@ export const createReview = async (req: Request, res: Response) => {
  * GET /api/sarees/:sareeId/reviews
  * Get all reviews for a saree (public endpoint)
  */
-export const getReviews = async (req: Request, res: Response) => {
+export const getReviews = async (req, res) => {
   try {
     const { sareeId } = req.params;
     const { sort = 'recent', limit = 10, page = 1 } = req.query;
 
     // ✅ Determine sort order
-    let sortObj: any = { createdAt: -1 };
+    let sortObj = { createdAt: -1 };
     if (sort === 'helpful') sortObj = { helpful: -1, createdAt: -1 };
     if (sort === 'rating-high') sortObj = { rating: -1 };
     if (sort === 'rating-low') sortObj = { rating: 1 };
@@ -236,11 +235,11 @@ export const getReviews = async (req: Request, res: Response) => {
  * PUT /api/sarees/:sareeId/reviews/:reviewId
  * Update own review
  */
-export const updateReview = async (req: Request, res: Response) => {
+export const updateReview = async (req, res) => {
   try {
     const { sareeId, reviewId } = req.params;
     const { rating, title, comment } = req.body;
-    const userId = (req as any).user._id;
+    const userId = req.user._id;
 
     // ✅ Find review
     const review = await Review.findById(reviewId);
@@ -311,11 +310,11 @@ export const updateReview = async (req: Request, res: Response) => {
  * DELETE /api/sarees/:sareeId/reviews/:reviewId
  * Delete review (user or admin)
  */
-export const deleteReview = async (req: Request, res: Response) => {
+export const deleteReview = async (req, res) => {
   try {
     const { sareeId, reviewId } = req.params;
-    const userId = (req as any).user._id;
-    const userRole = (req as any).user.role;
+    const userId = req.user._id;
+    const userRole = req.user.role;
 
     // ✅ Find review
     const review = await Review.findById(reviewId);
@@ -363,10 +362,10 @@ export const deleteReview = async (req: Request, res: Response) => {
  * PATCH /api/sarees/:sareeId/reviews/:reviewId/helpful
  * Mark review as helpful
  */
-export const markHelpful = async (req: Request, res: Response) => {
+export const markHelpful = async (req, res) => {
   try {
     const { reviewId } = req.params;
-    const userId = (req as any).user?._id;
+    const userId = req.user?._id;
 
     // ✅ Find review
     const review = await Review.findById(reviewId);
@@ -408,17 +407,17 @@ export const markHelpful = async (req: Request, res: Response) => {
  * GET /api/admin/reviews
  * Get all reviews for admin moderation
  */
-export const getAdminReviews = async (req: Request, res: Response) => {
+export const getAdminReviews = async (req, res) => {
   try {
     const { page = 1, limit = 20, status = 'all', sort = 'recent' } = req.query;
 
     // ✅ Build filter
-    const filter: any = {};
+    const filter = {};
     if (status === 'approved') filter.isApproved = true;
     if (status === 'pending') filter.isApproved = false;
 
     // ✅ Determine sort
-    let sortObj: any = { createdAt: -1 };
+    let sortObj = { createdAt: -1 };
     if (sort === 'rating-high') sortObj = { rating: -1 };
     if (sort === 'rating-low') sortObj = { rating: 1 };
 
@@ -458,7 +457,7 @@ export const getAdminReviews = async (req: Request, res: Response) => {
  * PATCH /api/admin/reviews/:reviewId/approve
  * Approve or reject review (admin only)
  */
-export const approveReview = async (req: Request, res: Response) => {
+export const approveReview = async (req, res) => {
   try {
     const { reviewId } = req.params;
     const { isApproved } = req.body;
@@ -500,7 +499,7 @@ export const approveReview = async (req: Request, res: Response) => {
  * DELETE /api/admin/reviews/:reviewId
  * Admin delete review with reason
  */
-export const adminDeleteReview = async (req: Request, res: Response) => {
+export const adminDeleteReview = async (req, res) => {
   try {
     const { reviewId } = req.params;
     const { reason = 'No reason provided', notifyUser = true } = req.body;

@@ -1,5 +1,4 @@
 import Saree from '../models/Saree.js';
-import { Request, Response } from 'express';
 
 /**
  * Saree Controller
@@ -13,8 +12,8 @@ import { Request, Response } from 'express';
 /**
  * Build filter query based on parameters
  */
-const buildFilterQuery = (queryParams: any) => {
-  const filter: any = {};
+const buildFilterQuery = (queryParams) => {
+  const filter = {};
 
   // Price range filter
   if (queryParams.minPrice || queryParams.maxPrice) {
@@ -95,8 +94,8 @@ const buildFilterQuery = (queryParams: any) => {
 /**
  * Determine sort order
  */
-const buildSortQuery = (sortBy: string) => {
-  const sortMap: any = {
+const buildSortQuery = (sortBy) => {
+  const sortMap = {
     'price-low': { price: 1 },
     'price-high': { price: -1 },
     rating: { averageRating: -1 },
@@ -128,7 +127,7 @@ const buildSortQuery = (sortBy: string) => {
  *   - availability (string or array: in-stock, out-of-stock)
  *   - search (string)
  */
-export const getSarees = async (req: Request, res: Response) => {
+export const getSarees = async (req, res) => {
   try {
     const {
       page = '1',
@@ -164,7 +163,7 @@ export const getSarees = async (req: Request, res: Response) => {
     });
 
     // ✅ Build sort query
-    const sortQuery = buildSortQuery(sort as string);
+    const sortQuery = buildSortQuery(sort);
 
     // ✅ Execute query with pagination
     const sarees = await Saree.find(filter)
@@ -204,7 +203,7 @@ export const getSarees = async (req: Request, res: Response) => {
  * GET /api/sarees/:id
  * Get a single saree by ID with full details
  */
-export const getSareeById = async (req: Request, res: Response) => {
+export const getSareeById = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -237,7 +236,7 @@ export const getSareeById = async (req: Request, res: Response) => {
  * POST /api/sarees (Admin only)
  * Create a new saree
  */
-export const createSaree = async (req: Request, res: Response) => {
+export const createSaree = async (req, res) => {
   try {
     const {
       name,
@@ -299,7 +298,7 @@ export const createSaree = async (req: Request, res: Response) => {
  * PUT /api/sarees/:id (Admin only)
  * Update a saree
  */
-export const updateSaree = async (req: Request, res: Response) => {
+export const updateSaree = async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -342,7 +341,7 @@ export const updateSaree = async (req: Request, res: Response) => {
  * DELETE /api/sarees/:id (Admin only)
  * Delete a saree
  */
-export const deleteSaree = async (req: Request, res: Response) => {
+export const deleteSaree = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -377,7 +376,7 @@ export const deleteSaree = async (req: Request, res: Response) => {
  * GET /api/sarees/stats/top-rated
  * Get top-rated sarees
  */
-export const getTopRatedSarees = async (req: Request, res: Response) => {
+export const getTopRatedSarees = async (req, res) => {
   try {
     const { limit = '10' } = req.query;
 

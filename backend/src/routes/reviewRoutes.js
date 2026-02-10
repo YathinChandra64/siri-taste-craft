@@ -16,7 +16,7 @@ import { authenticate, authorize } from '../middleware/authMiddleware.js';
  * All routes related to saree reviews
  */
 
-const router: Router = express.Router();
+const router = express.Router();
 
 // ============================================
 // PUBLIC ROUTES (No authentication required)

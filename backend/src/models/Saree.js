@@ -1,4 +1,6 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose from 'mongoose';
+
+const Schema = mongoose.Schema;
 
 /**
  * Updated Saree Model
@@ -105,6 +107,7 @@ const sareeSchema = new Schema(
       },
       default: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
     },
+  },
   {
     timestamps: true,
   }
