@@ -96,7 +96,9 @@ const AdminSarees = () => {
       const response = await fetch("http://localhost:5000/api/sarees");
       if (response.ok) {
         const data = await response.json();
-        setSarees(data);
+        // Extract the data array from the API response object
+        const sareeList = Array.isArray(data) ? data : (data.data || []);
+        setSarees(sareeList);
       }
     } catch (error) {
       console.error("Failed to fetch sarees:", error);

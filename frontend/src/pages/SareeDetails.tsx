@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -65,6 +65,7 @@ const SareeDetails = () => {
   const [loading, setLoading] = useState(true);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [inCart, setInCart] = useState(false);
+  const [inWishlist, setInWishlist] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [userReview, setUserReview] = useState(false);
 
@@ -76,25 +77,16 @@ const SareeDetails = () => {
   });
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      fetchSareeDetails();
-      fetchReviews();
-    }
-  }, [id]);
-
-  useEffect(() => {
-    const cartItems = getCart();
-    setInCart(cartItems.some((item) => item.id === id));
-  }, [id]);
-
-  const fetchSareeDetails = async () => {
+  // ✅ FIXED: Define functions BEFORE using them in useEffect
+  const fetchSareeDetails = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`http://localhost:5000/api/sarees/${id}`);
       if (response.ok) {
         const data = await response.json();
-        setSaree(data);
+        // Extract the saree object from the API response
+        const sareeData = data.data || data;
+        setSaree(sareeData);
       } else {
         toast({
           title: "Error",
@@ -113,9 +105,9 @@ const SareeDetails = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate, toast]);
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setReviewsLoading(true);
       const response = await fetch(
@@ -123,12 +115,14 @@ const SareeDetails = () => {
       );
       if (response.ok) {
         const data = await response.json();
-        setReviews(data);
+        // Extract the reviews array from the API response
+        const reviewsData = Array.isArray(data) ? data : (data.data || []);
+        setReviews(reviewsData);
 
         // Check if user has already reviewed
         if (isAuthenticated && user) {
-          const userReviewExists = data.some(
-            (review: Review) => review.userId === user._id || review.userEmail === user.email
+          const userReviewExists = reviewsData.some(
+            (review: Review) => review.userId === user.id || review.userEmail === user.email
           );
           setUserReview(userReviewExists);
         }
@@ -138,7 +132,20 @@ const SareeDetails = () => {
     } finally {
       setReviewsLoading(false);
     }
-  };
+  }, [id, isAuthenticated, user]);
+
+  // ✅ Now use the functions in useEffect
+  useEffect(() => {
+    if (id) {
+      fetchSareeDetails();
+      fetchReviews();
+    }
+  }, [id, fetchSareeDetails, fetchReviews]);
+
+  useEffect(() => {
+    const cartItems = getCart();
+    setInCart(cartItems.some((item) => item.id === id));
+  }, [id]);
 
   const handleAddToCart = () => {
     if (!saree) return;
@@ -159,6 +166,57 @@ const SareeDetails = () => {
       title: "✨ Added to Cart!",
       description: `${saree.name} is ready to make you look stunning!`,
     });
+  };
+
+  const handleAddToWishlist = () => {
+    if (!saree) return;
+
+    try {
+      const wishlist = localStorage.getItem("wishlist");
+      const wishlistItems = wishlist ? JSON.parse(wishlist) : [];
+      
+      // Check if already in wishlist
+      const isAlreadyWishlisted = wishlistItems.some(
+        (item: any) => item.id === saree._id
+      );
+
+      if (isAlreadyWishlisted) {
+        // Remove from wishlist
+        const filtered = wishlistItems.filter(
+          (item: any) => item.id !== saree._id
+        );
+        localStorage.setItem("wishlist", JSON.stringify(filtered));
+        setInWishlist(false);
+
+        toast({
+          title: "❤️ Removed from Wishlist",
+          description: `${saree.name} has been removed from your wishlist`,
+        });
+      } else {
+        // Add to wishlist
+        wishlistItems.push({
+          id: saree._id,
+          name: saree.name,
+          price: saree.price,
+          image: saree.imageUrl,
+          category: saree.category,
+        });
+        localStorage.setItem("wishlist", JSON.stringify(wishlistItems));
+        setInWishlist(true);
+
+        toast({
+          title: "❤️ Added to Wishlist!",
+          description: `${saree.name} saved for later!`,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to update wishlist:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update wishlist",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -324,9 +382,9 @@ const SareeDetails = () => {
                       Out of Stock
                     </div>
                   )}
-                  {saree.stock > 0 && saree.stock <= 5 && (
-                    <div className="absolute top-4 right-4 bg-orange-500/90 text-white px-4 py-2 rounded-lg font-semibold">
-                      Only {saree.stock} left
+                  {saree.stock > 0 && saree.stock <= 3 && (
+                    <div className="absolute top-4 right-4 bg-orange-500/90 text-white px-4 py-2 rounded-lg font-semibold animate-pulse">
+                      Limited Stock
                     </div>
                   )}
                 </motion.div>
@@ -440,15 +498,15 @@ const SareeDetails = () => {
                   transition={{ delay: 0.4 }}
                   className="space-y-2 pt-6 border-t"
                 >
-                  <p className="text-sm text-muted-foreground uppercase tracking-wider">Stock Status</p>
+                  <p className="text-sm text-muted-foreground uppercase tracking-wider">Availability</p>
                   <p
                     className={`text-lg font-semibold ${
                       saree.stock > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                     }`}
                   >
                     {saree.stock > 0
-                      ? `${saree.stock} in stock`
-                      : "Out of stock"}
+                      ? "In Stock - Ready to Ship"
+                      : "Currently Out of Stock"}
                   </p>
                 </motion.div>
 
@@ -481,12 +539,22 @@ const SareeDetails = () => {
                     )}
                   </Button>
                   <Button
+                    onClick={handleAddToWishlist}
                     variant="outline"
                     size="lg"
-                    className="flex items-center justify-center gap-2"
+                    className={`flex items-center justify-center gap-2 ${
+                      inWishlist
+                        ? "bg-red-50 text-red-600 border-red-300 hover:bg-red-100 dark:bg-red-900/20 dark:border-red-700"
+                        : "hover:bg-red-50 dark:hover:bg-red-900/20"
+                    }`}
                   >
-                    <Heart size={20} />
-                    <span className="hidden sm:inline">Wishlist</span>
+                    <Heart
+                      size={20}
+                      fill={inWishlist ? "currentColor" : "none"}
+                    />
+                    <span className="hidden sm:inline">
+                      {inWishlist ? "Wishlisted" : "Wishlist"}
+                    </span>
                   </Button>
                   <Button
                     variant="outline"
@@ -592,7 +660,7 @@ const SareeDetails = () => {
                           onChange={(e) =>
                             setReviewForm({ ...reviewForm, title: e.target.value })
                           }
-                          className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                           required
                         />
                       </div>
@@ -607,7 +675,7 @@ const SareeDetails = () => {
                             setReviewForm({ ...reviewForm, comment: e.target.value })
                           }
                           rows={4}
-                          className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                          className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                           required
                         />
                       </div>
@@ -684,7 +752,7 @@ const SareeDetails = () => {
                               <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
                                 👍 Helpful ({review.helpful || 0})
                               </button>
-                              {user && user._id === review.userId && (
+                              {user && user.id === review.userId && (
                                 <button className="ml-auto text-xs text-red-500 hover:text-red-600 transition-colors">
                                   <Trash2 size={14} />
                                 </button>

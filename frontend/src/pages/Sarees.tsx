@@ -88,8 +88,10 @@ const Sarees = () => {
       setLoading(true);
       const response = await fetch("http://localhost:5000/api/sarees");
       if (response.ok) {
-        const data: Saree[] = await response.json();
-        const formattedData = data.map((saree) => ({
+        const data = await response.json();
+        // Extract the data array from the API response object
+        const sareeList = Array.isArray(data) ? data : (data.data || []);
+        const formattedData = sareeList.map((saree) => ({
           ...saree,
           id: saree._id,
           type: "saree",

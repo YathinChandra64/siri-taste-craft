@@ -21,7 +21,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Axios interceptor will automatically add the token
         const response = await API.get("/auth/me");
 
-        const userData: User = response.data;
+        // ✅ FIXED: Extract user data from wrapped response
+        const userData: User = response.data.data || response.data;
         setUser(userData);
         // ✅ Store user info in localStorage for app purposes
         localStorage.setItem("user", JSON.stringify(userData));
@@ -47,7 +48,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password
       });
 
-      const data = response.data;
+      // ✅ FIXED: Extract data from wrapped response
+      const data = response.data.data || response.data;
 
       if (data.token) {
         localStorage.setItem("authToken", data.token);
@@ -74,7 +76,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password
       });
 
-      const data = response.data;
+      // ✅ FIXED: Extract data from wrapped response
+      const data = response.data.data || response.data;
 
       if (data.token) {
         localStorage.setItem("authToken", data.token);

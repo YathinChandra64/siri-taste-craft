@@ -99,8 +99,10 @@ const AdminProducts = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setSarees(data);
-        console.log("✅ Sarees loaded:", data.length);
+        // Extract the data array from the API response object
+        const sareeList = Array.isArray(data) ? data : (data.data || []);
+        setSarees(sareeList);
+        console.log("✅ Sarees loaded:", sareeList.length);
       }
     } catch (error) {
       console.error("Failed to fetch sarees:", error);
