@@ -183,6 +183,26 @@ API.interceptors.response.use(
 );
 
 // ======================================
+// ✅ HELPER: Extract data from wrapped response
+// ======================================
+
+/**
+ * Extract data array from API response
+ * Handles both { data: [...] } and direct [...] responses
+ */
+const extractData = <T>(response: any): T => {
+  if (response && typeof response === "object") {
+    // If response has a 'data' property, return it
+    if ("data" in response) {
+      return response.data as T;
+    }
+    // If it's directly the data (array or object), return it
+    return response as T;
+  }
+  return response as T;
+};
+
+// ======================================
 // ✅ NEW: UPI PAYMENT TYPES
 // ======================================
 
@@ -398,26 +418,39 @@ export const verifyToken = async (): Promise<unknown> => {
 // EXISTING: PRODUCT ENDPOINTS
 // ======================================
 
+/**
+ * Get products with proper data extraction
+ */
 export const getProducts = async (
   filters?: FilterParams
 ): Promise<unknown> => {
   const response = await API.get("/products", { params: filters });
-  return response.data;
+  // ✅ Extract data array from response
+  return extractData(response.data);
 };
 
 export const getProductById = async (id: string): Promise<unknown> => {
   const response = await API.get(`/products/${id}`);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
+/**
+ * Get sarees with proper data extraction
+ */
 export const getSarees = async (filters?: FilterParams): Promise<unknown> => {
   const response = await API.get("/sarees", { params: filters });
-  return response.data;
+  // ✅ Extract data array from response { success, data: [...], pagination }
+  return extractData(response.data);
 };
 
+/**
+ * Get single saree with proper data extraction
+ */
 export const getSareeById = async (id: string): Promise<unknown> => {
   const response = await API.get(`/sarees/${id}`);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 // ======================================
@@ -436,7 +469,8 @@ export const getCart = async (): Promise<unknown> => {
   }
   
   const response = await API.get("/cart");
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 export const addToCart = async (
@@ -450,7 +484,8 @@ export const addToCart = async (
   }
   
   const response = await API.post("/cart", { productId, quantity });
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 export const updateCart = async (
@@ -458,17 +493,20 @@ export const updateCart = async (
   quantity: number
 ): Promise<unknown> => {
   const response = await API.put(`/cart/${cartId}`, { quantity });
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 export const removeFromCart = async (cartId: string): Promise<unknown> => {
   const response = await API.delete(`/cart/${cartId}`);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 export const clearCart = async (): Promise<unknown> => {
   const response = await API.delete("/cart");
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 // ======================================
@@ -506,17 +544,26 @@ export const createOrder = async (orderData: OrderData): Promise<unknown> => {
   });
   
   const response = await API.post("/orders", orderData);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
+/**
+ * Get orders with proper data extraction
+ */
 export const getOrders = async (): Promise<unknown> => {
   const response = await API.get("/orders");
-  return response.data;
+  // ✅ Extract data array from response
+  return extractData(response.data);
 };
 
+/**
+ * Get order by ID with proper data extraction
+ */
 export const getOrderById = async (id: string): Promise<unknown> => {
   const response = await API.get(`/orders/${id}`);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 export const updateOrder = async (
@@ -524,28 +571,35 @@ export const updateOrder = async (
   updateData: UpdateData
 ): Promise<unknown> => {
   const response = await API.put(`/orders/${id}`, updateData);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 export const cancelOrder = async (id: string): Promise<unknown> => {
   const response = await API.post(`/orders/${id}/cancel`);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 // ======================================
 // EXISTING: PROFILE ENDPOINTS
 // ======================================
 
+/**
+ * Get profile with proper data extraction
+ */
 export const getProfile = async (): Promise<unknown> => {
   const response = await API.get("/profile");
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 export const updateProfile = async (
   profileData: ProfileData
 ): Promise<unknown> => {
   const response = await API.put("/profile", profileData);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 export const changePassword = async (
@@ -556,7 +610,8 @@ export const changePassword = async (
     oldPassword,
     newPassword,
   });
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 // ======================================
@@ -567,7 +622,8 @@ export const sendContactMessage = async (
   contactData: ContactData
 ): Promise<unknown> => {
   const response = await API.post("/contact", contactData);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 // ======================================
@@ -576,12 +632,17 @@ export const sendContactMessage = async (
 
 export const sendChatMessage = async (chatData: ChatData): Promise<unknown> => {
   const response = await API.post("/chat", chatData);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
+/**
+ * Get chat messages with proper data extraction
+ */
 export const getChatMessages = async (): Promise<unknown> => {
   const response = await API.get("/chat");
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 // ======================================
@@ -590,26 +651,39 @@ export const getChatMessages = async (): Promise<unknown> => {
 
 export const reportIssue = async (issueData: IssueData): Promise<unknown> => {
   const response = await API.post("/issues", issueData);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
+/**
+ * Get issues with proper data extraction
+ */
 export const getIssues = async (): Promise<unknown> => {
   const response = await API.get("/issues");
-  return response.data;
+  // ✅ Extract data array from response
+  return extractData(response.data);
 };
 
 // ======================================
 // EXISTING: USER ENDPOINTS
 // ======================================
 
+/**
+ * Get users with proper data extraction
+ */
 export const getUsers = async (): Promise<unknown> => {
   const response = await API.get("/users");
-  return response.data;
+  // ✅ Extract data array from response
+  return extractData(response.data);
 };
 
+/**
+ * Get user by ID with proper data extraction
+ */
 export const getUserById = async (id: string): Promise<unknown> => {
   const response = await API.get(`/users/${id}`);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 export const updateUser = async (
@@ -617,7 +691,8 @@ export const updateUser = async (
   userData: UserData
 ): Promise<unknown> => {
   const response = await API.put(`/users/${id}`, userData);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 // ======================================
@@ -628,12 +703,17 @@ export const processPayment = async (
   paymentData: PaymentData
 ): Promise<unknown> => {
   const response = await API.post("/payments", paymentData);
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
+/**
+ * Get payment history with proper data extraction
+ */
 export const getPaymentHistory = async (): Promise<unknown> => {
   const response = await API.get("/payments");
-  return response.data;
+  // ✅ Extract data from response
+  return extractData(response.data);
 };
 
 // ======================================
