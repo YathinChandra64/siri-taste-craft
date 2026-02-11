@@ -5,7 +5,7 @@ import Address from "../models/Address.js";
 export const addAddress = async (req, res) => {
   try {
     const { fullName, mobileNumber, houseFlat, streetArea, city, state, pincode, addressType } = req.body;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     // Validation
     if (!fullName || !mobileNumber || !houseFlat || !streetArea || !city || !state || !pincode || !addressType) {
@@ -83,7 +83,7 @@ export const addAddress = async (req, res) => {
 // ✅ Get All User Addresses
 export const getUserAddresses = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     const addresses = await Address.find({ user: userId }).sort({ isDefault: -1, createdAt: -1 });
 
@@ -105,7 +105,7 @@ export const getUserAddresses = async (req, res) => {
 export const getAddressById = async (req, res) => {
   try {
     const { addressId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     if (!mongoose.Types.ObjectId.isValid(addressId)) {
       return res.status(400).json({
@@ -144,7 +144,7 @@ export const updateAddress = async (req, res) => {
   try {
     const { addressId } = req.params;
     const { fullName, mobileNumber, houseFlat, streetArea, city, state, pincode, addressType } = req.body;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     if (!mongoose.Types.ObjectId.isValid(addressId)) {
       return res.status(400).json({
@@ -215,7 +215,7 @@ export const updateAddress = async (req, res) => {
 export const deleteAddress = async (req, res) => {
   try {
     const { addressId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     if (!mongoose.Types.ObjectId.isValid(addressId)) {
       return res.status(400).json({
@@ -264,7 +264,7 @@ export const deleteAddress = async (req, res) => {
 export const setDefaultAddress = async (req, res) => {
   try {
     const { addressId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     if (!mongoose.Types.ObjectId.isValid(addressId)) {
       return res.status(400).json({

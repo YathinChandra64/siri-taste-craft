@@ -18,9 +18,9 @@ import User from '../models/User.js';
 const isVerifiedBuyer = async (userId, sareeId) => {
   try {
     const order = await Order.findOne({
-      userId,
-      'items.sareeId': sareeId,
-      status: { $in: ['completed', 'delivered'] },
+      user: userId,
+      'items.product': sareeId,
+      orderStatus: { $in: ['DELIVERED', 'CONFIRMED', 'SHIPPED', 'PAID'] },
     });
     return !!order;
   } catch (error) {
@@ -119,9 +119,9 @@ export const createReview = async (req, res) => {
     }
 
     // ✅ Check if user is verified buyer
-    const isVerified = await isVerifiedBuyer(userId.toString(), sareeId);
+    const isVerified = await isVerifiedBuyer(userId, sareeId);
     if (!isVerified) {
-      return res.status(400).json({
+      return res.status(403).json({
         success: false,
         message: 'You must purchase this saree before reviewing it',
       });
@@ -203,7 +203,7 @@ export const getReviews = async (req, res) => {
       .sort(sortObj)
       .skip(skip)
       .limit(limitNum)
-      .select('-helpfulBy') // Don't send helpfulBy array to client
+      .select('-helpfulBy')
       .lean();
 
     // ✅ Get total count
