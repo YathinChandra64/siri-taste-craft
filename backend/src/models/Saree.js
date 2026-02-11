@@ -1,111 +1,102 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const Schema = mongoose.Schema;
+const ColorVariantSchema = new mongoose.Schema({
+  color: {
+    type: String,
+    required: true,
+  },
+  colorCode: {
+    type: String,
+    required: true,
+  },
+  images: {
+    type: [String],
+    required: true,
+    default: [],
+  },
+  stock: {
+    type: Number,
+    required: true,
+    min: 0,
+    default: 0,
+  },
+});
 
-/**
- * Updated Saree Model
- * Added fields for review ratings and statistics
- */
-
-const sareeSchema = new Schema(
+const SareeSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Saree name is required'],
+      required: true,
       trim: true,
-      index: true,
-    },
-    price: {
-      type: Number,
-      required: [true, 'Price is required'],
-      min: [0, 'Price cannot be negative'],
-      index: true,
-    },
-    category: {
-      type: String,
-      required: [true, 'Category is required'],
-      enum: {
-        values: ['Silk', 'Cotton', 'Bridal', 'Designer', 'Casual', 'Traditional'],
-        message: 'Invalid category',
-      },
-      index: true,
-    },
-    material: {
-      type: String,
-      enum: {
-        values: [
-          'Pure Silk',
-          'Cotton',
-          'Chiffon',
-          'Georgette',
-          'Kanjivaram',
-          'Banarasi',
-          'Linen',
-          'Silk Blend',
-          'Cotton Blend',
-        ],
-        message: 'Invalid material type',
-      },
-      index: true,
-    },
-    color: {
-      type: String,
-      index: true,
-    },
-    occasion: {
-      type: String,
-      enum: {
-        values: ['Wedding', 'Casual', 'Festival', 'Office', 'Party'],
-        message: 'Invalid occasion',
-      },
-      index: true,
-    },
-    stock: {
-      type: Number,
-      required: [true, 'Stock quantity is required'],
-      default: 0,
-      min: [0, 'Stock cannot be negative'],
-    },
-    imageUrl: {
-      type: String,
-      required: [true, 'Image URL is required'],
     },
     description: {
       type: String,
-      required: [true, 'Description is required'],
-      minlength: [20, 'Description must be at least 20 characters'],
+      required: true,
     },
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    category: {
+      type: String,
+      required: true,
+      enum: [
+        "Silk",
+        "Cotton",
+        "Georgette",
+        "Chiffon",
+        "Net",
+        "Banarasi",
+        "Kanjeevaram",
+        "Designer",
+        "Traditional",
+        "Contemporary",
+        "Bridal",
+        "Party Wear",
+        "Casual",
+      ],
+    },
+    stock: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
+    imageUrl: {
+      type: String,
+      required: true,
+    },
+    material: String,
+    color: String,
+    occasion: String,
     blousePrice: {
       type: Number,
-      min: [0, 'Blouse price cannot be negative'],
+      min: 0,
     },
     length: {
       type: String,
-      // e.g., "6m", "5.5m"
+      default: "6.5 meters",
     },
-
-    // Review Statistics (denormalized for fast access)
+    fabric: String,
+    tags: {
+      type: [String],
+      default: [],
+    },
+    colorVariants: {
+      type: [ColorVariantSchema],
+      default: [],
+    },
     averageRating: {
       type: Number,
-      default: 0,
       min: 0,
       max: 5,
-      index: true,
+      default: 0,
     },
     reviewCount: {
       type: Number,
-      default: 0,
       min: 0,
-    },
-    ratingDistribution: {
-      type: {
-        5: { type: Number, default: 0 },
-        4: { type: Number, default: 0 },
-        3: { type: Number, default: 0 },
-        2: { type: Number, default: 0 },
-        1: { type: Number, default: 0 },
-      },
-      default: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      default: 0,
     },
   },
   {
@@ -113,27 +104,42 @@ const sareeSchema = new Schema(
   }
 );
 
-// Compound indexes for efficient filtering
-sareeSchema.index({ category: 1, price: 1 });
-sareeSchema.index({ material: 1, color: 1 });
-sareeSchema.index({ averageRating: -1, createdAt: -1 });
-sareeSchema.index({ name: 'text', description: 'text' }); // For full-text search
+// Indexes
+SareeSchema.index({ category: 1, fabric: 1 });
+SareeSchema.index({ price: 1 });
+SareeSchema.index({ averageRating: -1 });
+SareeSchema.index({ tags: 1 });
 
-// Pre-save validation
-sareeSchema.pre('save', function (next) {
-  // Ensure rating is valid
-  if (this.averageRating < 0 || this.averageRating > 5) {
-    this.averageRating = 0;
+// Virtual: Check if in stock
+SareeSchema.virtual("inStock").get(function () {
+  if (this.colorVariants?.length > 0) {
+    return this.colorVariants.some((variant) => variant.stock > 0);
   }
-
-  // Ensure review count is non-negative
-  if (this.reviewCount < 0) {
-    this.reviewCount = 0;
-  }
-
-  next();
+  return this.stock > 0;
 });
 
-const Saree = mongoose.model('Saree', sareeSchema);
+// Method: Get total stock
+SareeSchema.methods.getTotalStock = function () {
+  if (this.colorVariants?.length > 0) {
+    return this.colorVariants.reduce(
+      (total, variant) => total + variant.stock,
+      0
+    );
+  }
+  return this.stock;
+};
+
+// Method: Update variant stock
+SareeSchema.methods.updateVariantStock = function (color, quantity) {
+  if (!this.colorVariants?.length) return false;
+
+  const variant = this.colorVariants.find((v) => v.color === color);
+  if (!variant) return false;
+
+  variant.stock = Math.max(0, variant.stock + quantity);
+  return true;
+};
+
+const Saree = mongoose.model("Saree", SareeSchema);
 
 export default Saree;

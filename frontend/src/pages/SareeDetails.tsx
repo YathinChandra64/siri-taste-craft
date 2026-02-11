@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import ImageMagnifier from "@/components/ImageMagnifier";
+import RecommendedSarees from "@/components/RecommendedSarees";
 import {
   ShoppingCart,
   Heart,
@@ -14,12 +16,19 @@ import {
   MessageCircle,
   ChevronLeft,
   Check,
-  Flag,
   Trash2,
 } from "lucide-react";
 import { addToCart, getCart } from "@/utils/cart";
 
-type Saree = {
+// ✅ FIXED: Proper TypeScript interfaces (no 'any')
+interface ColorVariant {
+  color: string;
+  colorCode: string;
+  images: string[];
+  stock: number;
+}
+
+interface Saree {
   _id: string;
   name: string;
   price: number;
@@ -35,9 +44,12 @@ type Saree = {
   averageRating?: number;
   reviewCount?: number;
   createdAt?: string;
-};
+  colorVariants?: ColorVariant[];
+  fabric?: string;
+  tags?: string[];
+}
 
-type Review = {
+interface Review {
   _id: string;
   userId: string;
   userName: string;
@@ -51,7 +63,23 @@ type Review = {
   helpful: number;
   createdAt: string;
   updatedAt: string;
-};
+}
+
+interface ReviewFormData {
+  rating: number;
+  title: string;
+  comment: string;
+}
+
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  type: "saree";
+  quantity: number;
+  selectedColor?: string;
+}
 
 const SareeDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -68,23 +96,79 @@ const SareeDetails = () => {
   const [inWishlist, setInWishlist] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [userReview, setUserReview] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  
+  // ✅ NEW: Color variant state
+  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
+  
+  // ✅ NEW: Stock error state
+  const [stockError, setStockError] = useState("");
 
   // Review form
-  const [reviewForm, setReviewForm] = useState({
+  const [reviewForm, setReviewForm] = useState<ReviewFormData>({
     rating: 5,
     title: "",
     comment: "",
   });
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  // ✅ FIXED: Define functions BEFORE using them in useEffect
+  // ✅ NEW: Get current stock based on selected color variant
+  const getCurrentStock = useCallback((): number => {
+    if (!saree) return 0;
+    
+    if (saree.colorVariants && saree.colorVariants.length > 0) {
+      return saree.colorVariants[selectedColorIndex]?.stock || 0;
+    }
+    
+    return saree.stock || 0;
+  }, [saree, selectedColorIndex]);
+
+  // ✅ NEW: Get current images based on selected color variant
+  const getCurrentImages = useCallback((): string[] => {
+    if (!saree) return [];
+    
+    if (saree.colorVariants && saree.colorVariants.length > 0) {
+      const variantImages = saree.colorVariants[selectedColorIndex]?.images;
+      return variantImages && variantImages.length > 0 ? variantImages : [saree.imageUrl];
+    }
+    
+    return [saree.imageUrl];
+  }, [saree, selectedColorIndex]);
+
+  // ✅ NEW: Handle quantity change with stock validation
+  const handleQuantityChange = (newQuantity: number) => {
+    const availableStock = getCurrentStock();
+    
+    if (newQuantity < 1) {
+      setQuantity(1);
+      setStockError("");
+      return;
+    }
+    
+    if (newQuantity > availableStock) {
+      setStockError(`Only ${availableStock} items available in stock`);
+      setQuantity(availableStock);
+      return;
+    }
+    
+    setStockError("");
+    setQuantity(newQuantity);
+  };
+
+  // ✅ NEW: Handle color variant selection
+  const handleColorChange = (index: number) => {
+    setSelectedColorIndex(index);
+    setSelectedImage(0);
+    setQuantity(1);
+    setStockError("");
+  };
+
   const fetchSareeDetails = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`http://localhost:5000/api/sarees/${id}`);
       if (response.ok) {
         const data = await response.json();
-        // Extract the saree object from the API response
         const sareeData = data.data || data;
         setSaree(sareeData);
       } else {
@@ -107,6 +191,7 @@ const SareeDetails = () => {
     }
   }, [id, navigate, toast]);
 
+  // ✅ FIXED: Proper review fetching with state update
   const fetchReviews = useCallback(async () => {
     try {
       setReviewsLoading(true);
@@ -115,11 +200,9 @@ const SareeDetails = () => {
       );
       if (response.ok) {
         const data = await response.json();
-        // Extract the reviews array from the API response
         const reviewsData = Array.isArray(data) ? data : (data.data || []);
         setReviews(reviewsData);
 
-        // Check if user has already reviewed
         if (isAuthenticated && user) {
           const userReviewExists = reviewsData.some(
             (review: Review) => review.userId === user.id || review.userEmail === user.email
@@ -134,7 +217,6 @@ const SareeDetails = () => {
     }
   }, [id, isAuthenticated, user]);
 
-  // ✅ Now use the functions in useEffect
   useEffect(() => {
     if (id) {
       fetchSareeDetails();
@@ -147,16 +229,42 @@ const SareeDetails = () => {
     setInCart(cartItems.some((item) => item.id === id));
   }, [id]);
 
+  // ✅ FIXED: Add to cart with stock validation
   const handleAddToCart = () => {
     if (!saree) return;
 
-    const cartItem = {
+    const availableStock = getCurrentStock();
+    
+    // ✅ Validate stock before adding to cart
+    if (quantity > availableStock) {
+      setStockError(`Only ${availableStock} items available in stock`);
+      toast({
+        title: "Stock Limit Exceeded",
+        description: `Only ${availableStock} items available`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (availableStock === 0) {
+      toast({
+        title: "Out of Stock",
+        description: "This item is currently unavailable",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedColor = saree.colorVariants?.[selectedColorIndex];
+
+    const cartItem: CartItem = {
       id: saree._id,
       name: saree.name,
       price: saree.price,
-      image: saree.imageUrl,
-      type: "saree" as const,
-      quantity: 1,
+      image: getCurrentImages()[0] || saree.imageUrl,
+      type: "saree",
+      quantity: quantity,
+      selectedColor: selectedColor?.color,
     };
 
     addToCart(cartItem);
@@ -164,7 +272,7 @@ const SareeDetails = () => {
 
     toast({
       title: "✨ Added to Cart!",
-      description: `${saree.name} is ready to make you look stunning!`,
+      description: `${quantity} ${saree.name}${selectedColor ? ` (${selectedColor.color})` : ''} added to cart!`,
     });
   };
 
@@ -175,15 +283,13 @@ const SareeDetails = () => {
       const wishlist = localStorage.getItem("wishlist");
       const wishlistItems = wishlist ? JSON.parse(wishlist) : [];
       
-      // Check if already in wishlist
       const isAlreadyWishlisted = wishlistItems.some(
-        (item: any) => item.id === saree._id
+        (item: { id: string }) => item.id === saree._id
       );
 
       if (isAlreadyWishlisted) {
-        // Remove from wishlist
         const filtered = wishlistItems.filter(
-          (item: any) => item.id !== saree._id
+          (item: { id: string }) => item.id !== saree._id
         );
         localStorage.setItem("wishlist", JSON.stringify(filtered));
         setInWishlist(false);
@@ -193,7 +299,6 @@ const SareeDetails = () => {
           description: `${saree.name} has been removed from your wishlist`,
         });
       } else {
-        // Add to wishlist
         wishlistItems.push({
           id: saree._id,
           name: saree.name,
@@ -219,7 +324,8 @@ const SareeDetails = () => {
     }
   };
 
-  const handleSubmitReview = async (e: React.FormEvent) => {
+  // ✅ FIXED: Complete review submission with proper state update
+  const handleSubmitReview = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!isAuthenticated) {
@@ -232,10 +338,29 @@ const SareeDetails = () => {
       return;
     }
 
-    if (!reviewForm.title.trim() || !reviewForm.comment.trim()) {
+    // ✅ Validation
+    if (!reviewForm.title.trim()) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all fields",
+        description: "Review title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!reviewForm.comment.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Review comment is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (reviewForm.rating < 1 || reviewForm.rating > 5) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a rating",
         variant: "destructive",
       });
       return;
@@ -262,9 +387,16 @@ const SareeDetails = () => {
 
       if (response.ok) {
         const newReview = await response.json();
-        setReviews([newReview, ...reviews]);
+        
+        // ✅ FIXED: Update reviews state immediately
+        setReviews(prevReviews => [newReview, ...prevReviews]);
         setUserReview(true);
+        
+        // ✅ Reset form
         setReviewForm({ rating: 5, title: "", comment: "" });
+
+        // ✅ Refetch saree details to update average rating
+        await fetchSareeDetails();
 
         toast({
           title: "✅ Review Posted!",
@@ -277,12 +409,14 @@ const SareeDetails = () => {
           description: error.message || "You can only review after purchasing this saree",
           variant: "destructive",
         });
+      } else {
+        throw new Error("Failed to submit review");
       }
     } catch (error) {
       console.error("Failed to submit review:", error);
       toast({
         title: "Error",
-        description: "Failed to submit review",
+        description: "Failed to submit review. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -296,6 +430,7 @@ const SareeDetails = () => {
         {[...Array(5)].map((_, i) => (
           <button
             key={i}
+            type="button"
             onClick={() => interactive && onChange && onChange(i + 1)}
             disabled={!interactive}
             className={interactive ? "cursor-pointer" : "cursor-default"}
@@ -332,6 +467,9 @@ const SareeDetails = () => {
     );
   }
 
+  const currentImages = getCurrentImages();
+  const currentStock = getCurrentStock();
+
   return (
     <div className="min-h-screen relative">
       <AnimatedBackground />
@@ -358,36 +496,55 @@ const SareeDetails = () => {
             transition={{ duration: 0.5 }}
           >
             <div className="grid lg:grid-cols-2 gap-12 mb-12">
-              {/* Image Gallery */}
+              {/* Image Gallery with Magnifier */}
               <div className="space-y-4">
+                {/* ✅ NEW: Image Magnifier Component */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3 }}
-                  className="aspect-square bg-muted rounded-lg overflow-hidden group relative"
+                  className="aspect-square bg-muted rounded-lg overflow-hidden relative"
                 >
-                  <motion.img
-                    key={selectedImage}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                    src={saree.imageUrl}
+                  <ImageMagnifier
+                    src={currentImages[selectedImage] || saree.imageUrl}
                     alt={saree.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 cursor-zoom-in"
                   />
 
-                  {/* Stock Badge */}
-                  {saree.stock === 0 && (
-                    <div className="absolute top-4 right-4 bg-red-500/90 text-white px-4 py-2 rounded-lg font-semibold">
+                  {/* Stock Badge - ✅ FIXED: Don't show exact stock number */}
+                  {currentStock === 0 && (
+                    <div className="absolute top-4 right-4 bg-red-500/90 text-white px-4 py-2 rounded-lg font-semibold z-10">
                       Out of Stock
                     </div>
                   )}
-                  {saree.stock > 0 && saree.stock <= 3 && (
-                    <div className="absolute top-4 right-4 bg-orange-500/90 text-white px-4 py-2 rounded-lg font-semibold animate-pulse">
+                  {currentStock > 0 && currentStock <= 3 && (
+                    <div className="absolute top-4 right-4 bg-orange-500/90 text-white px-4 py-2 rounded-lg font-semibold animate-pulse z-10">
                       Limited Stock
                     </div>
                   )}
                 </motion.div>
+
+                {/* ✅ NEW: Thumbnail images for variants */}
+                {currentImages.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto">
+                    {currentImages.map((img, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedImage(idx)}
+                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                          selectedImage === idx
+                            ? "border-primary scale-105"
+                            : "border-transparent opacity-60 hover:opacity-100"
+                        }`}
+                      >
+                        <img
+                          src={img}
+                          alt={`${saree.name} ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Details */}
@@ -439,11 +596,89 @@ const SareeDetails = () => {
                   </p>
                 </motion.div>
 
-                {/* Description */}
+                {/* ✅ NEW: Color Variants Selector */}
+                {saree.colorVariants && saree.colorVariants.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.28 }}
+                    className="space-y-3"
+                  >
+                    <p className="text-sm font-semibold">
+                      Color: <span className="text-muted-foreground">{saree.colorVariants[selectedColorIndex].color}</span>
+                    </p>
+                    <div className="flex gap-3 flex-wrap">
+                      {saree.colorVariants.map((variant, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleColorChange(idx)}
+                          className={`relative group`}
+                          title={variant.color}
+                        >
+                          <div
+                            className={`w-12 h-12 rounded-full border-2 transition-all ${
+                              selectedColorIndex === idx
+                                ? "border-primary scale-110 shadow-lg"
+                                : "border-gray-300 hover:border-primary/50 hover:scale-105"
+                            }`}
+                            style={{ backgroundColor: variant.colorCode }}
+                          />
+                          {selectedColorIndex === idx && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Check className="text-white drop-shadow-lg" size={20} />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* ✅ NEW: Quantity Selector */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.3 }}
+                  className="space-y-2"
+                >
+                  <p className="text-sm font-semibold">Quantity</p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleQuantityChange(quantity - 1)}
+                      disabled={quantity <= 1}
+                      className="w-10 h-10 rounded-lg border border-input flex items-center justify-center hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
+                      className="w-20 h-10 text-center border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      min="1"
+                      max={currentStock}
+                    />
+                    <button
+                      onClick={() => handleQuantityChange(quantity + 1)}
+                      disabled={quantity >= currentStock}
+                      className="w-10 h-10 rounded-lg border border-input flex items-center justify-center hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      +
+                    </button>
+                  </div>
+                  {/* ✅ Stock Error Message */}
+                  {stockError && (
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                      {stockError}
+                    </p>
+                  )}
+                </motion.div>
+
+                {/* Description */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.32 }}
                   className="space-y-2"
                 >
                   <p className="text-sm text-muted-foreground uppercase tracking-wider">About</p>
@@ -491,7 +726,7 @@ const SareeDetails = () => {
                   )}
                 </motion.div>
 
-                {/* Stock Status */}
+                {/* ✅ FIXED: Stock Status - Don't show exact number */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -501,10 +736,10 @@ const SareeDetails = () => {
                   <p className="text-sm text-muted-foreground uppercase tracking-wider">Availability</p>
                   <p
                     className={`text-lg font-semibold ${
-                      saree.stock > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                      currentStock > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                     }`}
                   >
-                    {saree.stock > 0
+                    {currentStock > 0
                       ? "In Stock - Ready to Ship"
                       : "Currently Out of Stock"}
                   </p>
@@ -519,7 +754,7 @@ const SareeDetails = () => {
                 >
                   <Button
                     onClick={handleAddToCart}
-                    disabled={saree.stock === 0 || inCart}
+                    disabled={currentStock === 0 || inCart}
                     className={`flex-1 py-6 text-lg font-semibold flex items-center justify-center gap-2 ${
                       inCart
                         ? "bg-green-500 hover:bg-green-600"
@@ -644,7 +879,7 @@ const SareeDetails = () => {
                     <form onSubmit={handleSubmitReview} className="space-y-4">
                       {/* Rating */}
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold">Your Rating</label>
+                        <label className="text-sm font-semibold">Your Rating *</label>
                         {renderStarRating(reviewForm.rating, true, (rating) =>
                           setReviewForm({ ...reviewForm, rating })
                         )}
@@ -652,7 +887,7 @@ const SareeDetails = () => {
 
                       {/* Title */}
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold">Review Title</label>
+                        <label className="text-sm font-semibold">Review Title *</label>
                         <input
                           type="text"
                           placeholder="e.g. Beautiful saree, great quality!"
@@ -667,7 +902,7 @@ const SareeDetails = () => {
 
                       {/* Comment */}
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold">Your Review</label>
+                        <label className="text-sm font-semibold">Your Review *</label>
                         <textarea
                           placeholder="Share your experience with this saree..."
                           value={reviewForm.comment}
@@ -766,6 +1001,17 @@ const SareeDetails = () => {
                 </div>
               </div>
             </motion.div>
+
+            {/* ✅ NEW: Recommended Sarees Section */}
+            {saree && (
+              <RecommendedSarees
+                currentSaree={saree}
+                category={saree.category}
+                fabric={saree.fabric}
+                priceRange={[saree.price * 0.7, saree.price * 1.3]}
+                tags={saree.tags}
+              />
+            )}
           </motion.div>
         </div>
       </div>

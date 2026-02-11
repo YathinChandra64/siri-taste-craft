@@ -1,144 +1,215 @@
-// ✅ FIXED: Define proper types with MongoDB ObjectId strings
+// Cart utility functions with stock validation
 
-interface CartItem {
-  id: string; // ✅ FIXED: Changed from number to string (MongoDB ObjectId)
+export interface CartItem {
+  id: string;
   name: string;
   price: number;
-  pricePerKg?: number;
   image: string;
-  type: "saree" | "sweet";
-  unit?: string;
+  type: 'saree' | 'blouse' | 'fabric';
   quantity: number;
+  selectedColor?: string;
+  stock?: number;
 }
 
-interface StoredUser {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-}
-
-// User-specific cart key based on logged-in user
-const getCartKey = (): string => {
-  try {
-    const userJson = localStorage.getItem("user");
-    if (!userJson) {
-      return "cart_guest";
-    }
-    const user: StoredUser = JSON.parse(userJson);
-    return `cart_${user.id || "guest"}`;
-  } catch {
-    return "cart_guest";
-  }
-};
+const CART_STORAGE_KEY = 'cart';
 
 export const getCart = (): CartItem[] => {
   try {
-    const cartKey = getCartKey();
-    const cart = localStorage.getItem(cartKey);
-    return cart ? JSON.parse(cart) : [];
-  } catch {
+    const cartData = localStorage.getItem(CART_STORAGE_KEY);
+    return cartData ? JSON.parse(cartData) : [];
+  } catch (error) {
+    console.error('Error reading cart:', error);
     return [];
   }
 };
 
-export const addToCart = (
-  item: {
-    id: string; // ✅ FIXED: Changed from number to string (MongoDB ObjectId)
-    name: string;
-    price: number;
-    image: string;
-    type: "saree" | "sweet";
-    unit?: string;
-    quantity?: number;
-  },
-  quantity: number = 1
-): boolean => {
+export const addToCart = (item: CartItem): boolean => {
   try {
-    const cartKey = getCartKey();
     const cart = getCart();
     
-    // ✅ FIX: Check if item already exists, merge quantities instead of duplicating
-    const existingItemIndex: number = cart.findIndex(
-      (cartItem: CartItem) => cartItem.id === item.id && cartItem.type === item.type
+    // Check if item already exists in cart (considering color variant)
+    const existingItemIndex = cart.findIndex(
+      (cartItem) => 
+        cartItem.id === item.id && 
+        cartItem.selectedColor === item.selectedColor
     );
 
     if (existingItemIndex > -1) {
-      // Item exists, increase quantity
-      cart[existingItemIndex].quantity += quantity;
+      // Update quantity of existing item
+      const newQuantity = cart[existingItemIndex].quantity + item.quantity;
+      
+      // Validate against stock if available
+      if (item.stock && newQuantity > item.stock) {
+        console.error(`Cannot add to cart: Only ${item.stock} items available`);
+        return false;
+      }
+      
+      cart[existingItemIndex].quantity = newQuantity;
     } else {
-      // New item
-      const newItem: CartItem = {
-        ...item,
-        quantity: quantity || 1,
-        pricePerKg: item.type === "sweet" ? item.price : undefined
-      };
-      cart.push(newItem);
+      // Validate quantity against stock
+      if (item.stock && item.quantity > item.stock) {
+        console.error(`Cannot add to cart: Only ${item.stock} items available`);
+        return false;
+      }
+      
+      // Add new item
+      cart.push(item);
     }
 
-    localStorage.setItem(cartKey, JSON.stringify(cart));
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     return true;
-  } catch {
+  } catch (error) {
+    console.error('Error adding to cart:', error);
     return false;
   }
 };
 
-export const removeFromCart = (id: string, type: "saree" | "sweet"): boolean => {
-  try {
-    const cartKey = getCartKey();
-    const cart = getCart();
-    const filtered: CartItem[] = cart.filter(
-      (item: CartItem) => !(item.id === id && item.type === type)
-    );
-    localStorage.setItem(cartKey, JSON.stringify(filtered));
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-export const updateCartQuantity = (
-  id: string,
-  type: "saree" | "sweet",
-  quantity: number
+export const updateCartItemQuantity = (
+  itemId: string,
+  quantity: number,
+  selectedColor?: string
 ): boolean => {
   try {
-    const cartKey = getCartKey();
     const cart = getCart();
-    const item: CartItem | undefined = cart.find(
-      (i: CartItem) => i.id === id && i.type === type
+    const itemIndex = cart.findIndex(
+      (item) => item.id === itemId && item.selectedColor === selectedColor
     );
-    
-    if (item) {
-      item.quantity = Math.max(1, quantity);
+
+    if (itemIndex === -1) {
+      return false;
     }
-    
-    localStorage.setItem(cartKey, JSON.stringify(cart));
+
+    // Validate against stock
+    if (cart[itemIndex].stock && quantity > cart[itemIndex].stock) {
+      console.error(`Cannot update quantity: Only ${cart[itemIndex].stock} items available`);
+      return false;
+    }
+
+    if (quantity <= 0) {
+      // Remove item if quantity is 0 or less
+      cart.splice(itemIndex, 1);
+    } else {
+      cart[itemIndex].quantity = quantity;
+    }
+
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     return true;
-  } catch {
+  } catch (error) {
+    console.error('Error updating cart item quantity:', error);
     return false;
+  }
+};
+
+export const removeFromCart = (itemId: string, selectedColor?: string): void => {
+  try {
+    const cart = getCart();
+    const updatedCart = cart.filter(
+      (item) => !(item.id === itemId && item.selectedColor === selectedColor)
+    );
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(updatedCart));
+  } catch (error) {
+    console.error('Error removing from cart:', error);
+  }
+};
+
+export const clearCart = (): void => {
+  try {
+    localStorage.removeItem(CART_STORAGE_KEY);
+  } catch (error) {
+    console.error('Error clearing cart:', error);
   }
 };
 
 export const getCartTotal = (): number => {
   try {
     const cart = getCart();
-    return cart.reduce(
-      (total: number, item: CartItem) =>
-        total + ((item.pricePerKg || item.price || 0) * (item.quantity || 1)),
-      0
-    );
-  } catch {
+    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  } catch (error) {
+    console.error('Error calculating cart total:', error);
     return 0;
   }
 };
 
-export const clearCart = (): boolean => {
+export const getCartItemCount = (): number => {
   try {
-    const cartKey = getCartKey();
-    localStorage.removeItem(cartKey);
-    return true;
-  } catch {
-    return false;
+    const cart = getCart();
+    return cart.reduce((count, item) => count + item.quantity, 0);
+  } catch (error) {
+    console.error('Error getting cart item count:', error);
+    return 0;
+  }
+};
+
+interface ColorVariantResponse {
+  color: string;
+  colorCode: string;
+  images: string[];
+  stock: number;
+}
+
+interface SareeResponse {
+  stock: number;
+  colorVariants?: ColorVariantResponse[];
+  data?: {
+    stock: number;
+    colorVariants?: ColorVariantResponse[];
+  };
+}
+
+export const validateCartStock = async (): Promise<{
+  valid: boolean;
+  errors: string[];
+}> => {
+  try {
+    const cart = getCart();
+    const errors: string[] = [];
+
+    // Validate each item against current stock
+    for (const item of cart) {
+      try {
+        const response = await fetch(`http://localhost:5000/api/sarees/${item.id}`);
+        if (response.ok) {
+          const saree: SareeResponse = await response.json();
+          const sareeData = saree.data || saree;
+          
+          let availableStock = sareeData.stock;
+          
+          // Check color variant stock if applicable
+          if (item.selectedColor && sareeData.colorVariants) {
+            const variant = sareeData.colorVariants.find(
+              (v: ColorVariantResponse) => v.color === item.selectedColor
+            );
+            if (variant) {
+              availableStock = variant.stock;
+            }
+          }
+
+          if (item.quantity > availableStock) {
+            errors.push(
+              `${item.name}${item.selectedColor ? ` (${item.selectedColor})` : ''}: Only ${availableStock} items available`
+            );
+          }
+
+          if (availableStock === 0) {
+            errors.push(
+              `${item.name}${item.selectedColor ? ` (${item.selectedColor})` : ''} is out of stock`
+            );
+          }
+        }
+      } catch (error) {
+        console.error(`Error validating stock for item ${item.id}:`, error);
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  } catch (error) {
+    console.error('Error validating cart stock:', error);
+    return {
+      valid: false,
+      errors: ['Failed to validate cart stock'],
+    };
   }
 };

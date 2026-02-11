@@ -10,6 +10,8 @@ import authRoutes from "./routes/authRoutes.js";
 // 👚 PRODUCT ROUTES
 import sareeRoutes from "./routes/sareeRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";              // ✅ NEW
+import recommendationRoutes from "./routes/recommendationRoutes.js"; // ✅ NEW
 
 // 📋 ORDER & PAYMENT ROUTES
 import orderRoutes from "./routes/orderRoutes.js";
@@ -19,7 +21,7 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 
-// 📍 ADDRESS ROUTES (NEW)
+// 📍 ADDRESS ROUTES
 import addressRoutes from "./routes/addressRoutes.js";
 
 // 🛒 CART ROUTES
@@ -32,10 +34,8 @@ import chatRoutes from "./routes/chatRoutes.js";
 // ⚠️ ISSUE REPORT ROUTES
 import issueRoutes from "./routes/issueRoutes.js";
 
-// ✅ NEW: UPI PAYMENT ROUTES
+// 💰 UPI PAYMENT ROUTES
 import upiPaymentRoutes from "./routes/upiPaymentRoutes.js";
-
-// ✅ OLD: UPI CONFIGURATION ROUTES (existing)
 import upiRoutes from "./routes/upiRoutes.js";
 
 dotenv.config();
@@ -47,16 +47,15 @@ const app = express();
 // MIDDLEWARE CONFIGURATION
 // ======================================
 
-// ✅ CORS Configuration with proper origin handling
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     const allowedOrigins = [
       process.env.FRONTEND_URL || "http://localhost:8080",
       "http://localhost:3000",
       "http://127.0.0.1:8080",
       "http://127.0.0.1:3000"
     ];
-    
+
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -68,11 +67,9 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
 
-// ✅ Body parsers
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-// ✅ Static file serving for uploads
 app.use("/uploads", express.static("uploads"));
 
 // ======================================
@@ -90,7 +87,6 @@ const initializeUploadDirectories = async () => {
   }
 };
 
-// Call on startup
 await initializeUploadDirectories();
 
 // ======================================
@@ -98,7 +94,7 @@ await initializeUploadDirectories();
 // ======================================
 
 app.get("/", (req, res) => {
-  res.json({ 
+  res.json({
     message: "Backend is running 🚀",
     status: "operational",
     timestamp: new Date().toISOString()
@@ -109,44 +105,39 @@ app.get("/", (req, res) => {
 // API ROUTES
 // ======================================
 
-// 🔐 Authentication Routes
+// 🔐 Authentication
 app.use("/api/auth", authRoutes);
 
-// 👚 Product Routes
+// 👚 Products & Sarees
 app.use("/api/products", productRoutes);
 app.use("/api/sarees", sareeRoutes);
+app.use("/api/sarees", reviewRoutes);           // ✅ ADDED
+app.use("/api/sarees", recommendationRoutes);  // ✅ ADDED
 
-// 📋 Order Routes
+// 📋 Orders
 app.use("/api/orders", orderRoutes);
 
-// 💳 Payment Routes
+// 💳 Payments
 app.use("/api/payments", paymentRoutes);
 app.use("/api/upi-payments", upiPaymentRoutes);
 app.use("/api/upi", upiRoutes);
 
-// 👥 User & Profile Routes
+// 👥 Users & Profile
 app.use("/api/users", userRoutes);
 app.use("/api/profile", profileRoutes);
 
-// 📍 Address Routes
+// 📍 Addresses
 app.use("/api/addresses", addressRoutes);
 
-// 🛒 Cart Routes
+// 🛒 Cart
 app.use("/api/cart", cartRoutes);
 
-// 📨 Communication Routes
+// 📨 Communication
 app.use("/api/contact", contactRoutes);
 app.use("/api/chat", chatRoutes);
 
-// ⚠️ Issue Report Routes
+// ⚠️ Issues
 app.use("/api/issues", issueRoutes);
-
-// ======================================
-// ADMIN ROUTES
-// ======================================
-
-// Admin will use the existing routes with role-based access control
-// (assuming authMiddleware checks user roles)
 
 // ======================================
 // ERROR HANDLING
@@ -162,7 +153,7 @@ app.use((req, res) => {
   });
 });
 
-// Global error handler
+// Global Error Handler
 app.use((err, req, res, next) => {
   console.error("❌ Server Error:", {
     message: err.message,
@@ -172,12 +163,9 @@ app.use((err, req, res, next) => {
     timestamp: new Date().toISOString()
   });
 
-  const status = err.status || 500;
-  const message = err.message || "Internal Server Error";
-
-  res.status(status).json({
+  res.status(err.status || 500).json({
     success: false,
-    message,
+    message: err.message || "Internal Server Error",
     error: process.env.NODE_ENV === "development" ? err : undefined
   });
 });
@@ -187,20 +175,22 @@ app.use((err, req, res, next) => {
 // ======================================
 
 const PORT = process.env.PORT || 5000;
+
 const server = app.listen(PORT, () => {
   console.log(`
-  ╔════════════════════════════════════╗
-  ║   🚀 BACKEND SERVER STARTED 🚀     ║
-  ║   Port: ${PORT}                           ║
-  ║   Environment: ${process.env.NODE_ENV || "development"}         ║
-  ╚════════════════════════════════════╝
+╔════════════════════════════════════╗
+║   🚀 BACKEND SERVER STARTED 🚀     ║
+║   Port: ${PORT}
+║   Environment: ${process.env.NODE_ENV || "development"}
+╚════════════════════════════════════╝
   `);
+
   console.log("✅ Database connected");
   console.log("✅ Upload directories initialized");
   console.log(`📡 API running on http://localhost:${PORT}`);
 });
 
-// Graceful shutdown
+// Graceful Shutdown
 process.on("SIGTERM", () => {
   console.log("📭 SIGTERM signal received: closing HTTP server");
   server.close(() => {
