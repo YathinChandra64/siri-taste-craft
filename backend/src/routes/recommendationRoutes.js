@@ -3,6 +3,20 @@ import Saree from '../models/Saree.js';
 
 const router = express.Router();
 
+/**
+ * 🔧 FIX #2: RECOMMENDATIONS ROUTE
+ * GET /api/sarees/recommendations
+ * Get recommended sarees based on filters
+ * 
+ * Query Parameters:
+ *   - category: string
+ *   - fabric: string
+ *   - minPrice: number
+ *   - maxPrice: number
+ *   - tags: string
+ *   - exclude: MongoDB ObjectId (exclude this saree from results)
+ *   - limit: number (default: 8)
+ */
 router.get('/recommendations', async (req, res) => {
   try {
     const {
@@ -15,10 +29,20 @@ router.get('/recommendations', async (req, res) => {
       limit = '8',
     } = req.query;
 
+    // ✅ Validate limit parameter
+    const parsedLimit = Math.min(Math.max(1, parseInt(limit) || 8), 100);
+
     const query = {};
 
+    // ✅ FIX: Validate exclude parameter - must be valid MongoDB ObjectId format
     if (exclude) {
-      query._id = { $ne: exclude };
+      // Check if it's a valid MongoDB ObjectId (24 character hex string)
+      if (/^[0-9a-f]{24}$/i.test(exclude)) {
+        query._id = { $ne: exclude };
+      } else {
+        console.warn(`⚠️ Invalid exclude ID format: ${exclude}`);
+        // Continue without exclusion if invalid format
+      }
     }
 
     if (category) {
@@ -54,7 +78,7 @@ router.get('/recommendations', async (req, res) => {
 
     pipeline.push({ $sort: { score: -1, averageRating: -1, reviewCount: -1 } });
 
-    pipeline.push({ $limit: parseInt(limit) });
+    pipeline.push({ $limit: parsedLimit });
 
     pipeline.push({
       $project: {
@@ -74,10 +98,18 @@ router.get('/recommendations', async (req, res) => {
 
     const recommendations = await Saree.aggregate(pipeline);
 
-    res.json(recommendations);
+    res.json({
+      success: true,
+      data: recommendations,
+      count: recommendations.length,
+    });
   } catch (error) {
-    console.error('Error fetching recommendations:', error);
-    res.status(500).json({ message: 'Failed to fetch recommendations' });
+    console.error('❌ Error fetching recommendations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recommendations',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 });
 

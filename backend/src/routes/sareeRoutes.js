@@ -41,17 +41,19 @@ const router = express.Router();
 router.get('/', getSarees);
 
 /**
- * GET /api/sarees/:id
- * Get a single saree by ID
- */
-router.get('/:id', getSareeById);
-
-/**
+ * 🔧 FIX #1: ROUTE ORDERING - Specific routes MUST come before generic /:id route
  * GET /api/sarees/stats/top-rated
  * Get top-rated sarees
  * Query: limit (default: 10)
  */
 router.get('/stats/top-rated', getTopRatedSarees);
+
+/**
+ * GET /api/sarees/:id
+ * Get a single saree by ID
+ * ⚠️ IMPORTANT: This must come AFTER all specific routes like /stats/top-rated
+ */
+router.get('/:id', getSareeById);
 
 // ============================================
 // ADMIN ROUTES (Authentication required)

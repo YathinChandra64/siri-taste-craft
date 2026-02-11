@@ -4,6 +4,7 @@ const { Schema } = mongoose;
 
 /**
  * Review Model
+ * 🔧 FIX: Made orderId optional to handle users without order reference initially
  */
 
 const reviewSchema = new Schema(
@@ -20,10 +21,12 @@ const reviewSchema = new Schema(
       required: [true, "User ID is required"],
       index: true,
     },
+    // 🔧 FIX #2: Make orderId optional (default null)
     orderId: {
       type: Schema.Types.ObjectId,
       ref: "Order",
-      required: [true, "Order ID is required"],
+      required: false,
+      default: null,
       index: true,
     },
 
@@ -92,16 +95,17 @@ const reviewSchema = new Schema(
   }
 );
 
-// Unique compound index
+// Unique compound index: prevent duplicate reviews per user per saree
 reviewSchema.index({ userId: 1, sareeId: 1 }, { unique: true });
 
-// Additional indexes
+// Additional indexes for query optimization
 reviewSchema.index({ sareeId: 1, createdAt: -1 });
+reviewSchema.index({ sareeId: 1, isApproved: 1, createdAt: -1 });
 reviewSchema.index({ sareeId: 1, rating: -1 });
 reviewSchema.index({ sareeId: 1, helpful: -1 });
 reviewSchema.index({ userId: 1, createdAt: -1 });
 
-// Prevent duplicate reviews
+// Prevent duplicate reviews (pre-save hook)
 reviewSchema.pre("save", async function (next) {
   if (this.isNew) {
     const existingReview = await mongoose.model("Review").findOne({

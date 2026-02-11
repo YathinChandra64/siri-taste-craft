@@ -105,6 +105,14 @@ const buildSortQuery = (sortBy) => {
   return sortMap[sortBy] || { createdAt: -1 }; // Default to newest
 };
 
+/**
+ * 🔧 FIX #4: Validate MongoDB ObjectId format
+ * MongoDB ObjectIds must be 24 character hex strings
+ */
+const isValidObjectId = (id) => {
+  return /^[0-9a-f]{24}$/i.test(id);
+};
+
 // ============================================
 // CONTROLLER METHODS
 // ============================================
@@ -202,10 +210,20 @@ export const getSarees = async (req, res) => {
 /**
  * GET /api/sarees/:id
  * Get a single saree by ID with full details
+ * 
+ * 🔧 FIX: Added ObjectId validation to prevent CastError
  */
 export const getSareeById = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // ✅ FIX #4: Validate ObjectId format before querying
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid saree ID format',
+      });
+    }
 
     // ✅ Find saree
     const saree = await Saree.findById(id);
@@ -297,11 +315,21 @@ export const createSaree = async (req, res) => {
 /**
  * PUT /api/sarees/:id (Admin only)
  * Update a saree
+ * 
+ * 🔧 FIX: Added ObjectId validation
  */
 export const updateSaree = async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+
+    // ✅ FIX #4: Validate ObjectId format before querying
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid saree ID format',
+      });
+    }
 
     // ✅ Prevent updating ratings/counts
     delete updates.averageRating;
@@ -340,10 +368,20 @@ export const updateSaree = async (req, res) => {
 /**
  * DELETE /api/sarees/:id (Admin only)
  * Delete a saree
+ * 
+ * 🔧 FIX: Added ObjectId validation
  */
 export const deleteSaree = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // ✅ FIX #4: Validate ObjectId format before querying
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid saree ID format',
+      });
+    }
 
     // ✅ Delete saree
     const saree = await Saree.findByIdAndDelete(id);

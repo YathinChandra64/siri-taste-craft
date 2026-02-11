@@ -10,8 +10,8 @@ import authRoutes from "./routes/authRoutes.js";
 // 👚 PRODUCT ROUTES
 import sareeRoutes from "./routes/sareeRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
-import reviewRoutes from "./routes/reviewRoutes.js";              // ✅ NEW
-import recommendationRoutes from "./routes/recommendationRoutes.js"; // ✅ NEW
+import reviewRoutes from "./routes/reviewRoutes.js";
+import recommendationRoutes from "./routes/recommendationRoutes.js";
 
 // 📋 ORDER & PAYMENT ROUTES
 import orderRoutes from "./routes/orderRoutes.js";
@@ -110,9 +110,9 @@ app.use("/api/auth", authRoutes);
 
 // 👚 Products & Sarees
 app.use("/api/products", productRoutes);
+app.use("/api/sarees", recommendationRoutes);
+app.use("/api/sarees", reviewRoutes);
 app.use("/api/sarees", sareeRoutes);
-app.use("/api/sarees", reviewRoutes);           // ✅ ADDED
-app.use("/api/sarees", recommendationRoutes);  // ✅ ADDED
 
 // 📋 Orders
 app.use("/api/orders", orderRoutes);

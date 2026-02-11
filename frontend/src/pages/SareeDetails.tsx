@@ -402,21 +402,51 @@ const SareeDetails = () => {
           title: "✅ Review Posted!",
           description: "Thank you for sharing your feedback!",
         });
-      } else if (response.status === 400) {
+      } else if (response.status === 403) {
+        // 🔧 FIX: Handle 403 Forbidden - User hasn't purchased
         const error = await response.json();
         toast({
-          title: "Error",
-          description: error.message || "You can only review after purchasing this saree",
+          title: "Cannot Review Yet",
+          description: error.message || "🛍️ You can only review this saree after you've purchased and received it. Thank you for your interest!",
+          variant: "destructive",
+        });
+      } else if (response.status === 409) {
+        // 🔧 FIX: Handle 409 Conflict - Already reviewed
+        const error = await response.json();
+        toast({
+          title: "Already Reviewed",
+          description: error.message || "You've already shared your thoughts on this saree. Thank you!",
+          variant: "destructive",
+        });
+      } else if (response.status === 400) {
+        // 🔧 FIX: Handle 400 Bad Request - Validation errors
+        const error = await response.json();
+        toast({
+          title: "Review Error",
+          description: error.message || "Please check your review details and try again",
+          variant: "destructive",
+        });
+      } else if (response.status === 404) {
+        // 🔧 FIX: Handle 404 Not Found
+        toast({
+          title: "Saree Not Found",
+          description: "This saree is no longer available",
           variant: "destructive",
         });
       } else {
-        throw new Error("Failed to submit review");
+        // 🔧 FIX: Handle all other errors with friendly message
+        const error = await response.json();
+        toast({
+          title: "Unable to Post Review",
+          description: error.message || "Something went wrong. Please try again later.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Failed to submit review:", error);
       toast({
-        title: "Error",
-        description: "Failed to submit review. Please try again.",
+        title: "Connection Error",
+        description: "Unable to submit your review. Please check your internet connection and try again.",
         variant: "destructive",
       });
     } finally {
