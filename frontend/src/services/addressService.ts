@@ -1,55 +1,20 @@
 import { Address } from "@/types/checkout";
-
-// ✅ FIXED: Corrected the API base URL - removed incorrect import
-const API_BASE_URL = "http://localhost:5000/api";
-const API_URL = `${API_BASE_URL}/addresses`;
-
-/**
- * Helper function to check if response is JSON before parsing
- */
-const parseJsonResponse = async (response: Response): Promise<unknown> => {
-  const contentType = response.headers.get("content-type");
-  
-  if (!contentType || !contentType.includes("application/json")) {
-    const text = await response.text();
-    console.error("❌ Non-JSON response received:", {
-      contentType,
-      status: response.status,
-      text: text.substring(0, 200)
-    });
-    throw new Error(`Expected JSON response but got ${contentType || 'unknown'} (Status: ${response.status})`);
-  }
-  
-  return response.json();
-};
+import API from "@/lib/api";
 
 /**
  * ✅ FIXED: Get all addresses for the authenticated user
+ * Uses Axios API instance with automatic token attachment
  */
 export const getAddressAPI = async (): Promise<Address[]> => {
   try {
-    const token = localStorage.getItem("authToken");
+    console.log("🔄 Fetching addresses...");
+    const response = await API.get("/addresses");
     
-    if (!token) {
-      console.warn("⚠️ No auth token found in localStorage");
-      throw new Error("Authentication required. Please login first.");
-    }
+    const data = response.data;
+    const addresses = data.addresses || data.data || [];
     
-    const response = await fetch(`${API_URL}/`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await parseJsonResponse(response) as { message?: string };
-      throw new Error(errorData?.message || `HTTP Error: ${response.status}`);
-    }
-
-    const data = await parseJsonResponse(response) as { addresses?: Address[], data?: Address[] };
-    return data.addresses || data.data || [];
+    console.log("✅ Addresses fetched successfully:", addresses.length, "items");
+    return Array.isArray(addresses) ? addresses : [];
   } catch (error) {
     console.error("❌ Error fetching addresses:", error);
     throw error;
@@ -61,27 +26,14 @@ export const getAddressAPI = async (): Promise<Address[]> => {
  */
 export const getSingleAddressAPI = async (addressId: string): Promise<Address> => {
   try {
-    const token = localStorage.getItem("authToken");
+    console.log("🔄 Fetching address:", addressId);
+    const response = await API.get(`/addresses/${addressId}`);
     
-    if (!token) {
-      throw new Error("Authentication required. Please login first.");
-    }
-
-    const response = await fetch(`${API_URL}/${addressId}`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await parseJsonResponse(response) as { message?: string };
-      throw new Error(errorData?.message || `HTTP Error: ${response.status}`);
-    }
-
-    const data = await parseJsonResponse(response) as { address?: Address, data?: Address };
-    return data.address || (data.data as Address) || ({} as Address);
+    const data = response.data;
+    const address = data.address || data.data;
+    
+    console.log("✅ Address fetched successfully:", addressId);
+    return address || ({} as Address);
   } catch (error) {
     console.error("❌ Error fetching single address:", error);
     throw error;
@@ -93,33 +45,19 @@ export const getSingleAddressAPI = async (addressId: string): Promise<Address> =
  */
 export const addAddressAPI = async (address: Address): Promise<Address> => {
   try {
-    const token = localStorage.getItem("authToken");
-    
-    if (!token) {
-      throw new Error("Authentication required. Please login first.");
-    }
-
     // Validate required fields
     if (!address.fullName || !address.houseFlat || !address.city || !address.state || !address.pincode) {
       throw new Error("All address fields are required");
     }
 
-    const response = await fetch(`${API_URL}/`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(address)
-    });
-
-    if (!response.ok) {
-      const errorData = await parseJsonResponse(response) as { message?: string };
-      throw new Error(errorData?.message || `HTTP Error: ${response.status}`);
-    }
-
-    const data = await parseJsonResponse(response) as { address?: Address, data?: Address };
-    return data.address || (data.data as Address) || ({} as Address);
+    console.log("🔄 Adding new address...");
+    const response = await API.post("/addresses", address);
+    
+    const data = response.data;
+    const newAddress = data.address || data.data;
+    
+    console.log("✅ Address added successfully");
+    return newAddress || ({} as Address);
   } catch (error) {
     console.error("❌ Error adding address:", error);
     throw error;
@@ -131,28 +69,14 @@ export const addAddressAPI = async (address: Address): Promise<Address> => {
  */
 export const updateAddressAPI = async (addressId: string, address: Partial<Address>): Promise<Address> => {
   try {
-    const token = localStorage.getItem("authToken");
+    console.log("🔄 Updating address:", addressId);
+    const response = await API.put(`/addresses/${addressId}`, address);
     
-    if (!token) {
-      throw new Error("Authentication required. Please login first.");
-    }
-
-    const response = await fetch(`${API_URL}/${addressId}`, {
-      method: "PUT",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(address)
-    });
-
-    if (!response.ok) {
-      const errorData = await parseJsonResponse(response) as { message?: string };
-      throw new Error(errorData?.message || `HTTP Error: ${response.status}`);
-    }
-
-    const data = await parseJsonResponse(response) as { address?: Address, data?: Address };
-    return data.address || (data.data as Address) || ({} as Address);
+    const data = response.data;
+    const updatedAddress = data.address || data.data;
+    
+    console.log("✅ Address updated successfully:", addressId);
+    return updatedAddress || ({} as Address);
   } catch (error) {
     console.error("❌ Error updating address:", error);
     throw error;
@@ -164,27 +88,11 @@ export const updateAddressAPI = async (addressId: string, address: Partial<Addre
  */
 export const deleteAddressAPI = async (addressId: string): Promise<{ success: boolean }> => {
   try {
-    const token = localStorage.getItem("authToken");
+    console.log("🔄 Deleting address:", addressId);
+    await API.delete(`/addresses/${addressId}`);
     
-    if (!token) {
-      throw new Error("Authentication required. Please login first.");
-    }
-
-    const response = await fetch(`${API_URL}/${addressId}`, {
-      method: "DELETE",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await parseJsonResponse(response) as { message?: string };
-      throw new Error(errorData?.message || `HTTP Error: ${response.status}`);
-    }
-
-    const data = await parseJsonResponse(response) as { success?: boolean };
-    return { success: data?.success || true };
+    console.log("✅ Address deleted successfully:", addressId);
+    return { success: true };
   } catch (error) {
     console.error("❌ Error deleting address:", error);
     throw error;
@@ -196,27 +104,14 @@ export const deleteAddressAPI = async (addressId: string): Promise<{ success: bo
  */
 export const setDefaultAddressAPI = async (addressId: string): Promise<Address> => {
   try {
-    const token = localStorage.getItem("authToken");
+    console.log("🔄 Setting default address:", addressId);
+    const response = await API.patch(`/addresses/${addressId}/default`);
     
-    if (!token) {
-      throw new Error("Authentication required. Please login first.");
-    }
-
-    const response = await fetch(`${API_URL}/${addressId}/default`, {
-      method: "PATCH",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await parseJsonResponse(response) as { message?: string };
-      throw new Error(errorData?.message || `HTTP Error: ${response.status}`);
-    }
-
-    const data = await parseJsonResponse(response) as { address?: Address, data?: Address };
-    return data.address || (data.data as Address) || ({} as Address);
+    const data = response.data;
+    const defaultAddress = data.address || data.data;
+    
+    console.log("✅ Default address set successfully:", addressId);
+    return defaultAddress || ({} as Address);
   } catch (error) {
     console.error("❌ Error setting default address:", error);
     throw error;

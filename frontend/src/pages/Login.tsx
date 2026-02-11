@@ -11,25 +11,56 @@ import { Lock, Mail } from 'lucide-react';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (login(email, password)) {
+    // Validate inputs
+    if (!email || !password) {
       toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-      navigate('/');
-    } else {
-      toast({
-        title: "Login Failed",
-        description: "Invalid email or password.",
+        title: "Error",
+        description: "Please fill in all fields",
         variant: "destructive",
       });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // ✅ FIXED: Await the login promise
+      const success = await login(email, password);
+      
+      if (success) {
+        console.log("✅ Login successful, token saved to localStorage");
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
+        // Wait a bit for state to update, then navigate
+        setTimeout(() => {
+          navigate('/');
+        }, 500);
+      } else {
+        console.log("❌ Login failed - invalid credentials");
+        toast({
+          title: "Login Failed",
+          description: "Invalid email or password.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred during login",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -69,6 +100,7 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="pl-10"
                   />
                 </div>
@@ -85,6 +117,7 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="pl-10"
                   />
                 </div>
@@ -92,9 +125,10 @@ const Login = () => {
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-saree hover:opacity-90 text-white font-semibold py-6 rounded-lg transition-all duration-300 hover:shadow-hover"
+                disabled={isLoading}
+                className="w-full bg-gradient-saree hover:opacity-90 text-white font-semibold py-6 rounded-lg transition-all duration-300 hover:shadow-hover disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Login
+                {isLoading ? "Logging in..." : "Login"}
               </Button>
             </form>
 

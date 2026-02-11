@@ -87,16 +87,31 @@ const API = axios.create({
   timeout: 10000, // 10 second timeout
 });
 
-// ✅ IMPROVED: Request interceptor with better logging
+// ✅ IMPROVED: Request interceptor with better logging and token handling
 API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("authToken");
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log("✅ Auth token attached for:", config.url);
-    } else if (!config.url?.includes("/auth/") && !config.url?.includes("/products") && !config.url?.includes("/sarees")) {
-      console.warn("⚠️ No auth token found for request to:", config.url);
+      console.log("✅ Token attached to request:", {
+        url: config.url,
+        method: config.method,
+        hasToken: !!token,
+        tokenLength: token.length
+      });
+    } else {
+      // Check if this endpoint requires auth
+      const publicEndpoints = ["/auth/login", "/auth/signup", "/sarees", "/products"];
+      const isPublicEndpoint = publicEndpoints.some(endpoint => config.url?.includes(endpoint));
+      
+      if (!isPublicEndpoint) {
+        console.warn("⚠️ NO AUTH TOKEN for protected endpoint:", {
+          url: config.url,
+          method: config.method,
+          token: "NOT FOUND"
+        });
+      }
     }
     
     return config;
@@ -113,7 +128,7 @@ API.interceptors.response.use(
     console.log("✅ Response received:", {
       status: response.status,
       url: response.config.url,
-      dataKeys: Object.keys(response.data || {})
+      hasData: !!response.data
     });
     return response;
   },
@@ -123,59 +138,53 @@ API.interceptors.response.use(
     
     // Don't log connection errors excessively
     if (error.code === "ECONNREFUSED") {
-      console.error("❌ Backend Connection Error: Server not running on http://localhost:5000");
-      console.error("📌 Start your backend with: npm run dev (in the backend directory)");
-    } else {
-      console.error("❌ Response Error:", {
-        status,
-        message,
+      console.error("❌ BACKEND NOT RUNNING:", {
+        message: "Cannot connect to http://localhost:5000",
+        fix: "Start backend with: npm run dev (in backend directory)"
+      });
+    } else if (status === 401) {
+      console.error("🔐 AUTHENTICATION FAILED:", {
+        status: 401,
+        message: message,
         url: error.config?.url,
-        data: error.response?.data,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // ✅ Handle 401 (Unauthorized) with improved logic
-    if (status === 401) {
-      console.warn("🔐 Authentication failed:", {
-        reason: message,
-        token: localStorage.getItem("authToken") ? "exists" : "missing"
+        tokenExists: !!localStorage.getItem("authToken"),
+        action: "Token may be expired or invalid"
       });
       
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("user");
-      
-      // Prevent redirect loops
-      if (typeof window !== "undefined") {
-        const currentPath = window.location.pathname;
-        const isAuthPage = ["/login", "/signup"].includes(currentPath);
-        
-        if (!isAuthPage) {
-          // Use a slight delay to avoid rapid redirects
-          const redirectTimer = setTimeout(() => {
-            window.location.href = "/login?reason=session_expired&from=" + encodeURIComponent(currentPath);
-          }, 100);
-          
-          // Cleanup on unmount (if in React component)
-          return Promise.reject(error);
-        }
-      }
-    }
-    
-    // ✅ Handle 500 (Server Error) with logging
-    if (status === 500) {
-      console.error("💥 Server Error Details:", {
+      // ✅ FIXED: NEVER remove token automatically
+      // Let components handle 401 errors appropriately
+      // Token is valid - backend might just be rejecting this specific request
+      console.warn("⚠️ 401 error on endpoint:", error.config?.url, "- NOT removing token");
+      // DO NOT call localStorage.removeItem("authToken");
+      // DO NOT redirect to login
+      // Just reject and let component handle it
+    } else if (status === 500) {
+      console.error("💥 SERVER ERROR (500):", {
         status: 500,
         url: error.config?.url,
         method: error.config?.method,
-        data: error.response?.data,
-        timestamp: new Date().toISOString()
+        message: message,
+        data: error.response?.data
       });
-    }
-    
-    // ✅ Handle 403 (Forbidden)
-    if (status === 403) {
-      console.error("🔒 Access Forbidden:", message);
+    } else if (status === 403) {
+      console.error("🔒 FORBIDDEN (403):", {
+        status: 403,
+        message: message,
+        url: error.config?.url
+      });
+    } else if (status === 404) {
+      console.warn("⚠️ NOT FOUND (404):", {
+        status: 404,
+        url: error.config?.url,
+        message: message
+      });
+    } else {
+      console.error("❌ Response Error:", {
+        status: status || "unknown",
+        message: message,
+        url: error.config?.url,
+        code: error.code
+      });
     }
     
     return Promise.reject(error);
@@ -190,11 +199,11 @@ API.interceptors.response.use(
  * Extract data array from API response
  * Handles both { data: [...] } and direct [...] responses
  */
-const extractData = <T>(response: any): T => {
+const extractData = <T,>(response: unknown): T => {
   if (response && typeof response === "object") {
     // If response has a 'data' property, return it
     if ("data" in response) {
-      return response.data as T;
+      return (response as Record<string, unknown>).data as T;
     }
     // If it's directly the data (array or object), return it
     return response as T;
@@ -309,148 +318,110 @@ export const uploadPaymentScreenshot = async (
       "Content-Type": "multipart/form-data",
     },
   });
+
   return response.data;
 };
 
 /**
  * Get Payment Status
- * @param {string} orderId - Order ID
- * @returns {Promise} Payment status details
+ * @param {string} paymentId - Payment ID
  */
 export const getPaymentStatus = async (
-  orderId: string
+  paymentId: string
 ): Promise<ApiResponseWrapper<PaymentStatusData>> => {
-  const response = await API.get(`/upi-payments/status/${orderId}`);
+  const response = await API.get(`/upi-payments/status/${paymentId}`);
   return response.data;
 };
 
 /**
- * Resubmit Payment (retry with new screenshot)
- * @param {string} orderId - Order ID
- * @param {File} screenshot - New screenshot file
- * @returns {Promise} Updated payment result
- */
-export const resubmitPayment = async (
-  orderId: string,
-  screenshot: File
-): Promise<ApiResponseWrapper<PaymentSubmissionResultData>> => {
-  const formData = new FormData();
-  formData.append("orderId", orderId);
-  formData.append("screenshot", screenshot);
-
-  const response = await API.post("/upi-payments/resubmit", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-  return response.data;
-};
-
-/**
- * Verify Payment Manually (admin endpoint)
+ * Verify Payment with Admin UTR
  * @param {string} paymentId - Payment ID
- * @param {boolean} approved - Approval status
- * @param {string} notes - Admin notes
- * @returns {Promise} Verification result
+ * @param {string} verificationUtr - UTR entered by admin for verification
  */
-export const verifyPaymentManually = async (
+export const verifyPaymentWithUtr = async (
   paymentId: string,
-  approved: boolean,
-  notes?: string
+  verificationUtr: string
 ): Promise<ApiResponseWrapper<PaymentVerificationData>> => {
-  const response = await API.post(`/upi-payments/verify/${paymentId}`, {
-    approved,
-    notes,
-  });
+  const response = await API.post(
+    `/upi-payments/${paymentId}/verify-utr`,
+    { verificationUtr }
+  );
   return response.data;
 };
 
 /**
- * Get Pending Payments (admin endpoint)
- * @returns {Promise} List of pending payments
+ * Get Pending Payments (Admin)
  */
 export const getPendingPayments = async (): Promise<
   ApiResponseWrapper<PendingPaymentsData>
 > => {
-  const response = await API.get("/admin/payments/pending");
+  const response = await API.get("/upi-payments/pending");
   return response.data;
 };
 
 /**
- * Get Payment Statistics (admin endpoint)
- * @returns {Promise} Payment statistics
+ * Get Payment Stats (Admin)
  */
-export const getPaymentStatistics = async (): Promise<
+export const getPaymentStats = async (): Promise<
   ApiResponseWrapper<PaymentStatsData>
 > => {
-  const response = await API.get("/admin/payments/statistics");
+  const response = await API.get("/upi-payments/stats");
   return response.data;
-};
-
-// ======================================
-// EXISTING: AUTHENTICATION ENDPOINTS
-// ======================================
-
-export const loginUser = async (
-  email: string,
-  password: string
-): Promise<unknown> => {
-  const response = await API.post("/auth/login", { email, password });
-  return response.data;
-};
-
-export const signupUser = async (userData: SignupData): Promise<unknown> => {
-  const response = await API.post("/auth/signup", userData);
-  return response.data;
-};
-
-export const logoutUser = async (): Promise<unknown> => {
-  const response = await API.post("/auth/logout");
-  return response.data;
-};
-
-export const verifyToken = async (): Promise<unknown> => {
-  const response = await API.get("/auth/verify");
-  return response.data;
-};
-
-// ======================================
-// EXISTING: PRODUCT ENDPOINTS
-// ======================================
-
-/**
- * Get products with proper data extraction
- */
-export const getProducts = async (
-  filters?: FilterParams
-): Promise<unknown> => {
-  const response = await API.get("/products", { params: filters });
-  // ✅ Extract data array from response
-  return extractData(response.data);
-};
-
-export const getProductById = async (id: string): Promise<unknown> => {
-  const response = await API.get(`/products/${id}`);
-  // ✅ Extract data from response
-  return extractData(response.data);
 };
 
 /**
- * Get sarees with proper data extraction
+ * Mark Payment as Verified by Admin
+ * @param {string} paymentId - Payment ID
+ * @param {string} adminNotes - Notes from admin
  */
-export const getSarees = async (filters?: FilterParams): Promise<unknown> => {
-  const response = await API.get("/sarees", { params: filters });
-  // ✅ Extract data array from response { success, data: [...], pagination }
-  return extractData(response.data);
+export const markPaymentAsVerified = async (
+  paymentId: string,
+  adminNotes?: string
+): Promise<ApiResponseWrapper<PaymentStatusData>> => {
+  const response = await API.put(`/upi-payments/${paymentId}/verify`, {
+    adminNotes,
+  });
+  return response.data;
 };
 
 /**
- * Get single saree with proper data extraction
+ * Reject Payment (Admin)
+ * @param {string} paymentId - Payment ID
+ * @param {string} rejectionReason - Reason for rejection
  */
-export const getSareeById = async (id: string): Promise<unknown> => {
-  const response = await API.get(`/sarees/${id}`);
-  // ✅ Extract data from response
-  return extractData(response.data);
+export const rejectPayment = async (
+  paymentId: string,
+  rejectionReason: string
+): Promise<ApiResponseWrapper<PaymentStatusData>> => {
+  const response = await API.put(`/upi-payments/${paymentId}/reject`, {
+    rejectionReason,
+  });
+  return response.data;
+};
+
+/**
+ * Retry Payment Upload (Customer)
+ * @param {string} paymentId - Payment ID
+ * @param {File} newScreenshot - New screenshot file
+ */
+export const retryPaymentUpload = async (
+  paymentId: string,
+  newScreenshot: File
+): Promise<ApiResponseWrapper<PaymentSubmissionResultData>> => {
+  const formData = new FormData();
+  formData.append("screenshot", newScreenshot);
+
+  const response = await API.post(
+    `/upi-payments/${paymentId}/retry`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+
+  return response.data;
 };
 
 // ======================================

@@ -32,15 +32,11 @@ export const register = async (req, res) => {
     });
 
     // ✅ FIXED: Include email in JWT token
-    const token = jwt.sign(
-      {
-        id: newUser._id,
-        email: newUser.email,  // ✅ ADD EMAIL TO TOKEN
-        role: newUser.role
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "10m" }
-    );
+    const token = jwt.sign({
+  userId: newUser._id,  // ← Correct key name
+  email: newUser.email,
+  role: newUser.role
+}, process.env.JWT_SECRET, { expiresIn: "10m" });
 
     res.status(201).json({
       message: "Registration successful",
@@ -81,15 +77,11 @@ export const login = async (req, res) => {
     }
 
     // ✅ FIXED: Include email in JWT token
-    const token = jwt.sign(
-      {
-        id: user._id,
-        email: user.email,  // ✅ ADD EMAIL TO TOKEN
-        role: user.role
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "10m" }
-    );
+    const token = jwt.sign({
+  userId: user._id,  // ← Correct key name
+  email: user.email,
+  role: user.role
+}, process.env.JWT_SECRET, { expiresIn: "10m" });
 
     res.status(200).json({
       message: "Login successful",
