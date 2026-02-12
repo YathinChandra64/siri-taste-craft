@@ -613,3 +613,374 @@ export const getOrderStats = async (req, res) => {
     });
   }
 };
+
+export const updateOrderStatusWithTimeline = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { orderStatus, description, shipper, trackingNumber, trackingUrl, location, notes } = req.body;
+
+    if (!orderStatus) {
+      return res.status(400).json({
+        success: false,
+        message: "Order status is required"
+      });
+    }
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // Update status and add to timeline
+    await order.updateStatus(orderStatus, {
+      description: description,
+      location: location,
+      shipper: shipper,
+      trackingNumber: trackingNumber,
+      trackingUrl: trackingUrl,
+      notes: notes
+    });
+
+    // Update shipping info if provided
+    if (shipper || trackingNumber || trackingUrl) {
+      order.shipping = {
+        ...order.shipping,
+        shipper: shipper || order.shipping?.shipper,
+        trackingNumber: trackingNumber || order.shipping?.trackingNumber,
+        trackingUrl: trackingUrl || order.shipping?.trackingUrl
+      };
+      await order.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Order status updated successfully",
+      order: order.populate("user", "name email phone").populate("items.product", "name price image")
+    });
+  } catch (error) {
+    console.error("❌ Error updating order status:", error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Error updating order status"
+    });
+  }
+};
+
+// ✅ GET ORDER WITH TIMELINE
+export const getOrderWithTimeline = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id || req.user.id;
+
+    const order = await Order.findOne({ _id: id })
+      .populate("user", "name email phone")
+      .populate("items.product", "name price image");
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // For customers, only return their own orders
+    if (req.user.role !== "admin" && order.user._id.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized to view this order"
+      });
+    }
+
+    // Transform timeline for frontend
+    const timeline = order.orderTimeline.map(entry => ({
+      status: entry.status,
+      description: entry.description,
+      timestamp: entry.timestamp,
+      location: entry.location,
+      shipper: entry.shipper,
+      trackingNumber: entry.trackingNumber,
+      trackingUrl: entry.trackingUrl,
+      notes: entry.notes
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Order retrieved successfully with timeline",
+      order: {
+        ...order.toObject(),
+        timeline: timeline.reverse() // Most recent first
+      }
+    });
+  } catch (error) {
+    console.error("❌ Error fetching order with timeline:", error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Error fetching order"
+    });
+  }
+};
+
+// ✅ UPDATE SHIPPING INFO
+export const updateShippingInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { shipper, trackingNumber, trackingUrl, estimatedDeliveryDate } = req.body;
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // Update shipping information
+    order.shipping = {
+      shipper: shipper || order.shipping?.shipper,
+      trackingNumber: trackingNumber || order.shipping?.trackingNumber,
+      trackingUrl: trackingUrl || order.shipping?.trackingUrl,
+      estimatedDeliveryDate: estimatedDeliveryDate || order.shipping?.estimatedDeliveryDate,
+      actualDeliveryDate: order.shipping?.actualDeliveryDate
+    };
+
+    // Add timeline entry for shipping info update
+    if (shipper || trackingNumber) {
+      order.addTimelineEntry(
+        "SHIPPED",
+        `Order shipped via ${shipper || "courier"}. Tracking: ${trackingNumber || "N/A"}`,
+        {
+          shipper: shipper,
+          trackingNumber: trackingNumber,
+          trackingUrl: trackingUrl
+        }
+      );
+    }
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Shipping information updated successfully",
+      order: await order.populate("user", "name email phone").populate("items.product", "name price image")
+    });
+  } catch (error) {
+    console.error("❌ Error updating shipping info:", error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Error updating shipping information"
+    });
+  }
+};
+
+// ✅ GET CUSTOMER ORDER TRACKING
+export const getOrderTracking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id || req.user.id;
+
+    const order = await Order.findOne({ _id: id, user: userId })
+      .select("_id orderStatus orderTimeline shipping items totalAmount user createdAt");
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // Format tracking data for display
+    const stages = [
+      {
+        name: "Order Placed",
+        status: "completed",
+        timestamp: order.createdAt,
+        icon: "📦"
+      },
+      {
+        name: "Confirmed",
+        status: ["CONFIRMED", "PROCESSING", "PACKED", "SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"].includes(order.orderStatus) ? "completed" : "pending",
+        timestamp: order.orderTimeline.find(t => t.status === "CONFIRMED")?.timestamp,
+        icon: "✓"
+      },
+      {
+        name: "Packed",
+        status: ["PACKED", "SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"].includes(order.orderStatus) ? "completed" : "pending",
+        timestamp: order.orderTimeline.find(t => t.status === "PACKED")?.timestamp,
+        icon: "📮"
+      },
+      {
+        name: "Shipped",
+        status: ["SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"].includes(order.orderStatus) ? "completed" : "pending",
+        timestamp: order.orderTimeline.find(t => t.status === "SHIPPED")?.timestamp,
+        shipper: order.shipping?.shipper,
+        trackingNumber: order.shipping?.trackingNumber,
+        trackingUrl: order.shipping?.trackingUrl,
+        icon: "🚚"
+      },
+      {
+        name: "Out for Delivery",
+        status: ["OUT_FOR_DELIVERY", "DELIVERED"].includes(order.orderStatus) ? "completed" : "pending",
+        timestamp: order.orderTimeline.find(t => t.status === "OUT_FOR_DELIVERY")?.timestamp,
+        icon: "🏠"
+      },
+      {
+        name: "Delivered",
+        status: order.orderStatus === "DELIVERED" ? "completed" : "pending",
+        timestamp: order.orderTimeline.find(t => t.status === "DELIVERED")?.timestamp,
+        icon: "✓✓"
+      }
+    ];
+
+    return res.status(200).json({
+      success: true,
+      message: "Order tracking information retrieved",
+      tracking: {
+        orderId: order._id,
+        currentStatus: order.orderStatus,
+        stages: stages.filter(s => s.status || s.timestamp),
+        shipping: order.shipping,
+        timeline: order.orderTimeline.reverse() // Most recent first
+      }
+    });
+  } catch (error) {
+    console.error("❌ Error fetching order tracking:", error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Error fetching order tracking"
+    });
+  }
+};
+
+// ✅ BATCH UPDATE ORDER STATUS (For admin bulk operations)
+export const batchUpdateOrderStatus = async (req, res) => {
+  try {
+    const { orderIds, orderStatus, description } = req.body;
+
+    if (!Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "orderIds array is required"
+      });
+    }
+
+    if (!orderStatus) {
+      return res.status(400).json({
+        success: false,
+        message: "orderStatus is required"
+      });
+    }
+
+    const updates = await Promise.all(
+      orderIds.map(id =>
+        Order.findByIdAndUpdate(
+          id,
+          {
+            $set: { orderStatus },
+            $push: {
+              orderTimeline: {
+                status: orderStatus,
+                description: description || `Bulk updated to ${orderStatus}`,
+                timestamp: new Date()
+              }
+            }
+          },
+          { new: true }
+        )
+      )
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `${updates.length} orders updated successfully`,
+      updatedCount: updates.length
+    });
+  } catch (error) {
+    console.error("❌ Error in batch update:", error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Error updating orders"
+    });
+  }
+};
+
+// ✅ GET ORDER STATISTICS WITH STATUS BREAKDOWN
+export const getEnhancedOrderStats = async (req, res) => {
+  try {
+    const totalOrders = await Order.countDocuments();
+    
+    const statusBreakdown = await Order.aggregate([
+      {
+        $group: {
+          _id: "$orderStatus",
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ]);
+
+    const paymentMethodBreakdown = await Order.aggregate([
+      {
+        $group: {
+          _id: "$paymentMethod",
+          count: { $sum: 1 },
+          totalAmount: { $sum: "$totalAmount" }
+        }
+      }
+    ]);
+
+    const totalRevenue = await Order.aggregate([
+      {
+        $match: {
+          orderStatus: { $in: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$totalAmount" }
+        }
+      }
+    ]);
+
+    const revenueByPaymentMethod = await Order.aggregate([
+      {
+        $match: {
+          orderStatus: { $in: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] }
+        }
+      },
+      {
+        $group: {
+          _id: "$paymentMethod",
+          total: { $sum: "$totalAmount" }
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Enhanced order statistics retrieved successfully",
+      stats: {
+        totalOrders,
+        statusBreakdown: Object.fromEntries(
+          statusBreakdown.map(s => [s._id, s.count])
+        ),
+        paymentMethodBreakdown,
+        totalRevenue: totalRevenue[0]?.total || 0,
+        revenueByPaymentMethod
+      }
+    });
+  } catch (error) {
+    console.error("❌ Error fetching enhanced stats:", error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Error fetching statistics"
+    });
+  }
+};

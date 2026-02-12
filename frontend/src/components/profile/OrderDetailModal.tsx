@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Order } from "@/types/profile";
 import { motion } from "framer-motion";
+import OrderTrackingTimeline from "@/components/OrderTrackingTimeline";
 
 interface OrderDetailModalProps {
   order: Order;

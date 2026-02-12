@@ -12,6 +12,15 @@ import {
   getOrderStats
 } from '../controllers/orderController.js';
 
+import {
+  updateOrderStatusWithTimeline,
+  getOrderWithTimeline,
+  updateShippingInfo,
+  getOrderTracking,
+  batchUpdateOrderStatus,
+  getEnhancedOrderStats
+} from '../controllers/orderController.js';
+
 const router = express.Router();
 
 // ======================================
@@ -91,5 +100,12 @@ router.put('/:id/status', authenticate, adminOnly, updateOrderStatus);
  * @access  Private (Admin)
  */
 router.put('/:id/verify-payment', authenticate, adminOnly, verifyPayment);
+
+router.put('/:id/status-timeline', authenticate, adminOnly, updateOrderStatusWithTimeline);
+router.put('/:id/shipping', authenticate, adminOnly, updateShippingInfo);
+router.get('/:id/timeline', authenticate, getOrderWithTimeline);
+router.get('/:id/tracking', authenticate, getOrderTracking);
+router.post('/admin/batch-update', authenticate, adminOnly, batchUpdateOrderStatus);
+router.get('/admin/stats/enhanced', authenticate, adminOnly, getEnhancedOrderStats);
 
 export default router;
