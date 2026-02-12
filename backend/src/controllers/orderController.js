@@ -7,7 +7,8 @@ import Address from "../models/Address.js";
 export const placeOrder = async (req, res) => {
   try {
     const { items, totalAmount, paymentMethod, addressId, newAddress } = req.body;
-    const userId = req.user.id;
+    // ✅ FIXED: Use _id instead of id
+    const userId = req.user._id || req.user.id;
 
     console.log("📤 placeOrder called with:", {
       itemsCount: items?.length,
@@ -324,12 +325,30 @@ if (paymentMethod === "UPI") {
 // 📋 Get all orders for current user
 export const getMyOrders = async (req, res) => {
   try {
-    const userId = req.user.id;
+    // ✅ FIXED: Use _id instead of id
+    const userId = req.user._id || req.user.id;
 
-    const orders = await Order.find({ user: userId })
+    console.log("📋 Fetching orders for user:", userId);
+
+    // ✅ Try to find orders using the correct 'user' field
+    let orders = await Order.find({ user: userId })
       .populate("user", "name email")
       .populate("items.product", "name price image")
       .sort({ createdAt: -1 });
+
+    console.log(`✅ Found ${orders.length} orders with 'user' field`);
+
+    // ✅ Fallback: If no orders found, try legacy 'userId' field
+    // (for backward compatibility with old orders)
+    if (orders.length === 0) {
+      console.log("⚠️ No orders found with 'user' field, trying legacy 'userId' field...");
+      orders = await Order.find({ userId: userId })
+        .populate("user", "name email")
+        .populate("items.product", "name price image")
+        .populate("items.sareeId", "name price image")
+        .sort({ createdAt: -1 });
+      console.log(`✅ Found ${orders.length} orders with legacy 'userId' field`);
+    }
 
     return res.status(200).json({
       success: true,
@@ -340,7 +359,8 @@ export const getMyOrders = async (req, res) => {
     console.error("❌ Error fetching orders:", error);
     return res.status(500).json({ 
       success: false,
-      message: error instanceof Error ? error.message : "Error fetching orders"
+      message: error instanceof Error ? error.message : "Error fetching orders",
+      error: process.env.NODE_ENV === "development" ? error.stack : undefined
     });
   }
 };
@@ -349,7 +369,8 @@ export const getMyOrders = async (req, res) => {
 export const getOrderDetails = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    // ✅ FIXED: Use _id instead of id
+    const userId = req.user._id || req.user.id;
 
     const order = await Order.findOne({ _id: id, user: userId })
       .populate("user", "name email phone")
@@ -473,7 +494,8 @@ export const updateOrderStatus = async (req, res) => {
 export const cancelOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    // ✅ FIXED: Use _id instead of id
+    const userId = req.user._id || req.user.id;
 
     const order = await Order.findOne({ _id: id, user: userId });
 
@@ -547,6 +569,47 @@ export const verifyPayment = async (req, res) => {
     return res.status(500).json({ 
       success: false,
       message: error instanceof Error ? error.message : "Error verifying payment"
+    });
+  }
+};
+
+// 📊 Get order statistics (Admin)
+export const getOrderStats = async (req, res) => {
+  try {
+    const totalOrders = await Order.countDocuments();
+    const pendingOrders = await Order.countDocuments({ orderStatus: "PENDING_PAYMENT" });
+    const placedOrders = await Order.countDocuments({ orderStatus: "PLACED" });
+    const confirmedOrders = await Order.countDocuments({ orderStatus: "CONFIRMED" });
+    const processingOrders = await Order.countDocuments({ orderStatus: "PROCESSING" });
+    const shippedOrders = await Order.countDocuments({ orderStatus: "SHIPPED" });
+    const deliveredOrders = await Order.countDocuments({ orderStatus: "DELIVERED" });
+    const cancelledOrders = await Order.countDocuments({ orderStatus: "CANCELLED" });
+
+    const totalRevenue = await Order.aggregate([
+      { $match: { orderStatus: { $in: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] } } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Order statistics retrieved successfully",
+      stats: {
+        totalOrders,
+        pendingOrders,
+        placedOrders,
+        confirmedOrders,
+        processingOrders,
+        shippedOrders,
+        deliveredOrders,
+        cancelledOrders,
+        totalRevenue: totalRevenue[0]?.total || 0
+      }
+    });
+  } catch (error) {
+    console.error("❌ Error fetching order stats:", error);
+    return res.status(500).json({ 
+      success: false,
+      message: error instanceof Error ? error.message : "Error fetching order statistics"
     });
   }
 };
