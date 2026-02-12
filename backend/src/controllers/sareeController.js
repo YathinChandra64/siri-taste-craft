@@ -62,19 +62,40 @@ const buildFilterQuery = (queryParams) => {
     }
   }
 
-  // Availability filter
+  // Availability filter - Check both main stock and color variants
   if (queryParams.availability) {
     if (Array.isArray(queryParams.availability)) {
+      // For array availability, use $or to check main stock OR any color variant stock
+      const availabilityConditions = [];
+      
       if (queryParams.availability.includes('in-stock')) {
-        filter.stock = { $gt: 0 };
+        availabilityConditions.push(
+          { stock: { $gt: 0 } },
+          { 'colorVariants.stock': { $gt: 0 } }
+        );
       }
       if (queryParams.availability.includes('out-of-stock')) {
-        filter.stock = { $eq: 0 };
+        availabilityConditions.push({
+          $and: [
+            { stock: { $eq: 0 } },
+            { $nor: [{ 'colorVariants.stock': { $gt: 0 } }] }
+          ]
+        });
+      }
+      
+      if (availabilityConditions.length > 0) {
+        filter.$or = availabilityConditions;
       }
     } else if (queryParams.availability === 'in-stock') {
-      filter.stock = { $gt: 0 };
+      filter.$or = [
+        { stock: { $gt: 0 } },
+        { 'colorVariants.stock': { $gt: 0 } }
+      ];
     } else if (queryParams.availability === 'out-of-stock') {
-      filter.stock = { $eq: 0 };
+      filter.$and = [
+        { stock: { $eq: 0 } },
+        { $nor: [{ 'colorVariants.stock': { $gt: 0 } }] }
+      ];
     }
   }
 

@@ -23,6 +23,13 @@ interface CartItem {
     _id: string;
     name: string;
     price: number;
+    stock?: number; // ← NEW: Main stock
+    colorVariants?: Array<{ // ← NEW: Color variants
+      color: string;
+      colorCode?: string;
+      stock: number;
+      images?: string[];
+    }>;
   };
   quantity: number;
 }
@@ -52,6 +59,7 @@ interface OrderItem {
   name: string;
   quantity: number;
   price: number;
+  selectedColor?: string; // ← NEW: For color variant sarees
 }
 
 interface OrderData {
@@ -92,6 +100,7 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [newAddress, setNewAddress] = useState<Address | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedColors, setSelectedColors] = useState<Record<string, string>>({}); // ← NEW: Track selected colors
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -320,19 +329,38 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
     try {
       setIsLoading(true);
 
-      // Build items array with proper validation
+      // ✅ Build items array with color selection validation
       const orderItems: OrderItem[] = cartItems.map((item) => {
         const productId = item.saree._id;
         
         if (!productId) {
           throw new Error("Invalid product ID in cart item");
         }
+
+        // ✅ Check if saree has color variants
+        const hasColorVariants = item.saree.colorVariants && item.saree.colorVariants.length > 0;
+
+        // ✅ Validate color selection if required
+        if (hasColorVariants) {
+          const selectedColor = selectedColors[item._id];
+          
+          if (!selectedColor) {
+            throw new Error(`Please select a color for "${item.saree.name}"`);
+          }
+
+          // ✅ Verify selected color exists
+          const colorExists = item.saree.colorVariants.some(v => v.color === selectedColor);
+          if (!colorExists) {
+            throw new Error(`Selected color not available for "${item.saree.name}"`);
+          }
+        }
         
         return {
           product: productId,
           name: item.saree.name,
           quantity: item.quantity,
-          price: item.saree.price
+          price: item.saree.price,
+          selectedColor: selectedColors[item._id] // ← Include selected color if any
         };
       });
 
@@ -547,6 +575,93 @@ const Checkout = ({ cartItems: propsCartItems, totalAmount: propsTotalAmount }: 
                   >
                     Continue to Address
                   </Button>
+                </motion.div>
+              )}
+
+              {/* ✅ NEW: Color Selection Step */}
+              {/* When on address step, show color selection above it */}
+              {step === "address" && (
+                <motion.div
+                  key="colors"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4"
+                >
+                  {cartItems.map((item) => {
+                    const hasColorVariants = item.saree.colorVariants && item.saree.colorVariants.length > 0;
+                    
+                    return (
+                      <Card key={item._id} className="p-6 mb-4">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="font-semibold text-lg">{item.saree.name}</h4>
+                            <p className="text-sm text-slate-500">Quantity: {item.quantity}</p>
+                          </div>
+                          <p className="text-xl font-bold text-purple-600">₹{(item.saree.price * item.quantity).toFixed(2)}</p>
+                        </div>
+
+                        {hasColorVariants ? (
+                          <div className="space-y-3">
+                            <label className="block text-sm font-medium text-slate-700">
+                              Select Color <span className="text-red-500">*</span>
+                            </label>
+                            
+                            <div className="space-y-2">
+                              {item.saree.colorVariants.map((variant) => (
+                                <div
+                                  key={variant.color}
+                                  onClick={() =>
+                                    setSelectedColors({
+                                      ...selectedColors,
+                                      [item._id]: variant.color,
+                                    })
+                                  }
+                                  className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                    selectedColors[item._id] === variant.color
+                                      ? "border-purple-600 bg-purple-50"
+                                      : "border-slate-200 hover:border-slate-300"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 flex-1">
+                                    {/* Color swatch */}
+                                    {variant.colorCode && (
+                                      <div
+                                        className="w-6 h-6 rounded-full border border-slate-300"
+                                        style={{ backgroundColor: variant.colorCode }}
+                                      />
+                                    )}
+                                    
+                                    <div className="flex-1">
+                                      <p className="font-medium">{variant.color}</p>
+                                      <p className="text-xs text-slate-500">Stock: {variant.stock}</p>
+                                    </div>
+                                  </div>
+
+                                  {/* Radio button */}
+                                  <input
+                                    type="radio"
+                                    name={`color-${item._id}`}
+                                    value={variant.color}
+                                    checked={selectedColors[item._id] === variant.color}
+                                    onChange={() => {}}
+                                    className="w-5 h-5 text-purple-600"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+
+                            {!selectedColors[item._id] && (
+                              <p className="text-sm text-red-500 font-medium">Please select a color to continue</p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-slate-600 italic">
+                            ✓ No color options available for this saree
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
                 </motion.div>
               )}
 

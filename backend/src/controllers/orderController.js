@@ -185,17 +185,46 @@ export const placeOrder = async (req, res) => {
         });
       }
 
-      // Check stock availability
-      if (saree.stock < item.quantity) {
-        console.error("❌ Insufficient stock for", saree.name);
+      // ✅ Check stock availability - Handle both global stock and color variants
+      let availableStock = 0;
+      let hasColorVariants = saree.colorVariants && saree.colorVariants.length > 0;
+
+      if (hasColorVariants) {
+        // If color variants exist, sum up variant stocks
+        availableStock = saree.colorVariants.reduce((total, variant) => total + (variant.stock || 0), 0);
+        console.log(`📊 Saree has ${saree.colorVariants.length} color variants. Total stock: ${availableStock}`);
+      } else {
+        // Otherwise use main stock field
+        availableStock = saree.stock || 0;
+        console.log(`📊 Using main stock field. Available: ${availableStock}`);
+      }
+
+      if (availableStock < item.quantity) {
+        console.error("❌ Insufficient stock for", saree.name, `- Need: ${item.quantity}, Available: ${availableStock}`);
         return res.status(400).json({
           success: false,
-          message: `Insufficient stock for "${saree.name}". Available: ${saree.stock}, Requested: ${item.quantity}`
+          message: `Insufficient stock for "${saree.name}". Available: ${availableStock}, Requested: ${item.quantity}`
         });
       }
 
       // ✅ Deduct stock from saree
-      saree.stock = (saree.stock || 0) - item.quantity;
+      if (hasColorVariants) {
+        // Deduct from color variants (from first variant with stock)
+        let remainingQty = item.quantity;
+        for (let variant of saree.colorVariants) {
+          if (remainingQty <= 0) break;
+          
+          const deductQty = Math.min(remainingQty, variant.stock || 0);
+          variant.stock = (variant.stock || 0) - deductQty;
+          remainingQty -= deductQty;
+          console.log(`✅ Deducted ${deductQty} from variant "${variant.color}". Remaining: ${variant.stock}`);
+        }
+      } else {
+        // Deduct from main stock
+        saree.stock = (saree.stock || 0) - item.quantity;
+        console.log(`✅ Deducted ${item.quantity} from main stock. Remaining: ${saree.stock}`);
+      }
+
       await saree.save();
       console.log("✅ Stock updated for:", saree.name);
 
