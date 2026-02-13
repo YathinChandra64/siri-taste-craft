@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Order } from "@/types/profile";
+import { Order, Saree } from "@/types/profile";
 import { motion } from "framer-motion";
 import OrderTrackingTimeline from "@/components/OrderTrackingTimeline";
 
@@ -69,31 +69,43 @@ export const OrderDetailModal = ({ order, isOpen, onClose }: OrderDetailModalPro
           <div>
             <h3 className="font-semibold mb-3">Items Ordered</h3>
             <div className="space-y-3">
-              {order.items.map((item, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="flex gap-4 p-3 rounded-lg bg-muted/50"
-                >
-                  <img
-                    src={item.product.imageUrl}
-                    alt={item.product.name}
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-sm">{item.product.name}</h4>
-                    <p className="text-xs text-muted-foreground">{item.product.category}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">Qty: {item.quantity}</p>
-                    <p className="text-sm font-bold text-primary">
-                      ₹{(item.price * item.quantity).toLocaleString()}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
+              {order.items.map((item, idx) => {
+  // Type guard: Check if product is an object (populated) or string (not populated)
+  const isPopulatedProduct = typeof item.product === 'object' && item.product !== null;
+  const productName = isPopulatedProduct ? (item.product as Saree).name : item.name;
+  const productImageUrl = isPopulatedProduct ? (item.product as Saree).imageUrl : undefined;
+  const productCategory = isPopulatedProduct ? (item.product as Saree).category : undefined;
+
+  return (
+    <motion.div
+      key={idx}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: idx * 0.1 }}
+      className="flex gap-4 p-3 rounded-lg bg-muted/50"
+    >
+      {productImageUrl && (
+        <img
+          src={productImageUrl}
+          alt={productName}
+          className="w-16 h-16 object-cover rounded"
+        />
+      )}
+      <div className="flex-1">
+        <h4 className="font-semibold text-sm">{productName}</h4>
+        {productCategory && (
+          <p className="text-xs text-muted-foreground">{productCategory}</p>
+        )}
+      </div>
+      <div className="text-right">
+        <p className="text-sm font-semibold">Qty: {item.quantity}</p>
+        <p className="text-sm font-bold text-primary">
+          ₹{(item.price * item.quantity).toLocaleString()}
+        </p>
+      </div>
+    </motion.div>
+  );
+})}
             </div>
           </div>
         </motion.div>

@@ -34,7 +34,7 @@ export interface Saree {
 
 // ✅ FIXED: OrderItem now correctly uses string for product (MongoDB ObjectId)
 export interface OrderItem {
-  product: string; // ✅ MongoDB ObjectId as string
+  product: string | Saree; // ✅ MongoDB ObjectId as string
   name: string;
   quantity: number;
   price: number;
