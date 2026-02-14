@@ -22,7 +22,7 @@ import {
 import { Loader2, Search, Package, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Order } from '@/types/profile';
-import AdminOrderUpdateModal from './AdminOrderUpdateModal';
+import AdminOrderUpdateModal from '@/components/admin/AdminOrderUpdateModal';
 
 interface OrderStats {
   total: number;

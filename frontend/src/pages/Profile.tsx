@@ -10,6 +10,7 @@ import AnimatedBackground from "@/components/AnimatedBackground";
 import { getCart, removeFromCart, CartItem } from "@/utils/cart";
 import API from "@/lib/api";
 import { AxiosError } from "axios";
+import OrderHistorySection from "@/components/profile/OrderHistorySection";
 
 interface OrderItem {
   product: string;
@@ -482,51 +483,8 @@ const Profile = () => {
             )}
           </div>
         ) : (
-          // ORDERS TAB
-          <div className="space-y-4">
-            {orders.length === 0 ? (
-              <Card className="bg-slate-800 border-slate-700 p-8 text-center">
-                <AlertCircle className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400 mb-4">No orders yet</p>
-                <Button onClick={() => navigate("/sarees")} className="bg-purple-600 hover:bg-purple-700">
-                  Start Shopping
-                </Button>
-              </Card>
-            ) : (
-              orders.map((order) => (
-                <motion.div
-                  key={order._id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <Card className="bg-slate-800 border-slate-700 p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-white font-semibold mb-2">Order #{order._id.slice(-6)}</h3>
-                        <p className="text-slate-400 text-sm">
-                          {new Date(order.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <span className={`px-3 py-1 rounded text-sm font-medium ${
-                        order.status === "delivered" ? "bg-green-600/20 text-green-400" :
-                        order.status === "shipped" ? "bg-blue-600/20 text-blue-400" :
-                        order.status === "confirmed" ? "bg-purple-600/20 text-purple-400" :
-                        "bg-yellow-600/20 text-yellow-400"
-                      }`}>
-                        {order.status}
-                      </span>
-                    </div>
-                    <div className="border-t border-slate-700 pt-4">
-                      <p className="text-slate-400 text-sm mb-2">Items: {order.items.length}</p>
-                      <p className="text-white font-bold text-lg">
-                        Total: ₹{order.totalAmount.toLocaleString()}
-                      </p>
-                    </div>
-                  </Card>
-                </motion.div>
-              ))
-            )}
-          </div>
+          // ORDERS TAB - Using OrderHistorySection Component with Tracking Timeline
+          <OrderHistorySection orders={orders} />
         )}
       </div>
     </div>
