@@ -16,11 +16,12 @@ import {
   MessageCircle,
   ChevronLeft,
   Check,
-  Trash2,
+  Truck,
+  Shield,
+  RotateCcw,
 } from "lucide-react";
 import { addToCart, getCart } from "@/utils/cart";
 
-// ✅ FIXED: Proper TypeScript interfaces (no 'any')
 interface ColorVariant {
   color: string;
   colorCode: string;
@@ -87,7 +88,6 @@ const SareeDetails = () => {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
 
-  // States
   const [saree, setSaree] = useState<Saree | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,14 +97,10 @@ const SareeDetails = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [userReview, setUserReview] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  
-  // ✅ NEW: Color variant state
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
-  
-  // ✅ NEW: Stock error state
   const [stockError, setStockError] = useState("");
+  const [activeReviewTab, setActiveReviewTab] = useState<"form" | "list">("list");
 
-  // Review form
   const [reviewForm, setReviewForm] = useState<ReviewFormData>({
     rating: 5,
     title: "",
@@ -112,50 +108,39 @@ const SareeDetails = () => {
   });
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  // ✅ NEW: Get current stock based on selected color variant
   const getCurrentStock = useCallback((): number => {
     if (!saree) return 0;
-    
     if (saree.colorVariants && saree.colorVariants.length > 0) {
       return saree.colorVariants[selectedColorIndex]?.stock || 0;
     }
-    
     return saree.stock || 0;
   }, [saree, selectedColorIndex]);
 
-  // ✅ NEW: Get current images based on selected color variant
   const getCurrentImages = useCallback((): string[] => {
     if (!saree) return [];
-    
     if (saree.colorVariants && saree.colorVariants.length > 0) {
       const variantImages = saree.colorVariants[selectedColorIndex]?.images;
       return variantImages && variantImages.length > 0 ? variantImages : [saree.imageUrl];
     }
-    
     return [saree.imageUrl];
   }, [saree, selectedColorIndex]);
 
-  // ✅ NEW: Handle quantity change with stock validation
   const handleQuantityChange = (newQuantity: number) => {
     const availableStock = getCurrentStock();
-    
     if (newQuantity < 1) {
       setQuantity(1);
       setStockError("");
       return;
     }
-    
     if (newQuantity > availableStock) {
-      setStockError(`Only ${availableStock} items available in stock`);
+      setStockError(`Only ${availableStock} items available`);
       setQuantity(availableStock);
       return;
     }
-    
     setStockError("");
     setQuantity(newQuantity);
   };
 
-  // ✅ NEW: Handle color variant selection
   const handleColorChange = (index: number) => {
     setSelectedColorIndex(index);
     setSelectedImage(0);
@@ -191,7 +176,6 @@ const SareeDetails = () => {
     }
   }, [id, navigate, toast]);
 
-  // ✅ FIXED: Proper review fetching with state update
   const fetchReviews = useCallback(async () => {
     try {
       setReviewsLoading(true);
@@ -202,7 +186,6 @@ const SareeDetails = () => {
         const data = await response.json();
         const reviewsData = Array.isArray(data) ? data : (data.data || []);
         setReviews(reviewsData);
-
         if (isAuthenticated && user) {
           const userReviewExists = reviewsData.some(
             (review: Review) => review.userId === user.id || review.userEmail === user.email
@@ -229,15 +212,12 @@ const SareeDetails = () => {
     setInCart(cartItems.some((item) => item.id === id));
   }, [id]);
 
-  // ✅ FIXED: Add to cart with stock validation
   const handleAddToCart = () => {
     if (!saree) return;
-
     const availableStock = getCurrentStock();
     
-    // ✅ Validate stock before adding to cart
     if (quantity > availableStock) {
-      setStockError(`Only ${availableStock} items available in stock`);
+      setStockError(`Only ${availableStock} items available`);
       toast({
         title: "Stock Limit Exceeded",
         description: `Only ${availableStock} items available`,
@@ -256,7 +236,6 @@ const SareeDetails = () => {
     }
 
     const selectedColor = saree.colorVariants?.[selectedColorIndex];
-
     const cartItem: CartItem = {
       id: saree._id,
       name: saree.name,
@@ -269,20 +248,66 @@ const SareeDetails = () => {
 
     addToCart(cartItem);
     setInCart(true);
-
     toast({
       title: "✨ Added to Cart!",
-      description: `${quantity} ${saree.name}${selectedColor ? ` (${selectedColor.color})` : ''} added to cart!`,
+      description: `${quantity} ${saree.name} added successfully!`,
     });
+  };
+
+  const handleShare = async () => {
+    if (!saree) return;
+
+    const shareUrl = `${window.location.origin}/sarees/${saree._id}`;
+    const shareTitle = saree.name;
+    const shareText = `Check out this beautiful ${saree.category} saree - ${saree.name} at ₹${saree.price.toLocaleString()}!`;
+
+    // Check if Web Share API is available
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        toast({
+          title: "✨ Shared!",
+          description: "Thank you for sharing this saree!",
+        });
+      } catch (error) {
+        // User canceled the share dialog
+        if (error instanceof Error && error.name !== 'AbortError') {
+    console.error('Error sharing:', error);
+  }
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast({
+          title: "✨ Link Copied!",
+          description: "Saree link copied to clipboard. Share it with friends!",
+        });
+      } catch (error) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        toast({
+          title: "✨ Link Copied!",
+          description: "Saree link copied to clipboard. Share it with friends!",
+        });
+      }
+    }
   };
 
   const handleAddToWishlist = () => {
     if (!saree) return;
-
     try {
       const wishlist = localStorage.getItem("wishlist");
       const wishlistItems = wishlist ? JSON.parse(wishlist) : [];
-      
       const isAlreadyWishlisted = wishlistItems.some(
         (item: { id: string }) => item.id === saree._id
       );
@@ -293,10 +318,9 @@ const SareeDetails = () => {
         );
         localStorage.setItem("wishlist", JSON.stringify(filtered));
         setInWishlist(false);
-
         toast({
           title: "❤️ Removed from Wishlist",
-          description: `${saree.name} has been removed from your wishlist`,
+          description: `${saree.name} has been removed`,
         });
       } else {
         wishlistItems.push({
@@ -308,10 +332,9 @@ const SareeDetails = () => {
         });
         localStorage.setItem("wishlist", JSON.stringify(wishlistItems));
         setInWishlist(true);
-
         toast({
           title: "❤️ Added to Wishlist!",
-          description: `${saree.name} saved for later!`,
+          description: `${saree.name} saved for later`,
         });
       }
     } catch (error) {
@@ -324,7 +347,6 @@ const SareeDetails = () => {
     }
   };
 
-  // ✅ FIXED: Complete review submission with proper state update
   const handleSubmitReview = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -338,29 +360,10 @@ const SareeDetails = () => {
       return;
     }
 
-    // ✅ Validation
-    if (!reviewForm.title.trim()) {
+    if (!reviewForm.title.trim() || !reviewForm.comment.trim()) {
       toast({
         title: "Validation Error",
-        description: "Review title is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!reviewForm.comment.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Review comment is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (reviewForm.rating < 1 || reviewForm.rating > 5) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a rating",
+        description: "Please fill in all review fields",
         variant: "destructive",
       });
       return;
@@ -368,7 +371,6 @@ const SareeDetails = () => {
 
     try {
       setSubmittingReview(true);
-
       const response = await fetch(
         `http://localhost:5000/api/sarees/${id}/reviews`,
         {
@@ -387,58 +389,20 @@ const SareeDetails = () => {
 
       if (response.ok) {
         const newReview = await response.json();
-        
-        // ✅ FIXED: Update reviews state immediately
         setReviews(prevReviews => [newReview, ...prevReviews]);
         setUserReview(true);
-        
-        // ✅ Reset form
         setReviewForm({ rating: 5, title: "", comment: "" });
-
-        // ✅ Refetch saree details to update average rating
+        setActiveReviewTab("list");
         await fetchSareeDetails();
-
         toast({
           title: "✅ Review Posted!",
           description: "Thank you for sharing your feedback!",
         });
-      } else if (response.status === 403) {
-        // 🔧 FIX: Handle 403 Forbidden - User hasn't purchased
-        const error = await response.json();
-        toast({
-          title: "Cannot Review Yet",
-          description: error.message || "🛍️ You can only review this saree after you've purchased and received it. Thank you for your interest!",
-          variant: "destructive",
-        });
-      } else if (response.status === 409) {
-        // 🔧 FIX: Handle 409 Conflict - Already reviewed
-        const error = await response.json();
-        toast({
-          title: "Already Reviewed",
-          description: error.message || "You've already shared your thoughts on this saree. Thank you!",
-          variant: "destructive",
-        });
-      } else if (response.status === 400) {
-        // 🔧 FIX: Handle 400 Bad Request - Validation errors
+      } else {
         const error = await response.json();
         toast({
           title: "Review Error",
-          description: error.message || "Please check your review details and try again",
-          variant: "destructive",
-        });
-      } else if (response.status === 404) {
-        // 🔧 FIX: Handle 404 Not Found
-        toast({
-          title: "Saree Not Found",
-          description: "This saree is no longer available",
-          variant: "destructive",
-        });
-      } else {
-        // 🔧 FIX: Handle all other errors with friendly message
-        const error = await response.json();
-        toast({
-          title: "Unable to Post Review",
-          description: error.message || "Something went wrong. Please try again later.",
+          description: error.message || "Failed to post review",
           variant: "destructive",
         });
       }
@@ -446,7 +410,7 @@ const SareeDetails = () => {
       console.error("Failed to submit review:", error);
       toast({
         title: "Connection Error",
-        description: "Unable to submit your review. Please check your internet connection and try again.",
+        description: "Unable to submit your review",
         variant: "destructive",
       });
     } finally {
@@ -467,11 +431,11 @@ const SareeDetails = () => {
           >
             <Star
               size={20}
-              className={i < Math.floor(rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}
+              className={i < Math.floor(rating) ? "fill-amber-400 text-amber-400" : "text-gray-300"}
             />
           </button>
         ))}
-        <span className="ml-2 font-semibold">{rating.toFixed(1)}</span>
+        <span className="ml-2 font-semibold text-sm">{rating.toFixed(1)}</span>
       </div>
     );
   };
@@ -501,74 +465,74 @@ const SareeDetails = () => {
   const currentStock = getCurrentStock();
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative bg-white dark:bg-slate-950">
       <AnimatedBackground />
 
       <div className="relative z-10">
-        {/* Header with Back Button */}
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-b py-4 px-4">
-          <div className="container mx-auto max-w-7xl">
+        {/* Header */}
+        <div className="border-b bg-white/80 dark:bg-slate-900/50 backdrop-blur sticky top-0 z-20">
+          <div className="container max-w-7xl mx-auto px-4 py-4">
             <button
               onClick={() => navigate("/sarees")}
-              className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              <ChevronLeft size={20} />
-              Back to Sarees
+              <ChevronLeft size={18} />
+              Back to Collection
             </button>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="container mx-auto max-w-7xl px-4 py-12">
+        <div className="container max-w-7xl mx-auto px-4 py-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="grid lg:grid-cols-2 gap-12 mb-12">
-              {/* Image Gallery with Magnifier */}
+            {/* Product Grid */}
+            <div className="grid lg:grid-cols-2 gap-12 mb-16">
+              {/* Image Gallery */}
               <div className="space-y-4">
-                {/* ✅ NEW: Image Magnifier Component */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3 }}
-                  className="aspect-square bg-muted rounded-lg overflow-hidden relative"
+                  className="aspect-square bg-gradient-to-br from-purple-50 to-pink-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl overflow-hidden relative group"
                 >
                   <ImageMagnifier
                     src={currentImages[selectedImage] || saree.imageUrl}
                     alt={saree.name}
                   />
 
-                  {/* Stock Badge - ✅ FIXED: Don't show exact stock number */}
+                  {/* Stock Badge */}
                   {currentStock === 0 && (
-                    <div className="absolute top-4 right-4 bg-red-500/90 text-white px-4 py-2 rounded-lg font-semibold z-10">
+                    <div className="absolute top-6 right-6 bg-red-500 text-white px-4 py-2 rounded-full text-sm font-semibold">
                       Out of Stock
                     </div>
                   )}
                   {currentStock > 0 && currentStock <= 3 && (
-                    <div className="absolute top-4 right-4 bg-orange-500/90 text-white px-4 py-2 rounded-lg font-semibold animate-pulse z-10">
-                      Limited Stock
+                    <div className="absolute top-6 right-6 bg-amber-500 text-white px-4 py-2 rounded-full text-sm font-semibold animate-pulse">
+                      Low Stock
                     </div>
                   )}
                 </motion.div>
 
-                {/* ✅ NEW: Thumbnail images for variants */}
+                {/* Thumbnails */}
                 {currentImages.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto">
+                  <div className="flex gap-3 overflow-x-auto pb-2">
                     {currentImages.map((img, idx) => (
                       <button
                         key={idx}
                         onClick={() => setSelectedImage(idx)}
-                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                        className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-all duration-300 ${
                           selectedImage === idx
-                            ? "border-primary scale-105"
-                            : "border-transparent opacity-60 hover:opacity-100"
+                            ? "border-primary ring-2 ring-primary/30 scale-105"
+                            : "border-muted opacity-60 hover:opacity-100"
                         }`}
                       >
                         <img
                           src={img}
-                          alt={`${saree.name} ${idx + 1}`}
+                          alt={`View ${idx + 1}`}
                           className="w-full h-full object-cover"
                         />
                       </button>
@@ -577,219 +541,146 @@ const SareeDetails = () => {
                 )}
               </div>
 
-              {/* Details */}
+              {/* Product Info */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="space-y-6"
+                className="space-y-8"
               >
-                {/* Category & Rating */}
-                <div className="flex items-start justify-between">
-                  <div>
-                    <motion.span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-700 dark:text-purple-300 mb-4">
+                {/* Header */}
+                <div className="space-y-4">
+                  <div className="inline-flex">
+                    <motion.span className="px-4 py-1.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                       {saree.category}
                     </motion.span>
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-                      {saree.name}
-                    </h1>
                   </div>
+                  <h1 className="text-4xl md:text-5xl font-bold leading-tight text-foreground">
+                    {saree.name}
+                  </h1>
+
+                  {/* Rating */}
+                  {saree.averageRating && saree.reviewCount ? (
+                    <motion.div className="flex items-center gap-4 pt-2">
+                      <div className="flex items-center gap-2">
+                        {renderStarRating(saree.averageRating)}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {saree.reviewCount} review{saree.reviewCount !== 1 ? "s" : ""}
+                      </p>
+                    </motion.div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No reviews yet</p>
+                  )}
                 </div>
 
-                {/* Rating */}
-                {saree.averageRating && saree.reviewCount ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="flex items-center gap-3"
-                  >
-                    {renderStarRating(saree.averageRating)}
-                    <p className="text-sm text-muted-foreground">
-                      ({saree.reviewCount} review{saree.reviewCount !== 1 ? "s" : ""})
+                {/* Price Section */}
+                <motion.div className="pt-6 border-t border-b py-6 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Price</p>
+                  <div className="flex items-baseline gap-4">
+                    <p className="text-5xl font-bold text-foreground">
+                      ₹{saree.price.toLocaleString()}
                     </p>
-                  </motion.div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No reviews yet</p>
-                )}
-
-                {/* Price */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.25 }}
-                  className="space-y-2"
-                >
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Price</p>
-                  <p className="text-4xl font-bold bg-gradient-saree bg-clip-text text-transparent">
-                    ₹{saree.price.toLocaleString()}
-                  </p>
+                    {saree.blousePrice && (
+                      <div className="text-sm space-y-1">
+                        <p className="text-muted-foreground">Blouse: ₹{saree.blousePrice.toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
 
-                {/* ✅ NEW: Color Variants Selector */}
+                {/* Color Variants */}
                 {saree.colorVariants && saree.colorVariants.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.28 }}
-                    className="space-y-3"
-                  >
-                    <p className="text-sm font-semibold">
-                      Color: <span className="text-muted-foreground">{saree.colorVariants[selectedColorIndex].color}</span>
-                    </p>
+                  <motion.div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">
+                        Color: <span className="text-primary">{saree.colorVariants[selectedColorIndex].color}</span>
+                      </p>
+                    </div>
                     <div className="flex gap-3 flex-wrap">
                       {saree.colorVariants.map((variant, idx) => (
                         <button
                           key={idx}
                           onClick={() => handleColorChange(idx)}
-                          className={`relative group`}
+                          className={`relative group transition-all duration-300`}
                           title={variant.color}
                         >
                           <div
-                            className={`w-12 h-12 rounded-full border-2 transition-all ${
+                            className={`w-14 h-14 rounded-full border-2 transition-all duration-300 ${
                               selectedColorIndex === idx
-                                ? "border-primary scale-110 shadow-lg"
-                                : "border-gray-300 hover:border-primary/50 hover:scale-105"
+                                ? "border-primary shadow-lg shadow-primary/30 scale-110"
+                                : "border-gray-300 hover:border-primary hover:scale-105"
                             }`}
                             style={{ backgroundColor: variant.colorCode }}
                           />
                           {selectedColorIndex === idx && (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Check className="text-white drop-shadow-lg" size={20} />
-                            </div>
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="absolute inset-0 flex items-center justify-center"
+                            >
+                              <Check className="text-white drop-shadow-lg" size={24} />
+                            </motion.div>
                           )}
+                          <span className="absolute -bottom-7 left-1/2 -translate-x-1/2 text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                            {variant.color}
+                          </span>
                         </button>
                       ))}
                     </div>
                   </motion.div>
                 )}
 
-                {/* ✅ NEW: Quantity Selector */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="space-y-2"
-                >
+                {/* Quantity */}
+                <motion.div className="space-y-4">
                   <p className="text-sm font-semibold">Quantity</p>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-muted rounded-xl p-1 w-fit">
                     <button
                       onClick={() => handleQuantityChange(quantity - 1)}
                       disabled={quantity <= 1}
-                      className="w-10 h-10 rounded-lg border border-input flex items-center justify-center hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-10 h-10 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      -
+                      −
                     </button>
                     <input
                       type="number"
                       value={quantity}
                       onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
-                      className="w-20 h-10 text-center border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-16 text-center bg-transparent font-semibold focus:outline-none"
                       min="1"
                       max={currentStock}
                     />
                     <button
                       onClick={() => handleQuantityChange(quantity + 1)}
                       disabled={quantity >= currentStock}
-                      className="w-10 h-10 rounded-lg border border-input flex items-center justify-center hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-10 h-10 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       +
                     </button>
                   </div>
-                  {/* ✅ Stock Error Message */}
                   {stockError && (
-                    <p className="text-sm text-red-600 dark:text-red-400">
-                      {stockError}
-                    </p>
+                    <p className="text-sm text-red-500">{stockError}</p>
                   )}
                 </motion.div>
 
-                {/* Description */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.32 }}
-                  className="space-y-2"
-                >
-                  <p className="text-sm text-muted-foreground uppercase tracking-wider">About</p>
-                  <p className="text-foreground leading-relaxed">{saree.description}</p>
-                </motion.div>
-
-                {/* Specifications */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.35 }}
-                  className="space-y-3 pt-6 border-t"
-                >
-                  {saree.material && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Material</span>
-                      <span className="font-semibold text-foreground">{saree.material}</span>
-                    </div>
-                  )}
-                  {saree.color && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Color</span>
-                      <span className="font-semibold text-foreground">{saree.color}</span>
-                    </div>
-                  )}
-                  {saree.occasion && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Occasion</span>
-                      <span className="font-semibold text-foreground">{saree.occasion}</span>
-                    </div>
-                  )}
-                  {saree.length && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Length</span>
-                      <span className="font-semibold text-foreground">{saree.length}</span>
-                    </div>
-                  )}
-                  {saree.blousePrice && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Blouse Price</span>
-                      <span className="font-semibold text-foreground">
-                        ₹{saree.blousePrice.toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                </motion.div>
-
-                {/* ✅ FIXED: Stock Status - Don't show exact number */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="space-y-2 pt-6 border-t"
-                >
-                  <p className="text-sm text-muted-foreground uppercase tracking-wider">Availability</p>
-                  <p
-                    className={`text-lg font-semibold ${
-                      currentStock > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {currentStock > 0
-                      ? "In Stock - Ready to Ship"
-                      : "Currently Out of Stock"}
+                {/* Stock Status */}
+                <motion.div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Availability</p>
+                  <p className={`text-sm font-semibold ${currentStock > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                    {currentStock > 0 ? "✓ In Stock - Ready to Ship" : "Out of Stock"}
                   </p>
                 </motion.div>
 
                 {/* Action Buttons */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.45 }}
-                  className="flex gap-4 pt-6"
-                >
+                <motion.div className="flex gap-3 pt-4">
                   <Button
                     onClick={handleAddToCart}
-                    disabled={currentStock === 0 || inCart}
-                    className={`flex-1 py-6 text-lg font-semibold flex items-center justify-center gap-2 ${
+                    disabled={currentStock === 0}
+                    className={`flex-1 py-6 text-base font-semibold flex items-center justify-center gap-2 rounded-xl transition-all ${
                       inCart
-                        ? "bg-green-500 hover:bg-green-600"
-                        : "bg-gradient-saree hover:opacity-90"
-                    } text-white`}
+                        ? "bg-green-500 hover:bg-green-600 text-white"
+                        : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                    }`}
                   >
                     {inCart ? (
                       <>
@@ -807,241 +698,296 @@ const SareeDetails = () => {
                     onClick={handleAddToWishlist}
                     variant="outline"
                     size="lg"
-                    className={`flex items-center justify-center gap-2 ${
+                    className={`rounded-xl border-2 transition-all ${
                       inWishlist
-                        ? "bg-red-50 text-red-600 border-red-300 hover:bg-red-100 dark:bg-red-900/20 dark:border-red-700"
-                        : "hover:bg-red-50 dark:hover:bg-red-900/20"
+                        ? "bg-red-50 text-red-600 border-red-300 dark:bg-red-900/20 dark:border-red-700"
+                        : "border-muted hover:border-red-300"
                     }`}
                   >
                     <Heart
                       size={20}
                       fill={inWishlist ? "currentColor" : "none"}
                     />
-                    <span className="hidden sm:inline">
-                      {inWishlist ? "Wishlisted" : "Wishlist"}
-                    </span>
                   </Button>
                   <Button
+                    onClick={handleShare}
                     variant="outline"
                     size="lg"
-                    className="flex items-center justify-center gap-2"
+                    className="rounded-xl border-2 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                   >
                     <Share2 size={20} />
-                    <span className="hidden sm:inline">Share</span>
                   </Button>
                 </motion.div>
 
-                {/* Delivery Info */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
-                >
-                  <p className="text-sm text-blue-800 dark:text-blue-300">
-                    🚚 <strong>Free delivery</strong> on orders over ₹500
-                  </p>
-                  <p className="text-sm text-blue-800 dark:text-blue-300 mt-1">
-                    📦 Estimated delivery: 3-7 business days
-                  </p>
+                {/* Trust Badges */}
+                <motion.div className="space-y-3 pt-6 border-t">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <Truck size={18} className="text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Free Shipping</p>
+                      <p className="text-xs text-muted-foreground">On orders over ₹500</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                      <Shield size={18} className="text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Secure Payment</p>
+                      <p className="text-xs text-muted-foreground">100% safe & secure</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                      <RotateCcw size={18} className="text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Easy Returns</p>
+                      <p className="text-xs text-muted-foreground">7 days return policy</p>
+                    </div>
+                  </div>
                 </motion.div>
               </motion.div>
             </div>
 
-            {/* Reviews Section */}
+            {/* Details Tabs */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="grid lg:grid-cols-3 gap-8 py-12 border-t"
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="space-y-8"
             >
-              {/* Review Stats */}
-              <Card className="p-6 lg:col-span-1">
-                <h3 className="text-lg font-bold mb-6">Customer Reviews</h3>
-
-                {reviews.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">Average Rating</p>
-                      {renderStarRating(saree.averageRating || 0)}
-                      <p className="text-xs text-muted-foreground">
-                        Based on {reviews.length} review{reviews.length !== 1 ? "s" : ""}
-                      </p>
-                    </div>
-
-                    {/* Rating Distribution */}
-                    <div className="space-y-2 pt-4 border-t">
-                      {[5, 4, 3, 2, 1].map((rating) => {
-                        const count = reviews.filter((r) => r.rating === rating).length;
-                        const percentage = (count / reviews.length) * 100;
-                        return (
-                          <div key={rating} className="flex items-center gap-2">
-                            <span className="text-xs font-semibold w-8">{rating}⭐</span>
-                            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-yellow-400 transition-all"
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-muted-foreground w-8 text-right">{count}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No reviews yet. Be the first to share your experience!
-                  </p>
-                )}
-              </Card>
-
-              {/* Review Form & Reviews */}
-              <div className="lg:col-span-2 space-y-8">
-                {/* Write Review Form */}
-                {isAuthenticated && !userReview && (
-                  <Card className="p-6 border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-900/20">
-                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                      <MessageCircle size={20} />
-                      Write a Review
-                    </h3>
-
-                    <form onSubmit={handleSubmitReview} className="space-y-4">
-                      {/* Rating */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold">Your Rating *</label>
-                        {renderStarRating(reviewForm.rating, true, (rating) =>
-                          setReviewForm({ ...reviewForm, rating })
-                        )}
-                      </div>
-
-                      {/* Title */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold">Review Title *</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Beautiful saree, great quality!"
-                          value={reviewForm.title}
-                          onChange={(e) =>
-                            setReviewForm({ ...reviewForm, title: e.target.value })
-                          }
-                          className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                          required
-                        />
-                      </div>
-
-                      {/* Comment */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold">Your Review *</label>
-                        <textarea
-                          placeholder="Share your experience with this saree..."
-                          value={reviewForm.comment}
-                          onChange={(e) =>
-                            setReviewForm({ ...reviewForm, comment: e.target.value })
-                          }
-                          rows={4}
-                          className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                          required
-                        />
-                      </div>
-
-                      <Button
-                        type="submit"
-                        disabled={submittingReview}
-                        className="w-full bg-gradient-saree text-white font-semibold py-2"
-                      >
-                        {submittingReview ? "Posting..." : "Post Review"}
-                      </Button>
-                    </form>
-                  </Card>
-                )}
-
-                {userReview && (
-                  <Card className="p-4 bg-green-50/50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                    <p className="text-sm text-green-700 dark:text-green-300">
-                      ✅ You have already reviewed this saree
-                    </p>
-                  </Card>
-                )}
-
-                {/* Reviews List */}
+              {/* Description & Specs */}
+              <div className="grid md:grid-cols-2 gap-8 py-12 border-t border-b">
                 <div className="space-y-4">
-                  <h3 className="text-lg font-bold">
-                    Reviews ({reviews.length})
-                  </h3>
+                  <h3 className="text-xl font-bold">About This Saree</h3>
+                  <p className="text-foreground/80 leading-relaxed">{saree.description}</p>
+                </div>
 
-                  {reviewsLoading ? (
-                    <p className="text-muted-foreground">Loading reviews...</p>
-                  ) : reviews.length === 0 ? (
-                    <Card className="p-8 text-center">
-                      <MessageCircle size={40} className="mx-auto text-muted-foreground mb-4 opacity-50" />
-                      <p className="text-muted-foreground">
-                        No reviews yet. Be the first to share your experience!
-                      </p>
-                    </Card>
-                  ) : (
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold">Specifications</h3>
+                  <div className="space-y-3">
+                    {saree.material && (
+                      <div className="flex justify-between pb-3 border-b">
+                        <span className="text-muted-foreground">Material</span>
+                        <span className="font-semibold">{saree.material}</span>
+                      </div>
+                    )}
+                    {saree.fabric && (
+                      <div className="flex justify-between pb-3 border-b">
+                        <span className="text-muted-foreground">Fabric</span>
+                        <span className="font-semibold">{saree.fabric}</span>
+                      </div>
+                    )}
+                    {saree.occasion && (
+                      <div className="flex justify-between pb-3 border-b">
+                        <span className="text-muted-foreground">Occasion</span>
+                        <span className="font-semibold">{saree.occasion}</span>
+                      </div>
+                    )}
+                    {saree.length && (
+                      <div className="flex justify-between pb-3 border-b">
+                        <span className="text-muted-foreground">Length</span>
+                        <span className="font-semibold">{saree.length}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Reviews Section */}
+              <div className="py-12 space-y-8">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-2xl font-bold">Customer Reviews</h3>
+                  {reviews.length > 0 && (
+                    <div className="flex items-center gap-3">
+                      {renderStarRating(saree.averageRating || 0)}
+                      <span className="text-sm text-muted-foreground">({reviews.length})</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-8">
+                  {/* Review Stats */}
+                  <Card className="p-6 rounded-2xl">
+                    <h4 className="font-bold mb-6">Rating Distribution</h4>
+                    {reviews.length > 0 ? (
+                      <div className="space-y-3">
+                        {[5, 4, 3, 2, 1].map((rating) => {
+                          const count = reviews.filter((r) => r.rating === rating).length;
+                          const percentage = (count / reviews.length) * 100;
+                          return (
+                            <div key={rating} className="space-y-1">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="font-semibold">{rating}⭐</span>
+                                <span className="text-muted-foreground">{count}</span>
+                              </div>
+                              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${percentage}%` }}
+                                  transition={{ duration: 0.5 }}
+                                  className="h-full bg-gradient-to-r from-amber-400 to-amber-500"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No reviews yet</p>
+                    )}
+                  </Card>
+
+                  {/* Reviews List & Form */}
+                  <div className="md:col-span-2 space-y-6">
+                    {/* Write Review Button */}
+                    {isAuthenticated && !userReview && (
+                      <motion.div className="flex gap-2">
+                        <Button
+                          onClick={() => setActiveReviewTab("form")}
+                          className={`flex-1 rounded-xl font-semibold transition-all ${
+                            activeReviewTab === "form"
+                              ? "bg-primary text-white"
+                              : "bg-muted text-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          <MessageCircle size={18} className="mr-2" />
+                          Write a Review
+                        </Button>
+                        <Button
+                          onClick={() => setActiveReviewTab("list")}
+                          className={`flex-1 rounded-xl font-semibold transition-all ${
+                            activeReviewTab === "list"
+                              ? "bg-primary text-white"
+                              : "bg-muted text-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          See Reviews
+                        </Button>
+                      </motion.div>
+                    )}
+
+                    {/* Review Form */}
                     <AnimatePresence>
-                      {reviews.map((review, index) => (
+                      {activeReviewTab === "form" && isAuthenticated && !userReview && (
                         <motion.div
-                          key={review._id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          transition={{ delay: index * 0.05 }}
                         >
-                          <Card className="p-6 space-y-3">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                  <p className="font-bold text-foreground">{review.userName}</p>
-                                  {review.isVerifiedBuyer && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-semibold rounded">
-                                      <Check size={12} />
-                                      Verified Buyer
-                                    </span>
-                                  )}
-                                </div>
-                                {renderStarRating(review.rating)}
+                          <Card className="p-6 rounded-2xl border-2 border-primary/20">
+                            <form onSubmit={handleSubmitReview} className="space-y-4">
+                              <div className="space-y-2">
+                                <label className="text-sm font-semibold">Your Rating</label>
+                                {renderStarRating(reviewForm.rating, true, (rating) =>
+                                  setReviewForm({ ...reviewForm, rating })
+                                )}
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(review.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
 
-                            <div>
-                              <p className="font-semibold text-foreground">{review.title}</p>
-                              <p className="text-sm text-muted-foreground mt-2">{review.comment}</p>
-                            </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-semibold">Title</label>
+                                <input
+                                  type="text"
+                                  placeholder="Summarize your experience..."
+                                  value={reviewForm.title}
+                                  onChange={(e) =>
+                                    setReviewForm({ ...reviewForm, title: e.target.value })
+                                  }
+                                  className="w-full px-4 py-2 rounded-xl border border-input focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                                  required
+                                />
+                              </div>
 
-                            <div className="flex items-center gap-4 pt-3 border-t">
-                              <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-                                👍 Helpful ({review.helpful || 0})
-                              </button>
-                              {user && user.id === review.userId && (
-                                <button className="ml-auto text-xs text-red-500 hover:text-red-600 transition-colors">
-                                  <Trash2 size={14} />
-                                </button>
-                              )}
-                            </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-semibold">Review</label>
+                                <textarea
+                                  placeholder="Share your experience..."
+                                  value={reviewForm.comment}
+                                  onChange={(e) =>
+                                    setReviewForm({ ...reviewForm, comment: e.target.value })
+                                  }
+                                  rows={4}
+                                  className="w-full px-4 py-2 rounded-xl border border-input focus:outline-none focus:ring-2 focus:ring-primary resize-none bg-background"
+                                  required
+                                />
+                              </div>
+
+                              <Button
+                                type="submit"
+                                disabled={submittingReview}
+                                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl py-2"
+                              >
+                                {submittingReview ? "Posting..." : "Post Review"}
+                              </Button>
+                            </form>
                           </Card>
                         </motion.div>
-                      ))}
+                      )}
                     </AnimatePresence>
-                  )}
+
+                    {/* Reviews List */}
+                    <div className="space-y-4">
+                      {reviewsLoading ? (
+                        <p className="text-muted-foreground text-center py-8">Loading reviews...</p>
+                      ) : reviews.length === 0 ? (
+                        <Card className="p-12 text-center rounded-2xl">
+                          <MessageCircle size={40} className="mx-auto text-muted-foreground/50 mb-4" />
+                          <p className="text-muted-foreground">No reviews yet. Be the first to share!</p>
+                        </Card>
+                      ) : (
+                        <AnimatePresence>
+                          {reviews.slice(0, 5).map((review, index) => (
+                            <motion.div
+                              key={review._id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                            >
+                              <Card className="p-6 rounded-2xl">
+                                <div className="flex items-start justify-between mb-3">
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <p className="font-semibold text-foreground">{review.userName}</p>
+                                      {review.isVerifiedBuyer && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold rounded-full">
+                                          <Check size={12} />
+                                          Verified
+                                        </span>
+                                      )}
+                                    </div>
+                                    {renderStarRating(review.rating)}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {new Date(review.createdAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <p className="font-semibold text-foreground text-sm">{review.title}</p>
+                                  <p className="text-sm text-foreground/70">{review.comment}</p>
+                                </div>
+
+                                <div className="flex items-center gap-4 pt-4 mt-4 border-t text-xs text-muted-foreground">
+                                  <button className="hover:text-foreground transition-colors">
+                                    👍 Helpful ({review.helpful || 0})
+                                  </button>
+                                </div>
+                              </Card>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>
 
-            {/* ✅ NEW: Recommended Sarees Section */}
-            {saree && (
-              <RecommendedSarees
-                currentSaree={saree}
-                category={saree.category}
-                fabric={saree.fabric}
-                priceRange={[saree.price * 0.7, saree.price * 1.3]}
-                tags={saree.tags}
-              />
-            )}
+            {/* Recommended Sarees */}
+            {saree && <RecommendedSarees currentSaree={saree} category={saree.category} fabric={saree.fabric} />}
           </motion.div>
         </div>
       </div>
