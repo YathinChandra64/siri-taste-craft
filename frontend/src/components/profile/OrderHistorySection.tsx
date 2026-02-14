@@ -8,7 +8,7 @@ import { useState } from "react";
 import { OrderDetailModal } from "./OrderDetailModal.tsx";
 
 interface OrderHistorySectionProps {
-  orders: Order[];
+  orders: Array<Partial<Order>>;
 }
 
 export const OrderHistorySection = ({ orders }: OrderHistorySectionProps) => {
@@ -36,8 +36,8 @@ export const OrderHistorySection = ({ orders }: OrderHistorySectionProps) => {
     }
   };
 
-  const handleViewDetails = (order: Order) => {
-    setSelectedOrder(order);
+  const handleViewDetails = (order: Partial<Order>) => {
+    setSelectedOrder(order as Order);
     setIsModalOpen(true);
   };
 
@@ -173,7 +173,7 @@ export const OrderHistorySection = ({ orders }: OrderHistorySectionProps) => {
       {/* Order Detail Modal - Shows Tracking Timeline */}
       {selectedOrder && (
         <OrderDetailModal
-          order={selectedOrder}
+          order={selectedOrder as Order}
           isOpen={isModalOpen}
           onClose={handleCloseModal}
         />

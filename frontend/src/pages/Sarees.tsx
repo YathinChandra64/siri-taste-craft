@@ -7,10 +7,36 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/useAuth";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
-import { ShoppingCart, Heart, Share2, Trash2, Check, X, Star, ChevronLeft, ChevronRight, Sliders } from "lucide-react";
+import { ShoppingCart, Heart, Share2, Trash2, Check, X, Star, ChevronLeft, ChevronRight, Sliders, Eye } from "lucide-react";
 import { addToCart, removeFromCart, getCart } from "@/utils/cart";
 import SareeFilters from "@/components/sarees/SareeFilters";
 import SareePagination from "@/components/sarees/SareePagination";
+
+// Premium Colors
+const colors = {
+  bg: {
+    primary: '#0D0D0D',
+    secondary: '#1A1A1A',
+    tertiary: '#252525',
+    border: '#2D2D2D',
+  },
+  text: {
+    primary: '#F5F5F5',
+    secondary: '#B0B0B0',
+    tertiary: '#808080',
+  },
+  accent: {
+    gold: '#DAA569',
+    goldBright: '#FFD700',
+    goldLight: '#F4D9A8',
+    goldMuted: '#8B7355',
+    purple: '#7C3AED',
+    purpleDark: '#6D28D9',
+    purpleLight: '#9333EA',
+    red: '#FF6B6B',
+    orange: '#FFA500',
+  },
+};
 
 type Saree = {
   _id: string;
@@ -27,6 +53,7 @@ type Saree = {
   reviewCount?: number;
   id?: string;
   type?: string;
+  originalPrice?: number;
 };
 
 type FilterState = {
@@ -41,6 +68,410 @@ type FilterState = {
 };
 
 const ITEMS_PER_PAGE = 8;
+
+// Premium Product Card Component
+const PremiumProductCard = ({
+  product,
+  onAddToCart,
+  onWishlistToggle,
+  isInCart = false,
+  onViewDetails,
+}: {
+  product: Saree;
+  onAddToCart: (product: Saree) => void;
+  onWishlistToggle: (productId: string, wishlisted: boolean) => void;
+  isInCart?: boolean;
+  onViewDetails: (id: string) => void;
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+
+  const discount = product.originalPrice
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : 0;
+
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsWishlisted(!isWishlisted);
+    onWishlistToggle(product._id, !isWishlisted);
+  };
+
+  const outOfStock = product.stock === 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div
+        style={{
+          backgroundColor: colors.bg.secondary,
+          borderRadius: '8px',
+          overflow: 'hidden',
+          border: `1px solid ${colors.bg.border}`,
+          cursor: 'pointer',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: isHovered
+            ? `0 8px 24px ${colors.accent.gold}26`
+            : '0 2px 4px rgba(0, 0, 0, 0.2)',
+          transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* IMAGE SECTION - 220px height, 4:5.5 ratio */}
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: '220px',
+            backgroundColor: colors.bg.tertiary,
+            overflow: 'hidden',
+          }}
+        >
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              transition: 'transform 0.3s ease-out',
+              transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+            }}
+            onError={(e) => {
+              const img = e.currentTarget;
+              const colorList = ["8B4513", "C71585", "FF1493", "DA70D6", "DDA0DD"];
+              const hashCode = product.name
+                .split("")
+                .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              const color = colorList[hashCode % colorList.length];
+              img.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect fill='%23${color}' width='500' height='500'/%3E%3Ctext x='50%' y='50%' font-size='24' fill='white' text-anchor='middle' dy='.3em' font-family='Arial'%3E${product.name
+                .substring(0, 5)
+                .toUpperCase()}%3C/text%3E%3C/svg%3E`;
+            }}
+          />
+
+          {/* QUICK VIEW OVERLAY */}
+          {!outOfStock && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: isHovered ? 1 : 0,
+                transition: 'opacity 0.3s ease 0.1s',
+              }}
+            >
+              <button
+                onClick={() => onViewDetails(product._id)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: colors.accent.gold,
+                  color: colors.text.primary,
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = colors.accent.goldBright;
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = colors.accent.gold;
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                <Eye size={14} />
+                Quick View
+              </button>
+            </div>
+          )}
+
+          {/* DISCOUNT BADGE */}
+          {discount > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '-16px',
+                right: '-16px',
+                width: '48px',
+                height: '48px',
+                backgroundColor: `linear-gradient(135deg, ${colors.accent.red}, #FF8A80)`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transform: 'rotate(45deg)',
+                fontSize: '12px',
+                fontWeight: '700',
+                color: 'white',
+                boxShadow: `0 2px 8px ${colors.accent.red}4D`,
+                zIndex: 6,
+              }}
+            >
+              -{discount}%
+            </div>
+          )}
+
+          {/* OUT OF STOCK BADGE */}
+          {outOfStock && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+              }}
+            >
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>⊗</div>
+              <div style={{ fontSize: '12px', fontWeight: '600', color: colors.accent.red }}>
+                Out of Stock
+              </div>
+            </div>
+          )}
+
+          {/* STOCK BADGE */}
+          {!outOfStock && product.stock <= 5 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                padding: '4px 8px',
+                backgroundColor: `rgba(255, 165, 0, 0.15)`,
+                border: `1px solid ${colors.accent.orange}`,
+                borderRadius: '12px',
+                fontSize: '9px',
+                fontWeight: '600',
+                color: colors.accent.orange,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              ⚡ Only {product.stock} Left
+            </div>
+          )}
+
+          {/* CATEGORY BADGE */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '8px',
+              left: '8px',
+              padding: '4px 8px',
+              backgroundColor: `rgba(218, 165, 105, 0.15)`,
+              border: `1px solid rgba(218, 165, 105, 0.4)`,
+              borderRadius: '12px',
+              fontSize: '9px',
+              fontWeight: '600',
+              color: colors.accent.gold,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}
+          >
+            ✨ {product.category}
+          </div>
+        </div>
+
+        {/* CONTENT SECTION */}
+        <div style={{ padding: '12px' }}>
+          {/* CATEGORY TAG */}
+          <div
+            style={{
+              fontSize: '10px',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              color: `rgba(218, 165, 105, 0.6)`,
+              letterSpacing: '0.5px',
+              marginBottom: '4px',
+            }}
+          >
+            {product.category}
+          </div>
+
+          {/* TITLE - 2 lines max */}
+          <h3
+            style={{
+              fontSize: '14px',
+              fontWeight: '500',
+              color: colors.text.primary,
+              lineHeight: '1.4',
+              marginBottom: '8px',
+              height: '32px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+            }}
+          >
+            {product.name}
+          </h3>
+
+          {/* RATING */}
+          <div
+            style={{
+              fontSize: '12px',
+              color: `rgba(245, 245, 245, 0.7)`,
+              marginBottom: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <span>★ {product.averageRating || 0}</span>
+            <span>({product.reviewCount || 0})</span>
+            <span>|</span>
+            <span style={{ cursor: 'pointer' }}>Size</span>
+          </div>
+
+          {/* PRICE */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: colors.accent.gold,
+              }}
+            >
+              ₹{product.price.toLocaleString()}
+            </span>
+            {product.originalPrice && (
+              <>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '400',
+                    textDecoration: 'line-through',
+                    color: `rgba(245, 245, 245, 0.5)`,
+                  }}
+                >
+                  ₹{product.originalPrice.toLocaleString()}
+                </span>
+                {discount > 0 && (
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      color: colors.accent.red,
+                    }}
+                  >
+                    -{discount}%
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* CTA BUTTONS */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => onAddToCart(product)}
+              disabled={outOfStock}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                height: '36px',
+                background: outOfStock
+                  ? `rgba(245, 245, 245, 0.2)`
+                  : `linear-gradient(135deg, ${colors.accent.purple}, ${colors.accent.purpleLight})`,
+                color: colors.text.primary,
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.3px',
+                cursor: outOfStock ? 'not-allowed' : 'pointer',
+                opacity: outOfStock ? 0.5 : 1,
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+              onMouseEnter={(e) => {
+                if (!outOfStock) {
+                  (e.target as HTMLButtonElement).style.transform = 'scale(1.02)';
+                  (e.target as HTMLButtonElement).style.boxShadow = `0 6px 16px ${colors.accent.purple}4D`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLButtonElement).style.transform = 'scale(1)';
+                (e.target as HTMLButtonElement).style.boxShadow = 'none';
+              }}
+            >
+              <ShoppingCart size={16} />
+              {isInCart ? 'In Cart' : 'Add'}
+            </button>
+
+            <button
+              onClick={handleWishlist}
+              style={{
+                width: '36px',
+                height: '36px',
+                backgroundColor: isWishlisted
+                  ? `rgba(255, 107, 107, 0.1)`
+                  : `rgba(218, 165, 105, 0.1)`,
+                border: `1px solid ${isWishlisted ? colors.accent.red : `rgba(218, 165, 105, 0.2)`}`,
+                borderRadius: '4px',
+                color: isWishlisted ? colors.accent.red : colors.accent.gold,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px',
+                background: isWishlisted
+                  ? `rgba(255, 107, 107, 0.1)`
+                  : `rgba(218, 165, 105, 0.1)`,
+              }}
+              onMouseEnter={(e) => {
+                (e.target as HTMLButtonElement).style.transform = 'scale(1.05)';
+                (e.target as HTMLButtonElement).style.borderColor = colors.accent.red;
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLButtonElement).style.transform = 'scale(1)';
+              }}
+              title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+            >
+              <Heart
+                size={18}
+                fill={isWishlisted ? colors.accent.red : 'none'}
+                color={isWishlisted ? colors.accent.red : colors.accent.gold}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 const Sarees = () => {
   const navigate = useNavigate();
@@ -80,7 +511,7 @@ const Sarees = () => {
 
   useEffect(() => {
     filterAndSortProducts();
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   }, [sarees, filters]);
 
   const fetchSarees = async () => {
@@ -89,7 +520,6 @@ const Sarees = () => {
       const response = await fetch("http://localhost:5000/api/sarees");
       if (response.ok) {
         const data = await response.json();
-        // Extract the data array from the API response object
         const sareeList = Array.isArray(data) ? data : (data.data || []);
         const formattedData = sareeList.map((saree) => ({
           ...saree,
@@ -115,17 +545,14 @@ const Sarees = () => {
   const filterAndSortProducts = useCallback(() => {
     let filtered = [...sarees];
 
-    // Price filter
     filtered = filtered.filter(
       (s) => s.price >= filters.priceRange[0] && s.price <= filters.priceRange[1]
     );
 
-    // Category filter
     if (filters.categories.length > 0) {
       filtered = filtered.filter((s) => filters.categories.includes(s.category));
     }
 
-    // Material filter
     if (filters.materials.length > 0 && filters.materials[0]) {
       filtered = filtered.filter((s) =>
         s.material && filters.materials.some((m) =>
@@ -134,7 +561,6 @@ const Sarees = () => {
       );
     }
 
-    // Occasion filter
     if (filters.occasions.length > 0 && filters.occasions[0]) {
       filtered = filtered.filter((s) =>
         s.occasion && filters.occasions.some((o) =>
@@ -143,7 +569,6 @@ const Sarees = () => {
       );
     }
 
-    // Color filter
     if (filters.colors.length > 0 && filters.colors[0]) {
       filtered = filtered.filter((s) =>
         s.color && filters.colors.some((c) =>
@@ -152,7 +577,6 @@ const Sarees = () => {
       );
     }
 
-    // Availability filter
     if (filters.availability.includes("in-stock")) {
       filtered = filtered.filter((s) => s.stock > 0);
     }
@@ -160,12 +584,10 @@ const Sarees = () => {
       filtered = filtered.filter((s) => s.stock === 0);
     }
 
-    // Rating filter
     if (filters.minRating > 0) {
       filtered = filtered.filter((s) => (s.averageRating || 0) >= filters.minRating);
     }
 
-    // Sorting
     switch (filters.sortBy) {
       case "price-low":
         filtered.sort((a, b) => a.price - b.price);
@@ -228,21 +650,6 @@ const Sarees = () => {
 
   const isInCart = (sareeId: string) => {
     return cartItems.some((item) => item.id === sareeId);
-  };
-
-  const renderStarRating = (rating: number) => {
-    return (
-      <div className="flex items-center gap-1">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            size={14}
-            className={i < Math.floor(rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}
-          />
-        ))}
-        <span className="text-xs text-muted-foreground ml-1">({rating.toFixed(1)})</span>
-      </div>
-    );
   };
 
   return (
@@ -383,216 +790,20 @@ const Sarees = () => {
                 </motion.div>
               ) : (
                 <>
-                  {/* Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {/* Grid - PREMIUM 4 COLUMNS WITH RESPONSIVE */}
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     <AnimatePresence>
                       {paginatedProducts.map((saree, index) => (
-                        <motion.div
+                        <PremiumProductCard
                           key={saree._id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ delay: index * 0.05 }}
-                          whileHover={{ y: -8 }}
-                        >
-                          <Card className="overflow-hidden h-full flex flex-col hover:shadow-2xl transition-all duration-300 group cursor-pointer">
-                            {/* Image Container */}
-                            <div
-                              className="relative aspect-square overflow-hidden bg-muted"
-                              onClick={() => handleViewDetails(saree._id)}
-                            >
-                              <motion.img
-                                src={saree.imageUrl}
-                                alt={saree.name}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                loading="lazy"
-                                onError={(e) => {
-                                  const img = e.currentTarget;
-                                  const colors = ["8B4513", "C71585", "FF1493", "DA70D6", "DDA0DD"];
-                                  const hashCode = saree.name
-                                    .split("")
-                                    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-                                  const color = colors[hashCode % colors.length];
-                                  img.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect fill='%23${color}' width='500' height='500'/%3E%3Ctext x='50%' y='50%' font-size='24' fill='white' text-anchor='middle' dy='.3em' font-family='Arial'%3E${saree.name
-                                    .substring(0, 5)
-                                    .toUpperCase()}%3C/text%3E%3C/svg%3E`;
-                                }}
-                              />
-
-                              {/* Stock Badge */}
-                              <div className="absolute top-4 right-4">
-                                {saree.stock === 0 ? (
-                                  <motion.span
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/90 text-white"
-                                  >
-                                    Out of Stock
-                                  </motion.span>
-                                ) : saree.stock <= 5 ? (
-                                  <motion.span
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    className="px-3 py-1 rounded-full text-xs font-bold bg-orange-500/90 text-white"
-                                  >
-                                    Only {saree.stock} left
-                                  </motion.span>
-                                ) : null}
-                              </div>
-
-                              {/* Category Badge */}
-                              <div className="absolute top-4 left-4">
-                                <motion.span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/90 text-white">
-                                  {saree.category}
-                                </motion.span>
-                              </div>
-
-                              {/* Added to Cart Animation */}
-                              <AnimatePresence>
-                                {addedItems.has(saree._id) && (
-                                  <motion.div
-                                    initial={{ scale: 0, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    exit={{ scale: 0, opacity: 0 }}
-                                    className="absolute inset-0 bg-green-500/90 flex items-center justify-center backdrop-blur-sm"
-                                  >
-                                    <motion.div
-                                      animate={{ scale: [1, 1.2, 1] }}
-                                      transition={{ duration: 0.5 }}
-                                      className="flex flex-col items-center gap-2"
-                                    >
-                                      <Check className="w-12 h-12 text-white" />
-                                      <p className="text-white font-bold text-lg">Added to Cart!</p>
-                                    </motion.div>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-
-                              {/* Quick Actions */}
-                              <div className="absolute bottom-4 left-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  className="p-2 bg-white/90 rounded-full hover:bg-white transition-all"
-                                  title="Add to Wishlist"
-                                >
-                                  <Heart className="w-5 h-5 text-red-500" />
-                                </motion.button>
-                                <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  className="p-2 bg-white/90 rounded-full hover:bg-white transition-all"
-                                  title="Share"
-                                >
-                                  <Share2 className="w-5 h-5 text-blue-500" />
-                                </motion.button>
-                              </div>
-                            </div>
-
-                            {/* Content */}
-                            <div className="p-4 flex flex-col flex-1">
-                              <h3
-                                className="font-bold text-lg mb-2 line-clamp-2 text-foreground hover:text-primary transition-colors cursor-pointer"
-                                onClick={() => handleViewDetails(saree._id)}
-                              >
-                                {saree.name}
-                              </h3>
-
-                              {/* Rating */}
-                              {saree.averageRating ? (
-                                <div className="mb-2">
-                                  {renderStarRating(saree.averageRating)}
-                                </div>
-                              ) : (
-                                <p className="text-xs text-muted-foreground mb-2">No reviews yet</p>
-                              )}
-
-                              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                                {saree.description}
-                              </p>
-
-                              {saree.material && (
-                                <p className="text-xs text-muted-foreground mb-2">
-                                  <span className="font-semibold">Material:</span> {saree.material}
-                                </p>
-                              )}
-
-                              <div className="flex justify-between items-end flex-1 mt-4 pt-4 border-t">
-                                <motion.div
-                                  whileHover={{ scale: 1.05 }}
-                                  className="text-2xl font-bold bg-gradient-saree bg-clip-text text-transparent"
-                                >
-                                  ₹{saree.price.toLocaleString()}
-                                </motion.div>
-                              </div>
-
-                              {/* Action Buttons */}
-                              {!isAdmin ? (
-                                <>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleViewDetails(saree._id)}
-                                    className="w-full mt-3"
-                                  >
-                                    View Details
-                                  </Button>
-                                  {isInCart(saree._id) ? (
-                                    <motion.button
-                                      initial={{ opacity: 0 }}
-                                      animate={{ opacity: 1 }}
-                                      onClick={() => handleRemoveFromCart(saree)}
-                                      className="w-full mt-2 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-all duration-300"
-                                    >
-                                      <Trash2 size={18} />
-                                      Remove from Cart
-                                    </motion.button>
-                                  ) : (
-                                    <motion.button
-                                      whileHover={{ scale: 1.02 }}
-                                      whileTap={{ scale: 0.98 }}
-                                      onClick={() => handleAddToCart(saree)}
-                                      disabled={saree.stock === 0}
-                                      className={`w-full mt-2 py-2 font-semibold rounded-lg flex items-center justify-center gap-2 transition-all duration-300 ${
-                                        saree.stock === 0
-                                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                          : "bg-gradient-saree text-white hover:shadow-lg"
-                                      }`}
-                                    >
-                                      <ShoppingCart size={18} />
-                                      {saree.stock === 0 ? "Out of Stock" : "Add to Cart"}
-                                    </motion.button>
-                                  )}
-                                </>
-                              ) : (
-                                <>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => navigate(`/admin/sarees/${saree._id}/edit`)}
-                                    className="w-full mt-3"
-                                  >
-                                    Edit Saree
-                                  </Button>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => {
-                                      // Add delete functionality
-                                      toast({
-                                        title: "Delete",
-                                        description: "Delete functionality coming soon",
-                                      });
-                                    }}
-                                    className="w-full mt-2"
-                                  >
-                                    Delete Saree
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </Card>
-                        </motion.div>
+                          product={saree}
+                          onAddToCart={handleAddToCart}
+                          onWishlistToggle={(id, wishlisted) => {
+                            console.log('Wishlist toggled:', id, wishlisted);
+                          }}
+                          isInCart={isInCart(saree._id)}
+                          onViewDetails={handleViewDetails}
+                        />
                       ))}
                     </AnimatePresence>
                   </div>

@@ -11,13 +11,7 @@ import { getCart, removeFromCart, CartItem } from "@/utils/cart";
 import API from "@/lib/api";
 import { AxiosError } from "axios";
 import OrderHistorySection from "@/components/profile/OrderHistorySection";
-
-interface OrderItem {
-  product: string;
-  name: string;
-  quantity: number;
-  price: number;
-}
+import { Order } from "@/types/profile";
 
 interface ContactMessage {
   _id: string;
@@ -47,14 +41,6 @@ interface APICartItem {
     imageUrl?: string;
   };
   quantity: number;
-}
-
-interface Order {
-  _id: string;
-  items: OrderItem[];
-  totalAmount: number;
-  status: string;
-  createdAt: string;
 }
 
 const Profile = () => {
@@ -185,7 +171,8 @@ const Profile = () => {
           const ordersRes = await API.get("/orders/my-orders");
           const ordersData = ordersRes.data;
           console.log("✅ Orders fetched successfully");
-          setOrders(ordersData.orders || []);
+          // ✅ FIXED: Cast the orders to proper Order type
+          setOrders((ordersData.orders || []) as Order[]);
         } catch (orderError) {
           console.log("⚠️ Could not fetch orders:", orderError);
           setOrders([]);

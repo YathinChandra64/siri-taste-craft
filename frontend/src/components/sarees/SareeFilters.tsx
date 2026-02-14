@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
+import { colors } from "@/design/colors";
 
 type Saree = {
   _id: string;
@@ -137,12 +137,33 @@ const SareeFilters = ({ filters, onFilterChange, sarees }: SareeFiltersProps) =>
     id: keyof typeof expandedSections;
     children: React.ReactNode;
   }) => (
-    <div className="border-b border-border">
+    <div style={{ borderBottom: `1px solid ${colors.bg.border}` }}>
       <button
         onClick={() => toggleSection(id)}
-        className="w-full flex items-center justify-between py-4 px-4 hover:bg-muted/50 transition-colors"
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          background: 'transparent',
+          border: 'none',
+          color: colors.accent.gold,
+          fontSize: '12px',
+          fontWeight: '600',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          cursor: 'pointer',
+          transition: 'color 0.2s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = colors.accent.goldBright;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = colors.accent.gold;
+        }}
       >
-        <h3 className="font-semibold text-sm">{title}</h3>
+        <h3>{title}</h3>
         <motion.div
           animate={{ rotate: expandedSections[id] ? 180 : 0 }}
           transition={{ duration: 0.2 }}
@@ -154,53 +175,116 @@ const SareeFilters = ({ filters, onFilterChange, sarees }: SareeFiltersProps) =>
         initial={false}
         animate={{ height: expandedSections[id] ? "auto" : 0 }}
         transition={{ duration: 0.2 }}
-        className="overflow-hidden"
+        style={{ overflow: 'hidden' }}
       >
-        <div className="px-4 pb-4 space-y-3">{children}</div>
+        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {children}
+        </div>
       </motion.div>
     </div>
   );
 
   return (
-    <div className="space-y-4">
-      {/* Active Filters Badge */}
+    <div
+      style={{
+        backgroundColor: colors.bg.primary,
+        borderRight: `1px solid ${colors.bg.border}`,
+        borderRadius: '8px',
+        overflow: 'hidden',
+        border: `1px solid ${colors.bg.border}`,
+      }}
+    >
+      {/* Clear All Button */}
+      <div style={{ padding: '16px' }}>
+        <button
+          onClick={clearAllFilters}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: `rgba(255, 107, 107, 0.1)`,
+            border: `1px solid ${colors.accent.red}`,
+            borderRadius: '4px',
+            color: colors.accent.red,
+            fontSize: '12px',
+            fontWeight: '600',
+            textTransform: 'uppercase',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = `rgba(255, 107, 107, 0.2)`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = `rgba(255, 107, 107, 0.1)`;
+          }}
+        >
+          Clear All Filters
+        </button>
+      </div>
+
+      {/* Active Filters Count */}
       {activeFilterCount > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg"
+          style={{
+            margin: '0 16px 16px',
+            padding: '12px',
+            backgroundColor: `rgba(147, 51, 234, 0.1)`,
+            border: `1px solid rgba(147, 51, 234, 0.3)`,
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
         >
-          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+          <span style={{ fontSize: '12px', fontWeight: '500', color: colors.text.primary }}>
             {activeFilterCount} filter{activeFilterCount !== 1 ? "s" : ""} active
           </span>
-          <button
-            onClick={clearAllFilters}
-            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            Clear All
-          </button>
         </motion.div>
       )}
 
       {/* Sort */}
       <FilterSection title="Sort By" id="sort">
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {[
             { value: "newest", label: "Newest Arrivals" },
             { value: "price-low", label: "Price: Low to High" },
             { value: "price-high", label: "Price: High to Low" },
             { value: "rating", label: "Top Rated" },
           ].map((option) => (
-            <label key={option.value} className="flex items-center gap-3 cursor-pointer">
+            <label
+              key={option.value}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '4px',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = colors.bg.tertiary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
               <input
                 type="radio"
                 name="sort"
                 value={option.value}
                 checked={filters.sortBy === option.value}
                 onChange={() => handleSortChange(option.value)}
-                className="w-4 h-4"
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer',
+                  accentColor: colors.accent.gold,
+                }}
               />
-              <span className="text-sm">{option.label}</span>
+              <span style={{ fontSize: '14px', color: colors.text.primary }}>{option.label}</span>
             </label>
           ))}
         </div>
@@ -208,7 +292,7 @@ const SareeFilters = ({ filters, onFilterChange, sarees }: SareeFiltersProps) =>
 
       {/* Price Range */}
       <FilterSection title="Price Range" id="price">
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <input
               type="range"
@@ -218,14 +302,20 @@ const SareeFilters = ({ filters, onFilterChange, sarees }: SareeFiltersProps) =>
               onChange={(e) =>
                 handlePriceChange([Number(e.target.value), filters.priceRange[1]])
               }
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              style={{
+                width: '100%',
+                height: '2px',
+                background: `linear-gradient(to right, ${colors.accent.gold}, ${colors.accent.purple})`,
+                borderRadius: '1px',
+                outline: 'none',
+              }}
             />
-            <div className="flex justify-between text-xs text-muted-foreground mt-2">
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: colors.text.secondary, marginTop: '8px' }}>
               <span>₹{minPrice.toLocaleString()}</span>
               <span>₹{maxPrice.toLocaleString()}</span>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div style={{ display: 'flex', gap: '8px' }}>
             <input
               type="number"
               placeholder="Min"
@@ -233,7 +323,15 @@ const SareeFilters = ({ filters, onFilterChange, sarees }: SareeFiltersProps) =>
               onChange={(e) =>
                 handlePriceChange([Number(e.target.value), filters.priceRange[1]])
               }
-              className="w-1/2 px-2 py-1 border border-input rounded text-sm"
+              style={{
+                width: '50%',
+                padding: '8px',
+                backgroundColor: colors.bg.tertiary,
+                border: `1px solid ${colors.bg.border}`,
+                borderRadius: '4px',
+                fontSize: '12px',
+                color: colors.text.primary,
+              }}
             />
             <input
               type="number"
@@ -242,7 +340,15 @@ const SareeFilters = ({ filters, onFilterChange, sarees }: SareeFiltersProps) =>
               onChange={(e) =>
                 handlePriceChange([filters.priceRange[0], Number(e.target.value)])
               }
-              className="w-1/2 px-2 py-1 border border-input rounded text-sm"
+              style={{
+                width: '50%',
+                padding: '8px',
+                backgroundColor: colors.bg.tertiary,
+                border: `1px solid ${colors.bg.border}`,
+                borderRadius: '4px',
+                fontSize: '12px',
+                color: colors.text.primary,
+              }}
             />
           </div>
         </div>
@@ -250,17 +356,40 @@ const SareeFilters = ({ filters, onFilterChange, sarees }: SareeFiltersProps) =>
 
       {/* Category */}
       <FilterSection title="Category" id="category">
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {categories.map((cat) => (
-            <label key={cat} className="flex items-center gap-3 cursor-pointer">
+            <label
+              key={cat}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '4px',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = colors.bg.tertiary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
               <input
                 type="checkbox"
                 checked={filters.categories.includes(cat)}
                 onChange={() => handleCategoryChange(cat)}
-                className="w-4 h-4 rounded border-gray-300"
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer',
+                  accentColor: colors.accent.gold,
+                  borderRadius: '4px',
+                }}
               />
-              <span className="text-sm">{cat}</span>
-              <span className="text-xs text-muted-foreground ml-auto">
+              <span style={{ fontSize: '14px', color: colors.text.primary }}>{cat}</span>
+              <span style={{ fontSize: '12px', color: colors.text.secondary, marginLeft: 'auto' }}>
                 ({sarees.filter((s) => s.category === cat).length})
               </span>
             </label>
@@ -271,17 +400,40 @@ const SareeFilters = ({ filters, onFilterChange, sarees }: SareeFiltersProps) =>
       {/* Material */}
       {uniqueMaterials.length > 0 && (
         <FilterSection title="Material" id="material">
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {uniqueMaterials.map((material) => (
-              <label key={material} className="flex items-center gap-3 cursor-pointer">
+              <label
+                key={material}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '4px',
+                  transition: 'background-color 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = colors.bg.tertiary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={filters.materials.includes(material)}
                   onChange={() => handleMaterialChange(material)}
-                  className="w-4 h-4 rounded border-gray-300"
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    cursor: 'pointer',
+                    accentColor: colors.accent.gold,
+                    borderRadius: '4px',
+                  }}
                 />
-                <span className="text-sm">{material}</span>
-                <span className="text-xs text-muted-foreground ml-auto">
+                <span style={{ fontSize: '14px', color: colors.text.primary }}>{material}</span>
+                <span style={{ fontSize: '12px', color: colors.text.secondary, marginLeft: 'auto' }}>
                   ({sarees.filter((s) => s.material === material).length})
                 </span>
               </label>
@@ -293,17 +445,40 @@ const SareeFilters = ({ filters, onFilterChange, sarees }: SareeFiltersProps) =>
       {/* Occasion */}
       {uniqueOccasions.length > 0 && (
         <FilterSection title="Occasion" id="occasion">
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {uniqueOccasions.map((occasion) => (
-              <label key={occasion} className="flex items-center gap-3 cursor-pointer">
+              <label
+                key={occasion}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '4px',
+                  transition: 'background-color 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = colors.bg.tertiary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={filters.occasions.includes(occasion)}
                   onChange={() => handleOccasionChange(occasion)}
-                  className="w-4 h-4 rounded border-gray-300"
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    cursor: 'pointer',
+                    accentColor: colors.accent.gold,
+                    borderRadius: '4px',
+                  }}
                 />
-                <span className="text-sm">{occasion}</span>
-                <span className="text-xs text-muted-foreground ml-auto">
+                <span style={{ fontSize: '14px', color: colors.text.primary }}>{occasion}</span>
+                <span style={{ fontSize: '12px', color: colors.text.secondary, marginLeft: 'auto' }}>
                   ({sarees.filter((s) => s.occasion === occasion).length})
                 </span>
               </label>
@@ -315,16 +490,29 @@ const SareeFilters = ({ filters, onFilterChange, sarees }: SareeFiltersProps) =>
       {/* Color */}
       {uniqueColors.length > 0 && (
         <FilterSection title="Color" id="color">
-          <div className="grid grid-cols-3 gap-2">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
             {uniqueColors.map((color) => (
               <button
                 key={color}
                 onClick={() => handleColorChange(color)}
-                className={`py-2 px-2 rounded text-sm font-medium text-center transition-all ${
-                  filters.colors.includes(color)
-                    ? "bg-primary text-primary-foreground ring-2 ring-primary"
-                    : "bg-muted hover:bg-muted/80"
-                }`}
+                style={{
+                  padding: '8px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  backgroundColor: filters.colors.includes(color)
+                    ? colors.accent.gold
+                    : colors.bg.tertiary,
+                  color: filters.colors.includes(color)
+                    ? colors.bg.primary
+                    : colors.text.primary,
+                  border: filters.colors.includes(color)
+                    ? `2px solid ${colors.accent.goldBright}`
+                    : `1px solid ${colors.bg.border}`,
+                }}
               >
                 {color}
               </button>
@@ -335,19 +523,42 @@ const SareeFilters = ({ filters, onFilterChange, sarees }: SareeFiltersProps) =>
 
       {/* Availability */}
       <FilterSection title="Availability" id="availability">
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {[
             { value: "in-stock", label: "In Stock" },
             { value: "out-of-stock", label: "Out of Stock" },
           ].map((option) => (
-            <label key={option.value} className="flex items-center gap-3 cursor-pointer">
+            <label
+              key={option.value}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '4px',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = colors.bg.tertiary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
               <input
                 type="checkbox"
                 checked={filters.availability.includes(option.value)}
                 onChange={() => handleAvailabilityChange(option.value)}
-                className="w-4 h-4 rounded border-gray-300"
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer',
+                  accentColor: colors.accent.gold,
+                  borderRadius: '4px',
+                }}
               />
-              <span className="text-sm">{option.label}</span>
+              <span style={{ fontSize: '14px', color: colors.text.primary }}>{option.label}</span>
             </label>
           ))}
         </div>
@@ -355,23 +566,40 @@ const SareeFilters = ({ filters, onFilterChange, sarees }: SareeFiltersProps) =>
 
       {/* Rating */}
       <FilterSection title="Minimum Rating" id="rating">
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {[0, 4, 4.5, 5].map((rating) => (
             <label
               key={rating}
-              className="flex items-center gap-3 cursor-pointer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '4px',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = colors.bg.tertiary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
               <input
                 type="radio"
                 name="rating"
                 checked={filters.minRating === rating}
                 onChange={() => handleRatingChange(rating)}
-                className="w-4 h-4"
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer',
+                  accentColor: colors.accent.gold,
+                }}
               />
-              <span className="text-sm">
-                {rating === 0
-                  ? "All Ratings"
-                  : `${rating}⭐ & above`}
+              <span style={{ fontSize: '14px', color: colors.text.primary }}>
+                {rating === 0 ? "All Ratings" : `${rating}⭐ & above`}
               </span>
             </label>
           ))}
