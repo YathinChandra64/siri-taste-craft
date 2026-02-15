@@ -20,6 +20,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     return 'light';
   });
 
+  const [mounted, setMounted] = useState(false);
+
+  // Apply theme to DOM on mount
   useEffect(() => {
     const root = document.documentElement;
 
@@ -30,6 +33,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     }
 
     localStorage.setItem('theme', theme);
+    setMounted(true);
   }, [theme]);
 
   useEffect(() => {
@@ -49,6 +53,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
+
+  // ✅ KEY FIX: Only render context when mounted to prevent "not in provider" error
+  if (!mounted) {
+    return <>{children}</>;
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
