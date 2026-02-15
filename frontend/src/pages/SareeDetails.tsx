@@ -276,8 +276,8 @@ const SareeDetails = () => {
       } catch (error) {
         // User canceled the share dialog
         if (error instanceof Error && error.name !== 'AbortError') {
-    console.error('Error sharing:', error);
-  }
+          console.error('Error sharing:', error);
+        }
       }
     } else {
       // Fallback: Copy to clipboard
@@ -811,7 +811,7 @@ const SareeDetails = () => {
 
                 <div className="grid md:grid-cols-3 gap-8">
                   {/* Review Stats */}
-                  <Card className="p-6 rounded-2xl">
+                  <Card className="p-6 rounded-2xl border border-gray-200 dark:border-0 bg-white dark:bg-slate-900/50">
                     <h4 className="font-bold mb-6">Rating Distribution</h4>
                     {reviews.length > 0 ? (
                       <div className="space-y-3">
@@ -878,7 +878,7 @@ const SareeDetails = () => {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
                         >
-                          <Card className="p-6 rounded-2xl border-2 border-primary/20">
+                          <Card className="p-6 rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-slate-900/30 dark:to-slate-800/30">
                             <form onSubmit={handleSubmitReview} className="space-y-4">
                               <div className="space-y-2">
                                 <label className="text-sm font-semibold">Your Rating</label>
@@ -933,7 +933,7 @@ const SareeDetails = () => {
                       {reviewsLoading ? (
                         <p className="text-muted-foreground text-center py-8">Loading reviews...</p>
                       ) : reviews.length === 0 ? (
-                        <Card className="p-12 text-center rounded-2xl">
+                        <Card className="p-12 text-center rounded-2xl border border-gray-200 dark:border-0 bg-gray-50/50 dark:bg-slate-900/30">
                           <MessageCircle size={40} className="mx-auto text-muted-foreground/50 mb-4" />
                           <p className="text-muted-foreground">No reviews yet. Be the first to share!</p>
                         </Card>
@@ -946,7 +946,7 @@ const SareeDetails = () => {
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: index * 0.1 }}
                             >
-                              <Card className="p-6 rounded-2xl">
+                              <Card className="p-6 rounded-2xl border border-gray-200 dark:border-0 bg-white dark:bg-slate-900/50">
                                 <div className="flex items-start justify-between mb-3">
                                   <div>
                                     <div className="flex items-center gap-2 mb-2">

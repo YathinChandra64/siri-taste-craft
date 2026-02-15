@@ -1,0 +1,294 @@
+/* /src/design/theme.css */
+/* ✅ PRODUCTION-READY LUXURY THEME SYSTEM */
+
+:root {
+  /* ==============================
+     LIGHT MODE - DEFAULT (PRIMARY)
+     ============================== */
+
+  /* BASE COLORS - White Dominant */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #FAF7F2;
+  --bg-soft: #F3EFE8;
+  --bg-card: #FFFFFF;
+
+  /* ACCENT COLORS - Gold & Rose */
+  --accent-gold: #C6A75E;
+  --accent-deep-gold: #A8893D;
+  --accent-rose: #B76E79;
+  --accent-maroon: #7A1F3D;
+
+  /* TEXT COLORS */
+  --text-primary: #1E1E1E;
+  --text-secondary: #5C5C5C;
+  --text-muted: #8E8E8E;
+
+  /* BORDER COLORS - Warm & Subtle */
+  --border-light: #E8E2D8;
+  --border-soft: #F1ECE3;
+
+  /* STATE COLORS */
+  --success: #2F6F4E;
+  --error: #A94442;
+  --warning: #C67C2E;
+
+  /* SPACING SCALE */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+  --spacing-4xl: 64px;
+
+  /* RADIUS SCALE */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+
+  /* TRANSITIONS - Subtle & Responsive */
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 300ms ease-in-out;
+  --transition-slow: 500ms ease-in-out;
+
+  /* SHADOWS - Minimal */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.12);
+
+  /* TYPOGRAPHY */
+  --font-serif: 'Playfair Display', serif;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* COLOR MODE INDICATOR */
+  color-scheme: light;
+}
+
+/* ==============================
+   DARK MODE - Soft Textile Dark
+   (No Pure Black - #1A1816)
+   ============================== */
+
+.dark {
+  /* BASE COLORS - Soft textile, not pure black */
+  --bg-primary: #1A1816;
+  --bg-secondary: #22201D;
+  --bg-soft: #2B2926;
+  --bg-card: #2B2926;
+
+  /* ACCENT COLORS - Warmer in dark mode */
+  --accent-gold: #D8B96E;
+  --accent-deep-gold: #C6A75E;
+  --accent-rose: #B76E79;
+  --accent-maroon: #A84C61;
+
+  /* TEXT COLORS - Warm & Light */
+  --text-primary: #F5F1EA;
+  --text-secondary: #D4CDBF;
+  --text-muted: #9E9998;
+
+  /* BORDER COLORS - Subtle dark borders */
+  --border-light: #3A3632;
+  --border-soft: #32302D;
+
+  /* STATE COLORS - Adjusted for dark mode */
+  --success: #3FAD6F;
+  --error: #C05C5C;
+  --warning: #D99C4E;
+
+  /* COLOR MODE INDICATOR */
+  color-scheme: dark;
+}
+
+/* ==============================
+   GLOBAL STYLES
+   ============================== */
+
+html {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+/* ==============================
+   LINK STYLES
+   ============================== */
+
+a {
+  color: var(--accent-gold);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-deep-gold);
+}
+
+/* ==============================
+   SCROLLBAR STYLING
+   ============================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-soft);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-color: var(--border-light) var(--bg-secondary);
+  scrollbar-width: thin;
+}
+
+/* ==============================
+   INPUT RANGE SLIDER STYLING
+   ============================== */
+
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    var(--accent-gold),
+    var(--accent-rose)
+  );
+  outline: none;
+  border-radius: 1px;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--accent-gold);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 4px rgba(198, 167, 94, 0.2);
+  transition: all var(--transition-fast);
+}
+
+input[type='range']::-webkit-slider-thumb:hover {
+  background: var(--accent-deep-gold);
+  box-shadow: 0 0 0 4px rgba(198, 167, 94, 0.3);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: var(--accent-gold);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 0 4px rgba(198, 167, 94, 0.2);
+  transition: all var(--transition-fast);
+}
+
+input[type='range']::-moz-range-thumb:hover {
+  background: var(--accent-deep-gold);
+  box-shadow: 0 0 0 4px rgba(198, 167, 94, 0.3);
+}
+
+/* ==============================
+   SELECTION STYLING
+   ============================== */
+
+::selection {
+  background-color: var(--accent-gold);
+  color: var(--bg-primary);
+}
+
+::-moz-selection {
+  background-color: var(--accent-gold);
+  color: var(--bg-primary);
+}
+
+/* ==============================
+   PLACEHOLDER STYLING
+   ============================== */
+
+::placeholder {
+  color: var(--text-muted);
+}
+
+::-webkit-input-placeholder {
+  color: var(--text-muted);
+}
+
+:-moz-placeholder {
+  color: var(--text-muted);
+}
+
+::-moz-placeholder {
+  color: var(--text-muted);
+}
+
+/* ==============================
+   FOCUS STYLES - Accessible
+   ============================== */
+
+:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* ==============================
+   TRANSITIONS - Default Smooth
+   ============================== */
+
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: ease-in-out;
+  transition-duration: var(--transition-fast);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  transition: all var(--transition-fast);
+}
+
+/* ==============================
+   UTILITIES
+   ============================== */
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

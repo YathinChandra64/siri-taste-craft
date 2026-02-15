@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Menu, X, LogIn, LogOut, User, Sun, Moon, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/useAuth"; // ✅ Fixed import
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/contexts/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import MagneticButton from "@/components/MagneticButton";
 import logo from "@/assets/logo.png";

@@ -200,7 +200,7 @@ const RecommendedSarees: React.FC<RecommendedSareesProps> = ({
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
                 <Card
-                  className="overflow-hidden group rounded-2xl border-0 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer h-full flex flex-col"
+                  className="overflow-hidden group rounded-2xl border border-gray-200 dark:border-0 shadow-sm hover:shadow-md dark:hover:shadow-lg transition-all duration-300 cursor-pointer h-full flex flex-col bg-white dark:bg-slate-900"
                   onClick={() => navigate(`/sarees/${saree._id}`)}
                 >
                   {/* Image Container */}
@@ -219,7 +219,7 @@ const RecommendedSarees: React.FC<RecommendedSareesProps> = ({
                       }}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
-                      className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white dark:hover:bg-slate-800 transition-colors"
+                      className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/90 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white dark:hover:bg-slate-800 transition-colors border border-gray-200 dark:border-0"
                     >
                       <Heart
                         size={18}
@@ -229,7 +229,7 @@ const RecommendedSarees: React.FC<RecommendedSareesProps> = ({
 
                     {/* Category Badge */}
                     <div className="absolute top-3 left-3">
-                      <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm text-gray-800 dark:text-gray-200">
+                      <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-white/90 dark:bg-slate-900/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-0">
                         {saree.category}
                       </span>
                     </div>
