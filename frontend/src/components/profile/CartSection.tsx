@@ -1,326 +1,386 @@
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { 
-  Trash2, 
-  ShoppingCart, 
-  Lock, 
-  Heart, 
-  Tag, 
-  Truck,
-  ShieldCheck,
-  ChevronRight,
-  Package
-} from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useCart } from "@/hooks/useCart";
+import { ShoppingCart, Trash2, Plus, Minus, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-const ProfessionalCart = () => {
-  const { user } = useAuth();
-  const { cart, removeItem, updateQuantity } = useCart();
+interface CartItemSaree {
+  _id: string;
+  name: string;
+  price: number;
+  category: string;
+  stock: number;
+  imageUrl: string;
+  material?: string;
+  color?: string;
+}
+
+interface CartItem {
+  _id: string;
+  user: string;
+  saree: CartItemSaree;
+  quantity: number;
+  addedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CartSectionProps {
+  cartItems?: CartItem[];
+  onRefresh?: () => Promise<void>;
+}
+
+interface CartResponse {
+  success: boolean;
+  count: number;
+  total: number;
+  cartItems: CartItem[];
+}
+
+const ProfessionalCart = ({ cartItems: propCartItems = [], onRefresh }: CartSectionProps) => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [couponCode, setCouponCode] = useState("");
-  const [couponApplied, setCouponApplied] = useState(false);
+  const [cartItems, setCartItems] = useState<CartItem[]>(propCartItems);
+  const [updating, setUpdating] = useState<string | null>(null);
+  const [localLoading, setLocalLoading] = useState(false);
 
-  const cartItems = cart?.items || [];
-  const subtotal = cart?.total || 0;
-  const shipping = subtotal > 1000 ? 0 : 50;
-  const discount = couponApplied ? subtotal * 0.1 : 0; // 10% off
-  const total = subtotal + shipping - discount;
-
-  const handleCheckout = async () => {
-    if (!user) {
-      navigate("/login");
-      return;
+  // ✅ If no props provided, fetch cart data
+  useEffect(() => {
+    if (propCartItems.length === 0 && !onRefresh) {
+      fetchCartLocal();
+    } else {
+      setCartItems(propCartItems);
     }
+  }, [propCartItems]);
 
-    if (cartItems.length === 0) {
+  // ✅ Fallback fetch if props not provided
+  const fetchCartLocal = async () => {
+    try {
+      setLocalLoading(true);
+      const response = await fetch("http://localhost:5000/api/cart", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      if (response.ok) {
+        const data: CartResponse = await response.json();
+        const items = Array.isArray(data.cartItems) ? data.cartItems : [];
+        setCartItems(items);
+      }
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+      setCartItems([]);
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  const removeItem = async (cartItemId: string) => {
+    try {
+      setUpdating(cartItemId);
+      const response = await fetch(`http://localhost:5000/api/cart/${cartItemId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        console.log("✅ Item removed from cart");
+        // If onRefresh provided, use it; otherwise update local state
+        if (onRefresh) {
+          await onRefresh();
+        } else {
+          setCartItems(cartItems.filter(item => item._id !== cartItemId));
+        }
+      }
+    } catch (error) {
+      console.error("Error removing item:", error);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const updateQuantity = async (cartItemId: string, newQuantity: number) => {
+    if (newQuantity < 1) {
+      await removeItem(cartItemId);
       return;
     }
 
     try {
-      setLoading(true);
-      navigate("/checkout");
+      setUpdating(cartItemId);
+      const response = await fetch(`http://localhost:5000/api/cart/${cartItemId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ quantity: newQuantity }),
+      });
+
+      if (response.ok) {
+        console.log("✅ Quantity updated");
+        // If onRefresh provided, use it; otherwise update local state
+        if (onRefresh) {
+          await onRefresh();
+        } else {
+          setCartItems(cartItems.map(item =>
+            item._id === cartItemId ? { ...item, quantity: newQuantity } : item
+          ));
+        }
+      }
     } catch (error) {
-      console.error("Checkout error:", error);
+      console.error("Error updating quantity:", error);
     } finally {
-      setLoading(false);
+      setUpdating(null);
     }
   };
 
-  const applyCoupon = () => {
-    if (couponCode.toUpperCase() === "SAVE10") {
-      setCouponApplied(true);
-    }
-  };
+  const displayItems = propCartItems.length > 0 ? cartItems : cartItems;
+  const subtotal = displayItems.reduce((sum, item) => sum + (item.saree.price * item.quantity), 0);
+  const shipping = subtotal > 1000 ? 0 : 50;
+  const total = subtotal + shipping;
 
-  if (cartItems.length === 0) {
+  if (localLoading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center">
-        <Card className="p-12 text-center max-w-md bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
-          <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 dark:bg-slate-700 rounded-full flex items-center justify-center">
-            <ShoppingCart className="w-12 h-12 text-gray-400 dark:text-slate-500" />
-          </div>
-          <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
-            Your cart is empty
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Add items to your cart to get started
-          </p>
-          <Button
-            onClick={() => navigate("/sarees")}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-          >
-            Start Shopping
-          </Button>
-        </Card>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
     );
   }
 
-  return (
-    <div className="container max-w-7xl mx-auto px-4 py-8">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Shopping Cart
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          {cartItems.length} {cartItems.length === 1 ? "item" : "items"} in your cart
-        </p>
-      </div>
+  if (displayItems.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              Shopping Cart (0 items)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-12">
+              <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground text-lg font-medium">Your cart is empty</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Add some beautiful sarees to get started!
+              </p>
+              <Button
+                onClick={() => navigate("/sarees")}
+                className="mt-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                Continue Shopping
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
 
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.2 }}
+    >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Cart Items - Left Side */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Free Shipping Banner */}
-          {subtotal < 1000 && (
-            <Card className="p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-3">
-                <Truck className="text-blue-600 dark:text-blue-400" size={24} />
-                <p className="text-sm text-blue-900 dark:text-blue-300">
-                  Add <span className="font-bold">₹{1000 - subtotal}</span> more to get{" "}
-                  <span className="font-bold">FREE shipping</span>
-                </p>
-              </div>
-            </Card>
-          )}
+        <div className="lg:col-span-2">
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5" />
+                Shopping Cart ({displayItems.length} items)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Free Shipping Alert */}
+              {subtotal < 1000 && subtotal > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center gap-3"
+                >
+                  <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-blue-900 dark:text-blue-300">
+                      Add <span className="font-bold">₹{(1000 - subtotal).toLocaleString()}</span> more to get{" "}
+                      <span className="font-bold">FREE shipping</span>
+                    </p>
+                  </div>
+                </motion.div>
+              )}
 
-          {/* Cart Items */}
-          {cartItems.map((item) => (
-            <Card key={item._id} className="p-6 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
-              <div className="flex gap-6">
-                {/* Product Image */}
-                <div className="flex-shrink-0">
-                  <img
-                    src={item.saree?.image || item.saree?.imageUrl || "https://via.placeholder.com/150"}
-                    alt={item.saree?.name}
-                    className="w-32 h-32 object-cover rounded-lg border border-gray-200 dark:border-slate-700"
-                  />
-                </div>
-
-                {/* Product Details */}
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                        {item.saree?.name}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        {item.saree?.category || "Traditional Saree"}
-                      </p>
-                      
-                      {/* Stock Status */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">
-                          <Package size={12} />
-                          In Stock
-                        </span>
-                        {item.saree?.stock && item.saree.stock < 5 && (
-                          <span className="text-xs text-orange-600 dark:text-orange-400">
-                            Only {item.saree.stock} left!
-                          </span>
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                {displayItems.map((item, idx) => (
+                  <motion.div
+                    key={item._id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="p-5 border-2 border-muted-foreground/20 rounded-xl hover:border-primary/50 hover:bg-muted/30 transition-all duration-200 group"
+                  >
+                    {/* Top Row: Product Image and Details */}
+                    <div className="flex gap-4 mb-4">
+                      <img
+                        src={item.saree.imageUrl || "https://via.placeholder.com/120"}
+                        alt={item.saree.name}
+                        className="w-24 h-24 object-cover rounded-lg border border-muted-foreground/20"
+                      />
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg text-white mb-1">
+                          {item.saree.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {item.saree.category || "Traditional Saree"}
+                        </p>
+                        {item.saree.material && (
+                          <p className="text-xs text-muted-foreground">
+                            Material: {item.saree.material}
+                          </p>
                         )}
+                        {item.saree.color && (
+                          <p className="text-xs text-muted-foreground">
+                            Color: {item.saree.color}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => removeItem(item._id)}
+                        disabled={updating === item._id}
+                        className="p-2 text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-50"
+                        title="Remove from cart"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
+
+                    {/* Middle Row: Price and Stock Status */}
+                    <div className="flex justify-between items-center mb-4 py-3 border-y border-muted-foreground/10">
+                      <div className="flex gap-6">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">PRICE</p>
+                          <p className="font-bold text-white">
+                            ₹{item.saree.price.toLocaleString()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">SUBTOTAL</p>
+                          <p className="font-bold text-primary text-lg">
+                            ₹{(item.saree.price * item.quantity).toLocaleString()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">STOCK</p>
+                          <Badge variant={item.saree.stock > 0 ? "default" : "destructive"}>
+                            {item.saree.stock > 0 ? `${item.saree.stock} left` : "Out of Stock"}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Remove Button */}
-                    <button
-                      onClick={() => removeItem(item._id)}
-                      className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                      title="Remove from cart"
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                  </div>
-
-                  {/* Price & Quantity */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        ₹{((item.saree?.price || 0) * item.quantity).toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        ₹{item.saree?.price?.toLocaleString()} each
-                      </p>
-                    </div>
-
-                    {/* Quantity Selector */}
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center border border-gray-300 dark:border-slate-600 rounded-lg">
+                    {/* Bottom Row: Quantity Selector */}
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">Quantity</p>
+                      <div className="flex items-center gap-3 bg-muted/50 rounded-lg p-2">
                         <button
-                          onClick={() =>
-                            updateQuantity(item._id, Math.max(1, item.quantity - 1))
-                          }
-                          className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                          onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                          disabled={updating === item._id || item.quantity <= 1}
+                          className="p-1 hover:bg-muted transition-colors disabled:opacity-50"
                         >
-                          −
+                          <Minus size={18} className="text-white" />
                         </button>
-                        <span className="px-4 py-2 font-medium text-gray-900 dark:text-white border-x border-gray-300 dark:border-slate-600">
+                        <span className="w-8 text-center font-bold text-white">
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() =>
-                            updateQuantity(item._id, item.quantity + 1)
-                          }
-                          className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                          onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                          disabled={updating === item._id || item.quantity >= item.saree.stock}
+                          className="p-1 hover:bg-muted transition-colors disabled:opacity-50"
                         >
-                          +
+                          <Plus size={18} className="text-white" />
                         </button>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-4 mt-4">
-                    <button className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
-                      <Heart size={16} />
-                      Save for later
-                    </button>
-                  </div>
-                </div>
+                  </motion.div>
+                ))}
               </div>
-            </Card>
-          ))}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Order Summary - Right Side */}
         <div className="lg:col-span-1">
-          <Card className="p-6 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 sticky top-24">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-              Order Summary
-            </h2>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="shadow-card sticky top-24">
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Subtotal */}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="font-bold text-white">
+                      ₹{subtotal.toLocaleString()}
+                    </span>
+                  </div>
 
-            {/* Coupon Code */}
-            <div className="mb-6">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                Discount Code
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  className="flex-1"
-                  disabled={couponApplied}
-                />
-                <Button
-                  onClick={applyCoupon}
-                  variant="outline"
-                  disabled={couponApplied}
-                  className="whitespace-nowrap"
-                >
-                  {couponApplied ? "Applied" : "Apply"}
-                </Button>
-              </div>
-              {couponApplied && (
-                <p className="text-sm text-green-600 dark:text-green-400 mt-2 flex items-center gap-1">
-                  <Tag size={14} />
-                  10% discount applied!
-                </p>
-              )}
-            </div>
+                  {/* Shipping */}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Shipping</span>
+                    <span className={`font-bold ${shipping === 0 ? "text-green-400" : "text-white"}`}>
+                      {shipping === 0 ? "FREE" : `₹${shipping}`}
+                    </span>
+                  </div>
 
-            {/* Price Breakdown */}
-            <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-slate-700">
-              <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                <span>Subtotal ({cartItems.length} items)</span>
-                <span>₹{subtotal.toLocaleString()}</span>
-              </div>
-              
-              {discount > 0 && (
-                <div className="flex justify-between text-green-600 dark:text-green-400">
-                  <span>Discount (10%)</span>
-                  <span>-₹{discount.toLocaleString()}</span>
+                  {/* Divider */}
+                  <div className="border-t border-muted-foreground/20 pt-4" />
+
+                  {/* Total */}
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-white">TOTAL</span>
+                    <span className="text-2xl font-bold text-primary">
+                      ₹{total.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* Checkout Button */}
+                  <Button
+                    onClick={() => navigate("/checkout")}
+                    className="w-full mt-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-6 text-lg"
+                  >
+                    Proceed to Checkout
+                  </Button>
+
+                  {/* Continue Shopping */}
+                  <Button
+                    onClick={() => navigate("/sarees")}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Continue Shopping
+                  </Button>
                 </div>
-              )}
-
-              <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                <span className="flex items-center gap-1">
-                  Shipping
-                  {shipping === 0 && (
-                    <Truck size={14} className="text-green-600" />
-                  )}
-                </span>
-                <span className={shipping === 0 ? "text-green-600 dark:text-green-400 font-medium" : ""}>
-                  {shipping === 0 ? "FREE" : `₹${shipping}`}
-                </span>
-              </div>
-            </div>
-
-            {/* Total */}
-            <div className="flex justify-between items-center py-4 border-b border-gray-200 dark:border-slate-700">
-              <span className="text-lg font-bold text-gray-900 dark:text-white">
-                Total
-              </span>
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                ₹{total.toLocaleString()}
-              </span>
-            </div>
-
-            {/* Checkout Button */}
-            <Button
-              onClick={handleCheckout}
-              disabled={loading}
-              className="w-full mt-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-6 text-lg"
-            >
-              {!user ? (
-                <>
-                  <Lock size={20} />
-                  Login to Checkout
-                </>
-              ) : (
-                <>
-                  Proceed to Checkout
-                  <ChevronRight size={20} />
-                </>
-              )}
-            </Button>
-
-            {!user && (
-              <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-3">
-                Sign in to checkout faster
-              </p>
-            )}
-
-            {/* Trust Badges */}
-            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-700 space-y-3">
-              <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                <ShieldCheck size={20} className="text-green-600 dark:text-green-400" />
-                <span>Secure checkout</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                <Truck size={20} className="text-blue-600 dark:text-blue-400" />
-                <span>Free shipping on orders above ₹1000</span>
-              </div>
-            </div>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

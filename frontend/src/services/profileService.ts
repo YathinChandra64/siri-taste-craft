@@ -27,7 +27,11 @@ export const updateUserProfile = async (data: Partial<User>): Promise<User> => {
 export const getCartSummary = async (): Promise<CartSummary> => {
   try {
     const response = await API.get("/cart");
-    return response.data;
+    return {
+    items: response.data.cartItems || [],
+    total: response.data.total || 0,
+    itemCount: response.data.count || 0
+  };
   } catch (error) {
     throw new Error("Failed to fetch cart");
   }

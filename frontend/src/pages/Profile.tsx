@@ -7,10 +7,37 @@ import ProfessionalCart from "@/components/profile/CartSection";
 import { OrderHistorySection } from "@/components/profile/OrderHistorySection";
 import { Order } from "@/types/profile";
 
+interface CartItem {
+  _id: string;
+  user: string;
+  saree: {
+    _id: string;
+    name: string;
+    price: number;
+    category: string;
+    stock: number;
+    imageUrl: string;
+    material?: string;
+    color?: string;
+  };
+  quantity: number;
+  addedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CartResponse {
+  success: boolean;
+  count: number;
+  total: number;
+  cartItems: CartItem[];
+}
+
 const CustomerProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("cart");
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -20,11 +47,46 @@ const CustomerProfile = () => {
       return;
     }
     
+    // ✅ Fetch cart when cart tab is active
+    if (activeTab === "cart") {
+      fetchCart();
+    }
     // Fetch orders when orders tab is active
-    if (activeTab === "orders") {
+    else if (activeTab === "orders") {
       fetchOrders();
     }
   }, [user, navigate, activeTab]);
+
+  // ✅ NEW: Fetch cart same way as orders
+  const fetchCart = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("http://localhost:5000/api/cart", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      if (response.ok) {
+        const data: CartResponse = await response.json();
+        console.log("✅ Cart fetched:", {
+          count: data.count,
+          total: data.total,
+          items: data.cartItems?.length || 0
+        });
+        const items = Array.isArray(data.cartItems) ? data.cartItems : [];
+        setCartItems(items);
+      } else {
+        console.error("Failed to fetch cart");
+        setCartItems([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch cart:", error);
+      setCartItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -97,11 +159,14 @@ const CustomerProfile = () => {
 
       {/* Content */}
       <div className="py-8">
-        {activeTab === "cart" ? (
-          <ProfessionalCart />
-        ) : loading ? (
+        {loading ? (
           <div className="flex justify-center items-center min-h-[400px]">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          </div>
+        ) : activeTab === "cart" ? (
+          <div className="container max-w-7xl mx-auto px-4">
+            {/* ✅ Pass cart items to CartSection */}
+            <ProfessionalCart cartItems={cartItems} onRefresh={fetchCart} />
           </div>
         ) : (
           <div className="container max-w-7xl mx-auto px-4">

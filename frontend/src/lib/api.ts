@@ -151,13 +151,7 @@ API.interceptors.response.use(
         action: "Token may be expired or invalid"
       });
       
-      // ✅ FIXED: NEVER remove token automatically
-      // Let components handle 401 errors appropriately
-      // Token is valid - backend might just be rejecting this specific request
       console.warn("⚠️ 401 error on endpoint:", error.config?.url, "- NOT removing token");
-      // DO NOT call localStorage.removeItem("authToken");
-      // DO NOT redirect to login
-      // Just reject and let component handle it
     } else if (status === 500) {
       console.error("💥 SERVER ERROR (500):", {
         status: 500,
@@ -276,7 +270,7 @@ export interface PaymentStatsData {
 }
 
 // ======================================
-// ✅ NEW: UPI PAYMENT ENDPOINTS
+// ✅ UPI PAYMENT ENDPOINTS - Keep all exports!
 // ======================================
 
 /**
@@ -301,9 +295,6 @@ export const getReceiptReference = async (): Promise<
 
 /**
  * Upload Payment Screenshot and Extract UTR
- * @param {string} orderId - Order ID
- * @param {File} screenshot - Screenshot file
- * @returns {Promise} Payment submission result with UTR
  */
 export const uploadPaymentScreenshot = async (
   orderId: string,
@@ -324,7 +315,6 @@ export const uploadPaymentScreenshot = async (
 
 /**
  * Get Payment Status
- * @param {string} paymentId - Payment ID
  */
 export const getPaymentStatus = async (
   paymentId: string
@@ -335,8 +325,6 @@ export const getPaymentStatus = async (
 
 /**
  * Verify Payment with Admin UTR
- * @param {string} paymentId - Payment ID
- * @param {string} verificationUtr - UTR entered by admin for verification
  */
 export const verifyPaymentWithUtr = async (
   paymentId: string,
@@ -371,8 +359,6 @@ export const getPaymentStats = async (): Promise<
 
 /**
  * Mark Payment as Verified by Admin
- * @param {string} paymentId - Payment ID
- * @param {string} adminNotes - Notes from admin
  */
 export const markPaymentAsVerified = async (
   paymentId: string,
@@ -386,8 +372,6 @@ export const markPaymentAsVerified = async (
 
 /**
  * Reject Payment (Admin)
- * @param {string} paymentId - Payment ID
- * @param {string} rejectionReason - Reason for rejection
  */
 export const rejectPayment = async (
   paymentId: string,
@@ -401,8 +385,6 @@ export const rejectPayment = async (
 
 /**
  * Retry Payment Upload (Customer)
- * @param {string} paymentId - Payment ID
- * @param {File} newScreenshot - New screenshot file
  */
 export const retryPaymentUpload = async (
   paymentId: string,
@@ -425,12 +407,12 @@ export const retryPaymentUpload = async (
 };
 
 // ======================================
-// EXISTING: CART ENDPOINTS
+// ✅ NOTE: CART ENDPOINTS
 // ======================================
+// Cart operations are handled in profileService.ts
+// Use profileService.addToCart(), getCartSummary(), etc.
+// Do NOT use api.ts directly for cart - use profileService instead
 
-/**
- * Get user's cart with token validation
- */
 export const getCart = async (): Promise<unknown> => {
   const token = localStorage.getItem("authToken");
   
@@ -440,22 +422,6 @@ export const getCart = async (): Promise<unknown> => {
   }
   
   const response = await API.get("/cart");
-  // ✅ Extract data from response
-  return extractData(response.data);
-};
-
-export const addToCart = async (
-  productId: string,
-  quantity: number
-): Promise<unknown> => {
-  const token = localStorage.getItem("authToken");
-  
-  if (!token) {
-    throw new Error("Authentication required. Please login first.");
-  }
-  
-  const response = await API.post("/cart", { productId, quantity });
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -464,19 +430,16 @@ export const updateCart = async (
   quantity: number
 ): Promise<unknown> => {
   const response = await API.put(`/cart/${cartId}`, { quantity });
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
 export const removeFromCart = async (cartId: string): Promise<unknown> => {
   const response = await API.delete(`/cart/${cartId}`);
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
 export const clearCart = async (): Promise<unknown> => {
   const response = await API.delete("/cart");
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -515,7 +478,6 @@ export const createOrder = async (orderData: OrderData): Promise<unknown> => {
   });
   
   const response = await API.post("/orders", orderData);
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -524,7 +486,6 @@ export const createOrder = async (orderData: OrderData): Promise<unknown> => {
  */
 export const getOrders = async (): Promise<unknown> => {
   const response = await API.get("/orders");
-  // ✅ Extract data array from response
   return extractData(response.data);
 };
 
@@ -533,7 +494,6 @@ export const getOrders = async (): Promise<unknown> => {
  */
 export const getOrderById = async (id: string): Promise<unknown> => {
   const response = await API.get(`/orders/${id}`);
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -542,13 +502,11 @@ export const updateOrder = async (
   updateData: UpdateData
 ): Promise<unknown> => {
   const response = await API.put(`/orders/${id}`, updateData);
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
 export const cancelOrder = async (id: string): Promise<unknown> => {
   const response = await API.post(`/orders/${id}/cancel`);
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -561,7 +519,6 @@ export const cancelOrder = async (id: string): Promise<unknown> => {
  */
 export const getProfile = async (): Promise<unknown> => {
   const response = await API.get("/profile");
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -569,7 +526,6 @@ export const updateProfile = async (
   profileData: ProfileData
 ): Promise<unknown> => {
   const response = await API.put("/profile", profileData);
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -581,7 +537,6 @@ export const changePassword = async (
     oldPassword,
     newPassword,
   });
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -593,7 +548,6 @@ export const sendContactMessage = async (
   contactData: ContactData
 ): Promise<unknown> => {
   const response = await API.post("/contact", contactData);
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -603,7 +557,6 @@ export const sendContactMessage = async (
 
 export const sendChatMessage = async (chatData: ChatData): Promise<unknown> => {
   const response = await API.post("/chat", chatData);
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -612,7 +565,6 @@ export const sendChatMessage = async (chatData: ChatData): Promise<unknown> => {
  */
 export const getChatMessages = async (): Promise<unknown> => {
   const response = await API.get("/chat");
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -622,7 +574,6 @@ export const getChatMessages = async (): Promise<unknown> => {
 
 export const reportIssue = async (issueData: IssueData): Promise<unknown> => {
   const response = await API.post("/issues", issueData);
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -631,7 +582,6 @@ export const reportIssue = async (issueData: IssueData): Promise<unknown> => {
  */
 export const getIssues = async (): Promise<unknown> => {
   const response = await API.get("/issues");
-  // ✅ Extract data array from response
   return extractData(response.data);
 };
 
@@ -644,7 +594,6 @@ export const getIssues = async (): Promise<unknown> => {
  */
 export const getUsers = async (): Promise<unknown> => {
   const response = await API.get("/users");
-  // ✅ Extract data array from response
   return extractData(response.data);
 };
 
@@ -653,7 +602,6 @@ export const getUsers = async (): Promise<unknown> => {
  */
 export const getUserById = async (id: string): Promise<unknown> => {
   const response = await API.get(`/users/${id}`);
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -662,7 +610,6 @@ export const updateUser = async (
   userData: UserData
 ): Promise<unknown> => {
   const response = await API.put(`/users/${id}`, userData);
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -674,7 +621,6 @@ export const processPayment = async (
   paymentData: PaymentData
 ): Promise<unknown> => {
   const response = await API.post("/payments", paymentData);
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
@@ -683,7 +629,6 @@ export const processPayment = async (
  */
 export const getPaymentHistory = async (): Promise<unknown> => {
   const response = await API.get("/payments");
-  // ✅ Extract data from response
   return extractData(response.data);
 };
 
