@@ -132,6 +132,15 @@
     @apply transition-all duration-[var(--transition-slow)] ease-in-out;
   }
 
+  /* Gradient Utilities */
+  .bg-gradient-saree {
+    @apply bg-gradient-to-r from-purple-600 to-pink-600;
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
   /* No Scrollbar */
   .no-scrollbar {
     -ms-overflow-style: none;

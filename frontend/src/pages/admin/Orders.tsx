@@ -11,7 +11,7 @@ import {
   Truck,
   DollarSign,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 interface Order {

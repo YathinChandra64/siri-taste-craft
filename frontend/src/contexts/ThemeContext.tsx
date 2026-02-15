@@ -76,14 +76,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
-  // Don't render children until theme is set (prevent flash)
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
+  // Always provide the context - just don't render visible content until mounted
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
+      {mounted ? children : null}
     </ThemeContext.Provider>
   );
 };

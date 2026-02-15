@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -6,58 +6,63 @@ import {
   Users,
   ShoppingBag,
   MessageSquare,
-  Settings,
-  ChevronDown,
   CreditCard,
+  ChevronDown,
+  Package,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const AdminMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
 
   const menuItems = [
     {
       label: "Dashboard",
       icon: LayoutDashboard,
       path: "/admin/dashboard",
-      color: "text-blue-600",
-      bgColor: "bg-blue-100 dark:bg-blue-900",
     },
     {
       label: "Users",
       icon: Users,
       path: "/admin/users",
-      color: "text-purple-600",
-      bgColor: "bg-purple-100 dark:bg-purple-900",
     },
     {
-      label: "Sarees",
-      icon: ShoppingBag,
+      label: "Products",
+      icon: Package,
       path: "/admin/sarees",
-      color: "text-orange-600",
-      bgColor: "bg-orange-100 dark:bg-orange-900",
+    },
+    {
+      label: "Orders",
+      icon: ShoppingBag,
+      path: "/admin/orders",
     },
     {
       label: "Messages",
       icon: MessageSquare,
       path: "/admin/messages",
-      color: "text-pink-600",
-      bgColor: "bg-pink-100 dark:bg-pink-900",
     },
     {
       label: "Payments",
       icon: CreditCard,
       path: "/admin/payments",
-      color: "text-green-600",
-      bgColor: "bg-green-100 dark:bg-green-900",
-    },
-    {
-      label: "Settings",
-      icon: Settings,
-      path: "/admin/profile",
-      color: "text-gray-600",
-      bgColor: "bg-gray-100 dark:bg-gray-900",
     },
   ];
 
@@ -67,16 +72,16 @@ const AdminMenu = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={menuRef}>
       {/* Menu Button */}
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 transition-opacity"
+        className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg transition-all"
       >
-        <Settings size={20} />
-        <span className="font-semibold">Admin</span>
+        <LayoutDashboard size={18} />
+        <span className="font-medium text-sm">Admin</span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
@@ -88,56 +93,53 @@ const AdminMenu = () => {
       {/* Dropdown Menu */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-72 bg-card border border-border rounded-2xl shadow-2xl z-50"
-          >
-            <div className="p-2">
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40"
+              onClick={() => setIsOpen(false)}
+            />
+            
+            {/* Menu */}
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50"
+            >
               {/* Header */}
-              <div className="px-4 py-3 border-b border-border">
-                <h3 className="font-bold text-foreground">Admin Panel</h3>
-                <p className="text-xs text-muted-foreground">
-                  Manage your store
-                </p>
+              <div className="px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600">
+                <h3 className="font-bold text-white text-sm">Admin Panel</h3>
+                <p className="text-xs text-purple-100">Manage your store</p>
               </div>
 
               {/* Menu Items */}
-              <div className="space-y-1 p-2">
+              <div className="py-2">
                 {menuItems.map((item, index) => {
                   const Icon = item.icon;
                   return (
                     <motion.button
                       key={item.path}
-                      initial={{ opacity: 0, x: -20 }}
+                      initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      whileHover={{ x: 4 }}
+                      transition={{ delay: index * 0.03 }}
                       onClick={() => handleNavigate(item.path)}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors duration-200"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 dark:hover:bg-slate-700 transition-colors text-left"
                     >
-                      <div className={`p-2 rounded-lg ${item.bgColor}`}>
-                        <Icon size={18} className={item.color} />
-                      </div>
-                      <span className="flex-1 text-left font-medium text-sm text-foreground">
+                      <Icon size={18} className="text-purple-600 dark:text-purple-400" />
+                      <span className="flex-1 font-medium text-sm text-gray-700 dark:text-gray-200">
                         {item.label}
                       </span>
-                      <ChevronDown size={14} className="text-muted-foreground rotate-180" />
                     </motion.button>
                   );
                 })}
               </div>
-
-              {/* Footer */}
-              <div className="px-4 py-3 border-t border-border">
-                <p className="text-xs text-muted-foreground text-center">
-                  v2.0
-                </p>
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

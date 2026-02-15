@@ -32,6 +32,40 @@
   --error: #A94442;
   --warning: #C67C2E;
 
+  /* ==============================
+     SHADCN/UI VARIABLES - LIGHT MODE
+     ============================== */
+  
+  --background: 255 255 255; /* #FFFFFF */
+  --foreground: 30 30 30; /* #1E1E1E - dark text */
+  
+  --card: 255 255 255; /* #FFFFFF */
+  --card-foreground: 30 30 30; /* #1E1E1E */
+  
+  --popover: 255 255 255;
+  --popover-foreground: 30 30 30;
+  
+  --primary: 139 92 246; /* Purple #8B5CF6 */
+  --primary-foreground: 255 255 255;
+  
+  --secondary: 243 244 246; /* Light gray */
+  --secondary-foreground: 30 30 30;
+  
+  --muted: 243 244 246; /* Light gray #F3F4F6 */
+  --muted-foreground: 107 114 128; /* Gray-500 #6B7280 */
+  
+  --accent: 243 244 246;
+  --accent-foreground: 30 30 30;
+  
+  --destructive: 239 68 68; /* Red */
+  --destructive-foreground: 255 255 255;
+  
+  --border: 229 231 235; /* Gray-200 #E5E7EB */
+  --input: 229 231 235;
+  --ring: 139 92 246; /* Purple */
+  
+  --radius: 0.5rem;
+
   /* SPACING SCALE */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
@@ -59,6 +93,7 @@
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.12);
+  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.06);
 
   /* TYPOGRAPHY */
   --font-serif: 'Playfair Display', serif;
@@ -99,6 +134,38 @@
   --success: #3FAD6F;
   --error: #C05C5C;
   --warning: #D99C4E;
+
+  /* ==============================
+     SHADCN/UI VARIABLES - DARK MODE
+     ============================== */
+  
+  --background: 15 23 42; /* Slate-900 #0F172A */
+  --foreground: 248 250 252; /* Slate-50 #F8FAFC */
+  
+  --card: 30 41 59; /* Slate-800 #1E293B */
+  --card-foreground: 248 250 252;
+  
+  --popover: 30 41 59;
+  --popover-foreground: 248 250 252;
+  
+  --primary: 167 139 250; /* Purple-400 #A78BFA */
+  --primary-foreground: 17 24 39; /* Gray-900 */
+  
+  --secondary: 51 65 85; /* Slate-700 */
+  --secondary-foreground: 248 250 252;
+  
+  --muted: 51 65 85; /* Slate-700 #334155 */
+  --muted-foreground: 148 163 184; /* Slate-400 #94A3B8 */
+  
+  --accent: 51 65 85;
+  --accent-foreground: 248 250 252;
+  
+  --destructive: 220 38 38; /* Red-600 */
+  --destructive-foreground: 248 250 252;
+  
+  --border: 51 65 85; /* Slate-700 #334155 */
+  --input: 51 65 85;
+  --ring: 167 139 250; /* Purple-400 */
 
   /* COLOR MODE INDICATOR */
   color-scheme: dark;

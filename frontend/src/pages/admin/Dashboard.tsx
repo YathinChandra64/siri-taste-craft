@@ -10,7 +10,7 @@ import {
   TrendingUp,
   ArrowRight,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardStats {
   totalUsers: number;

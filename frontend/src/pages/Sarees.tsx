@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
 import { ShoppingCart, Heart, Share2, Trash2, Check, X, Star, ChevronLeft, ChevronRight, Sliders, Eye } from "lucide-react";

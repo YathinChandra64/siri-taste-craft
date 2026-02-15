@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useAuth } from "@/contexts/useAuth"; // ✅ Fixed import
+import { useAuth } from "@/contexts/AuthContext"; // ✅ Fixed import
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

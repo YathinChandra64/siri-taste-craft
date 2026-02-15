@@ -4,6 +4,7 @@ import { Routes, Route } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import ProfileRouter from "@/components/ProfileRouter";
 
 
 import SareeDetails from '@/pages/SareeDetails';
@@ -62,7 +63,7 @@ const App = () => {
             path="/profile" 
             element={
               <ProtectedRoute>
-                <Profile />
+                <ProfileRouter />
               </ProtectedRoute>
             } 
           />

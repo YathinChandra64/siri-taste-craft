@@ -2,8 +2,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Menu, X, LogIn, LogOut, User, Sun, Moon, Sparkles } from "lucide-react";
 import { useState } from "react";
-import { useAuth } from "@/contexts/useAuth"; // ✅ Fixed import
-import { useTheme } from "@/contexts/useTheme";
+import { useAuth } from "@/contexts/AuthContext"; // ✅ Fixed import
+import { useTheme } from "@/contexts/ThemeContext"; // ✅ FIXED: Import from ThemeContext.tsx
 import { Button } from "@/components/ui/button";
 import MagneticButton from "@/components/MagneticButton";
 import logo from "@/assets/logo.png";
@@ -26,7 +26,7 @@ const Navbar = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border shadow-soft">
+    <nav className="sticky top-0 z-50 bg-white/98 dark:bg-slate-900/98 backdrop-blur-lg border-b border-gray-200 dark:border-slate-800 shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -46,7 +46,11 @@ const Navbar = () => {
                 />
                 <div className="text-lg md:text-xl font-bold flex items-center gap-1">
                   <motion.span 
-                    className="bg-gradient-saree bg-clip-text text-transparent"
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-purple-400 dark:to-pink-400"
+                    style={{ 
+                      WebkitTextStroke: '0.5px rgba(139, 92, 246, 0.3)',
+                      textShadow: '0 0 20px rgba(139, 92, 246, 0.3)'
+                    }}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
@@ -58,10 +62,14 @@ const Navbar = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4, type: "spring" }}
                   >
-                    <Sparkles size={14} className="text-accent-gold" />
+                    <Sparkles size={14} className="text-yellow-500 dark:text-yellow-400" />
                   </motion.span>
                   <motion.span 
-                    className="bg-gradient-saree bg-clip-text text-transparent"
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-purple-400 dark:to-pink-400"
+                    style={{ 
+                      WebkitTextStroke: '0.5px rgba(139, 92, 246, 0.3)',
+                      textShadow: '0 0 20px rgba(139, 92, 246, 0.3)'
+                    }}
                     initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 }}
@@ -80,8 +88,8 @@ const Navbar = () => {
                 <motion.span
                   className={`font-medium transition-colors relative cursor-pointer ${
                     isActive(link.path)
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "text-purple-600 dark:text-purple-400"
+                      : "text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400"
                   }`}
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -92,7 +100,7 @@ const Navbar = () => {
                   {isActive(link.path) && (
                     <motion.div
                       layoutId="activeNav"
-                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-saree rounded-full"
+                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full"
                       initial={false}
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
@@ -115,7 +123,7 @@ const Navbar = () => {
                 variant="ghost"
                 size="icon"
                 onClick={toggleTheme}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
               >
                 {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
               </Button>
@@ -129,10 +137,10 @@ const Navbar = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate("/profile")}
-                  className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 cursor-pointer hover:bg-primary/20 transition-colors duration-200"
+                  className="flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 dark:bg-purple-900/30 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors duration-200 border border-purple-200 dark:border-purple-800"
                 >
-                  <User size={16} className="text-primary" />
-                  <span className="text-sm font-medium text-foreground">{user?.name}</span>
+                  <User size={16} className="text-purple-600 dark:text-purple-400" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{user?.name}</span>
                   {user?.role === "admin" && (
                     <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 font-semibold">
                       ADMIN
@@ -156,7 +164,7 @@ const Navbar = () => {
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   onClick={() => navigate("/login")}
-                  className="bg-gradient-saree text-white gap-2"
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-2 shadow-lg"
                 >
                   <LogIn size={16} />
                   Login
@@ -167,7 +175,7 @@ const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
+            className="md:hidden p-2 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors text-gray-700 dark:text-gray-200"
             onClick={() => setIsOpen(!isOpen)}
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -180,15 +188,15 @@ const Navbar = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="md:hidden border-t border-border py-4 space-y-2"
+            className="md:hidden border-t border-gray-200 dark:border-slate-800 py-4 space-y-2 bg-white dark:bg-slate-900"
           >
             {navLinks.map((link) => (
               <Link key={link.path} to={link.path} onClick={() => setIsOpen(false)}>
                 <motion.div
                   className={`px-4 py-2 rounded-lg transition-colors ${
                     isActive(link.path)
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
+                      ? "bg-purple-600 text-white"
+                      : "text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/20"
                   }`}
                 >
                   {link.name}
@@ -199,8 +207,8 @@ const Navbar = () => {
             {/* Mobile Admin Links */}
             {user?.role === "admin" && (
               <>
-                <div className="h-px bg-border my-2" />
-                <div className="text-xs font-semibold text-muted-foreground px-4 py-2">
+                <div className="h-px bg-gray-200 dark:bg-slate-800 my-2" />
+                <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 px-4 py-2">
                   Admin Menu
                 </div>
                 <motion.div
@@ -208,7 +216,7 @@ const Navbar = () => {
                     navigate("/admin/dashboard");
                     setIsOpen(false);
                   }}
-                  className="px-4 py-2 hover:bg-muted rounded-lg cursor-pointer transition-colors"
+                  className="px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg cursor-pointer transition-colors"
                 >
                   Dashboard
                 </motion.div>
@@ -217,7 +225,7 @@ const Navbar = () => {
                     navigate("/admin/users");
                     setIsOpen(false);
                   }}
-                  className="px-4 py-2 hover:bg-muted rounded-lg cursor-pointer transition-colors"
+                  className="px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg cursor-pointer transition-colors"
                 >
                   Users
                 </motion.div>
@@ -226,7 +234,7 @@ const Navbar = () => {
                     navigate("/admin/sarees");
                     setIsOpen(false);
                   }}
-                  className="px-4 py-2 hover:bg-muted rounded-lg cursor-pointer transition-colors"
+                  className="px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg cursor-pointer transition-colors"
                 >
                   Sarees
                 </motion.div>
@@ -235,7 +243,7 @@ const Navbar = () => {
                     navigate("/admin/messages");
                     setIsOpen(false);
                   }}
-                  className="px-4 py-2 hover:bg-muted rounded-lg cursor-pointer transition-colors"
+                  className="px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg cursor-pointer transition-colors"
                 >
                   Messages
                 </motion.div>
@@ -244,7 +252,7 @@ const Navbar = () => {
                     navigate("/admin/payments");
                     setIsOpen(false);
                   }}
-                  className="px-4 py-2 hover:bg-muted rounded-lg cursor-pointer transition-colors"
+                  className="px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg cursor-pointer transition-colors"
                 >
                   Payments
                 </motion.div>
@@ -252,7 +260,7 @@ const Navbar = () => {
             )}
 
             {/* Mobile Auth */}
-            <div className="h-px bg-border my-2" />
+            <div className="h-px bg-gray-200 dark:bg-slate-800 my-2" />
             {isAuthenticated ? (
               <div className="space-y-2">
                 <motion.div
@@ -260,7 +268,7 @@ const Navbar = () => {
                     navigate("/profile");
                     setIsOpen(false);
                   }}
-                  className="px-4 py-2 rounded-lg hover:bg-muted flex items-center gap-2 cursor-pointer transition-colors"
+                  className="px-4 py-2 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-2 cursor-pointer transition-colors"
                 >
                   <User size={16} />
                   Profile
@@ -283,7 +291,7 @@ const Navbar = () => {
                   navigate("/login");
                   setIsOpen(false);
                 }}
-                className="w-full bg-gradient-saree text-white gap-2"
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-2"
               >
                 <LogIn size={16} />
                 Login

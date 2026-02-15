@@ -1,17 +1,24 @@
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ShoppingBag, Heart, Star, Users, Sparkles } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import RippleEffect from "@/components/RippleEffect";
 import { StaggerContainer, StaggerItem } from "@/components/StaggerContainer";
+import { useAuth } from "@/contexts/AuthContext";
 import heroMain from "@/assets/hero-main.jpg";
 import sareesHero from "@/assets/sarees-hero.jpg";
 
 const Home = () => {
+  const { user } = useAuth();
   const { scrollYProgress } = useScroll();
   const heroScale = useTransform(scrollYProgress, [0, 0.3], [1, 1.1]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0.5]);
+
+  // Redirect admins to dashboard
+  if (user?.role === "admin") {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col relative">

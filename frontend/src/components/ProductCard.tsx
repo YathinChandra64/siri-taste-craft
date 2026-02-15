@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Heart, ShoppingCart } from 'lucide-react';
-import { useAuth } from '@/contexts/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/hooks/useCart';
 import { LuxuryCard } from '@/components/ui/LuxuryCard';
 import { LuxuryButton } from '@/components/ui/LuxuryButton';
