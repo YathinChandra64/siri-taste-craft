@@ -26,6 +26,13 @@ interface TimelineStageData {
 }
 
 export const OrderDetailModal = ({ order, isOpen, onClose }: OrderDetailModalProps) => {
+  // ✅ FIXED: Properly handle shipping location and current location
+  const getShippingLocation = () => {
+    if (!order.shipping) return "Location unavailable";
+    // Check for currentLocation first (more recent), then fall back to location
+    return order.shipping.currentLocation || order.shipping.location || "In Transit";
+  };
+
   // ✅ Determine order status with both old and new fields
   const orderStatus = order.orderStatus || order.status || "unknown";
 
@@ -106,7 +113,7 @@ export const OrderDetailModal = ({ order, isOpen, onClose }: OrderDetailModalPro
         shipper: order.shipping?.shipper,
         trackingNumber: order.shipping?.trackingNumber,
         trackingUrl: order.shipping?.trackingUrl,
-        location: order.shipping?.currentLocation || order.shipping?.location,
+        location: getShippingLocation(),
       },
       {
         name: "Out for Delivery",
@@ -121,7 +128,7 @@ export const OrderDetailModal = ({ order, isOpen, onClose }: OrderDetailModalPro
         shipper: order.shipping?.shipper,
         trackingNumber: order.shipping?.trackingNumber,
         trackingUrl: order.shipping?.trackingUrl,
-        location: order.shipping?.location,
+        location: getShippingLocation(),
       },
       {
         name: "Delivered",
@@ -200,56 +207,66 @@ export const OrderDetailModal = ({ order, isOpen, onClose }: OrderDetailModalPro
           </DialogTitle>
         </DialogHeader>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-          {/* ✅ MAIN STATUS CARD */}
-          <Card className={`border-2 ${getStatusColor(orderStatus)}`}>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Current Status</p>
-                  <p className="text-2xl font-bold capitalize mt-1">{orderStatus.replace(/_/g, " ")}</p>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6"
+        >
+          {/* ✅ STATUS CARD */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">CURRENT STATUS</p>
+                    <p className="text-lg font-bold">{(orderStatus || "unknown").replace(/_/g, " ").toUpperCase()}</p>
+                  </div>
+                  <Badge className={`${getStatusColor(orderStatus)} text-base px-4 py-2`}>
+                    {(orderStatus || "unknown").replace(/_/g, " ").toUpperCase()}
+                  </Badge>
                 </div>
-                <Badge className={`text-lg px-4 py-2 ${getStatusColor(orderStatus)}`}>
-                  {orderStatus.replace(/_/g, " ").toUpperCase()}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          {/* ✅ SHIPPING INFORMATION HIGHLIGHT */}
+          {/* ✅ SHIPPING INFORMATION - If available */}
           {order.shipping && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
+              transition={{ delay: 0.15 }}
             >
-              <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2">
                     <Truck className="w-5 h-5" />
                     Shipping Information
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-4">
                   {order.shipping.shipper && (
                     <div className="flex justify-between">
-                      <span className="font-medium">Courier Service:</span>
-                      <span className="text-primary font-semibold">{order.shipping.shipper}</span>
+                      <span className="font-medium">Carrier:</span>
+                      <span>{order.shipping.shipper}</span>
                     </div>
                   )}
                   {order.shipping.trackingNumber && (
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between">
                       <span className="font-medium">Tracking Number:</span>
                       <div className="flex items-center gap-2">
-                        <code className="bg-muted px-2 py-1 rounded text-sm">{order.shipping.trackingNumber}</code>
+                        <span className="font-mono">{order.shipping.trackingNumber}</span>
                         {order.shipping.trackingUrl && (
                           <a
                             href={order.shipping.trackingUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                            className="text-blue-500 hover:underline text-sm"
                           >
-                            Track →
+                            Track
                           </a>
                         )}
                       </div>
@@ -257,7 +274,7 @@ export const OrderDetailModal = ({ order, isOpen, onClose }: OrderDetailModalPro
                   )}
                   {order.shipping.location && (
                     <div className="flex justify-between">
-                      <span className="font-medium">Current Location:</span>
+                      <span className="font-medium">Location:</span>
                       <span className="flex items-center gap-1">
                         <MapPin className="w-4 h-4" />
                         {order.shipping.location}
@@ -357,7 +374,7 @@ export const OrderDetailModal = ({ order, isOpen, onClose }: OrderDetailModalPro
 
           <Separator />
 
-          {/* ✅ ITEMS ORDERED */}
+          {/* ✅ ITEMS ORDERED - FIXED: Properly handle populated product data */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -365,74 +382,96 @@ export const OrderDetailModal = ({ order, isOpen, onClose }: OrderDetailModalPro
           >
             <h3 className="text-lg font-semibold mb-4">Items Ordered</h3>
             <div className="space-y-3">
-              {order.items.map((item, idx) => {
-                const isPopulatedProduct = typeof item.product === "object" && item.product !== null;
-                const productName = isPopulatedProduct ? (item.product as Saree).name : item.name;
-                const productImageUrl = isPopulatedProduct ? (item.product as Saree).imageUrl : undefined;
-                const productCategory = isPopulatedProduct ? (item.product as Saree).category : undefined;
+              {order.items && order.items.length > 0 ? (
+                order.items.map((item, idx) => {
+                  // ✅ FIXED: Safely check if product is populated or just an ID
+                  const isPopulatedProduct =
+                    typeof item.product === "object" && item.product !== null && "_id" in item.product;
+                  
+                  const productName = isPopulatedProduct ? (item.product as Saree).name : item.name || "Unknown Item";
+                  const productImageUrl = isPopulatedProduct ? (item.product as Saree).imageUrl : undefined;
+                  const productCategory = isPopulatedProduct ? (item.product as Saree).category : undefined;
 
-                return (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                  >
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="flex gap-4">
-                          {productImageUrl && (
-                            <img
-                              src={productImageUrl}
-                              alt={productName}
-                              className="w-20 h-20 object-cover rounded-lg"
-                            />
-                          )}
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-sm">{productName}</h4>
-                            {productCategory && (
-                              <p className="text-xs text-muted-foreground mt-1">{productCategory}</p>
+                  return (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                    >
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex gap-4">
+                            {productImageUrl ? (
+                              <img
+                                src={productImageUrl}
+                                alt={productName}
+                                className="w-20 h-20 object-cover rounded-lg"
+                              />
+                            ) : (
+                              <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center">
+                                <Package className="w-10 h-10 text-muted-foreground" />
+                              </div>
                             )}
-                            <div className="mt-2 flex justify-between items-center">
-                              <span className="text-sm">Qty: <strong>{item.quantity}</strong></span>
-                              <span className="text-sm font-semibold">₹{item.price.toLocaleString()} each</span>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-sm">{productName}</h4>
+                              {productCategory && (
+                                <p className="text-xs text-muted-foreground mt-1">{productCategory}</p>
+                              )}
+                              <div className="mt-2 flex justify-between items-center">
+                                <span className="text-sm">Qty: <strong>{item.quantity}</strong></span>
+                                <span className="text-sm font-semibold">₹{item.price.toLocaleString()} each</span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-primary">
+                                ₹{(item.price * item.quantity).toLocaleString()}
+                              </p>
+                              <p className="text-xs text-muted-foreground">Subtotal</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-primary">
-                              ₹{(item.price * item.quantity).toLocaleString()}
-                            </p>
-                            <p className="text-xs text-muted-foreground">Subtotal</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })}
-
-              {/* ✅ ORDER SUMMARY */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: order.items.length * 0.1 + 0.1 }}
-              >
-                <Card className="bg-muted">
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })
+              ) : (
+                <Card>
                   <CardContent className="pt-6">
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Subtotal:</span>
-                        <span>₹{order.totalAmount.toLocaleString()}</span>
-                      </div>
-                      <Separator />
-                      <div className="flex justify-between font-bold text-lg">
-                        <span>Total Amount:</span>
-                        <span className="text-primary">₹{order.totalAmount.toLocaleString()}</span>
-                      </div>
-                    </div>
+                    <p className="text-center text-muted-foreground">No items in this order</p>
                   </CardContent>
                 </Card>
-              </motion.div>
+              )}
+
+              {/* ✅ ORDER SUMMARY - FIXED: Properly calculate subtotal from items */}
+              {order.items && order.items.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: order.items.length * 0.1 + 0.1 }}
+                >
+                  <Card className="bg-muted">
+                    <CardContent className="pt-6">
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Subtotal:</span>
+                          <span>
+                            ₹
+                            {order.items
+                              .reduce((sum, item) => sum + item.price * item.quantity, 0)
+                              .toLocaleString()}
+                          </span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between font-bold text-lg">
+                          <span>Total Amount:</span>
+                          <span className="text-primary">₹{order.totalAmount.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
             </div>
           </motion.div>
 

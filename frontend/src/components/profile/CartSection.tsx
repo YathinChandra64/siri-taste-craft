@@ -140,7 +140,13 @@ const ProfessionalCart = ({ cartItems: propCartItems = [], onRefresh }: CartSect
   };
 
   const displayItems = propCartItems.length > 0 ? cartItems : cartItems;
-  const subtotal = displayItems.reduce((sum, item) => sum + (item.saree.price * item.quantity), 0);
+  
+  // ✅ FIXED: Safely calculate subtotal with proper null checks
+  const subtotal = displayItems.reduce((sum, item) => {
+    if (!item || !item.saree || !item.saree.price) return sum;
+    return sum + (item.saree.price * item.quantity);
+  }, 0);
+  
   const shipping = subtotal > 1000 ? 0 : 50;
   const total = subtotal + shipping;
 
@@ -221,98 +227,108 @@ const ProfessionalCart = ({ cartItems: propCartItems = [], onRefresh }: CartSect
               )}
 
               <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                {displayItems.map((item, idx) => (
-                  <motion.div
-                    key={item._id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="p-5 border-2 border-muted-foreground/20 rounded-xl hover:border-primary/50 hover:bg-muted/30 transition-all duration-200 group"
-                  >
-                    {/* Top Row: Product Image and Details */}
-                    <div className="flex gap-4 mb-4">
-                      <img
-                        src={item.saree.imageUrl || "https://via.placeholder.com/120"}
-                        alt={item.saree.name}
-                        className="w-24 h-24 object-cover rounded-lg border border-muted-foreground/20"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg text-white mb-1">
-                          {item.saree.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {item.saree.category || "Traditional Saree"}
-                        </p>
-                        {item.saree.material && (
-                          <p className="text-xs text-muted-foreground">
-                            Material: {item.saree.material}
-                          </p>
-                        )}
-                        {item.saree.color && (
-                          <p className="text-xs text-muted-foreground">
-                            Color: {item.saree.color}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => removeItem(item._id)}
-                        disabled={updating === item._id}
-                        className="p-2 text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-50"
-                        title="Remove from cart"
-                      >
-                        <Trash2 size={20} />
-                      </button>
-                    </div>
+                {displayItems.map((item, idx) => {
+                  // ✅ FIXED: Safely access nested saree data
+                  if (!item || !item.saree) {
+                    return null; // Skip invalid items
+                  }
 
-                    {/* Middle Row: Price and Stock Status */}
-                    <div className="flex justify-between items-center mb-4 py-3 border-y border-muted-foreground/10">
-                      <div className="flex gap-6">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">PRICE</p>
-                          <p className="font-bold text-white">
-                            ₹{item.saree.price.toLocaleString()}
+                  return (
+                    <motion.div
+                      key={item._id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="p-5 border-2 border-muted-foreground/20 rounded-xl hover:border-primary/50 hover:bg-muted/30 transition-all duration-200 group"
+                    >
+                      {/* Top Row: Product Image and Details */}
+                      <div className="flex gap-4 mb-4">
+                        <img
+                          src={item.saree.imageUrl || "https://via.placeholder.com/120"}
+                          alt={item.saree.name}
+                          className="w-24 h-24 object-cover rounded-lg border border-muted-foreground/20"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://via.placeholder.com/120";
+                          }}
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-bold text-lg text-white mb-1">
+                            {item.saree.name || "Unknown Product"}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {item.saree.category || "Traditional Saree"}
                           </p>
+                          {item.saree.material && (
+                            <p className="text-xs text-muted-foreground">
+                              Material: {item.saree.material}
+                            </p>
+                          )}
+                          {item.saree.color && (
+                            <p className="text-xs text-muted-foreground">
+                              Color: {item.saree.color}
+                            </p>
+                          )}
                         </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">SUBTOTAL</p>
-                          <p className="font-bold text-primary text-lg">
-                            ₹{(item.saree.price * item.quantity).toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">STOCK</p>
-                          <Badge variant={item.saree.stock > 0 ? "default" : "destructive"}>
-                            {item.saree.stock > 0 ? `${item.saree.stock} left` : "Out of Stock"}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom Row: Quantity Selector */}
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">Quantity</p>
-                      <div className="flex items-center gap-3 bg-muted/50 rounded-lg p-2">
                         <button
-                          onClick={() => updateQuantity(item._id, item.quantity - 1)}
-                          disabled={updating === item._id || item.quantity <= 1}
-                          className="p-1 hover:bg-muted transition-colors disabled:opacity-50"
+                          onClick={() => removeItem(item._id)}
+                          disabled={updating === item._id}
+                          className="p-2 text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-50"
+                          title="Remove from cart"
                         >
-                          <Minus size={18} className="text-white" />
-                        </button>
-                        <span className="w-8 text-center font-bold text-white">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => updateQuantity(item._id, item.quantity + 1)}
-                          disabled={updating === item._id || item.quantity >= item.saree.stock}
-                          className="p-1 hover:bg-muted transition-colors disabled:opacity-50"
-                        >
-                          <Plus size={18} className="text-white" />
+                          <Trash2 size={20} />
                         </button>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+
+                      {/* Middle Row: Price and Stock Status */}
+                      <div className="flex justify-between items-center mb-4 py-3 border-y border-muted-foreground/10">
+                        <div className="flex gap-6">
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">PRICE</p>
+                            <p className="font-bold text-white">
+                              ₹{(item.saree.price || 0).toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">SUBTOTAL</p>
+                            <p className="font-bold text-primary text-lg">
+                              ₹{((item.saree.price || 0) * (item.quantity || 1)).toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">STOCK</p>
+                            <Badge variant={(item.saree.stock || 0) > 0 ? "default" : "destructive"}>
+                              {(item.saree.stock || 0) > 0 ? `${item.saree.stock} left` : "Out of Stock"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Row: Quantity Selector */}
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">Quantity</p>
+                        <div className="flex items-center gap-3 bg-muted/50 rounded-lg p-2">
+                          <button
+                            onClick={() => updateQuantity(item._id, (item.quantity || 1) - 1)}
+                            disabled={updating === item._id || (item.quantity || 1) <= 1}
+                            className="p-1 hover:bg-muted transition-colors disabled:opacity-50"
+                          >
+                            <Minus size={18} className="text-white" />
+                          </button>
+                          <span className="w-8 text-center font-bold text-white">
+                            {item.quantity || 1}
+                          </span>
+                          <button
+                            onClick={() => updateQuantity(item._id, (item.quantity || 1) + 1)}
+                            disabled={updating === item._id || (item.quantity || 1) >= (item.saree.stock || 0)}
+                            className="p-1 hover:bg-muted transition-colors disabled:opacity-50"
+                          >
+                            <Plus size={18} className="text-white" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

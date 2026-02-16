@@ -79,18 +79,40 @@ export interface ApiResponseWrapper<T> {
   data: T;
 }
 
+// ✅ CRITICAL FIX: Use import.meta.env instead of process.env for Vite
+const getBaseURL = (): string => {
+  // In development (Vite dev server)
+  if (import.meta.env.DEV) {
+    return import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  }
+  
+  // In production
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Fallback for relative URLs
+  return "/api";
+};
+
+// ✅ Helper to get auth token
+const getAuthToken = (): string | null => {
+  return localStorage.getItem("authToken");
+};
+
 const API = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: getBaseURL(),
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000, // 10 second timeout
+  withCredentials: true,
+  timeout: 10000,
 });
 
 // ✅ IMPROVED: Request interceptor with better logging and token handling
 API.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("authToken");
+    const token = getAuthToken();
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -139,7 +161,7 @@ API.interceptors.response.use(
     // Don't log connection errors excessively
     if (error.code === "ECONNREFUSED") {
       console.error("❌ BACKEND NOT RUNNING:", {
-        message: "Cannot connect to http://localhost:5000",
+        message: `Cannot connect to ${getBaseURL()}`,
         fix: "Start backend with: npm run dev (in backend directory)"
       });
     } else if (status === 401) {
@@ -147,7 +169,7 @@ API.interceptors.response.use(
         status: 401,
         message: message,
         url: error.config?.url,
-        tokenExists: !!localStorage.getItem("authToken"),
+        tokenExists: !!getAuthToken(),
         action: "Token may be expired or invalid"
       });
       
@@ -414,7 +436,7 @@ export const retryPaymentUpload = async (
 // Do NOT use api.ts directly for cart - use profileService instead
 
 export const getCart = async (): Promise<unknown> => {
-  const token = localStorage.getItem("authToken");
+  const token = getAuthToken();
   
   if (!token) {
     console.warn("⚠️ No auth token found for cart request");
@@ -451,7 +473,7 @@ export const clearCart = async (): Promise<unknown> => {
  * Create a new order with proper validation
  */
 export const createOrder = async (orderData: OrderData): Promise<unknown> => {
-  const token = localStorage.getItem("authToken");
+  const token = getAuthToken();
   
   if (!token) {
     console.error("❌ No auth token found for order creation");
@@ -485,8 +507,15 @@ export const createOrder = async (orderData: OrderData): Promise<unknown> => {
  * Get orders with proper data extraction
  */
 export const getOrders = async (): Promise<unknown> => {
+  const token = getAuthToken();
+  
+  if (!token) {
+    console.warn("⚠️ No auth token found for getOrders");
+    return { orders: [] };
+  }
+  
   const response = await API.get("/orders");
-  return extractData(response.data);
+  return response.data;
 };
 
 /**

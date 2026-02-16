@@ -39,11 +39,11 @@ export const placeOrder = async (req, res) => {
 
     // ✅ Validate payment method
     if (!paymentMethod || !["COD", "UPI", "RAZORPAY"].includes(paymentMethod)) {
-  return res.status(400).json({ 
-    success: false,
-    message: "Invalid payment method. Must be 'COD', 'UPI', or 'RAZORPAY'"
-  });
-}
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid payment method. Must be 'COD', 'UPI', or 'RAZORPAY'"
+      });
+    }
 
     // ✅ Address handling - REQUIRED for COD, OPTIONAL for UPI
     let deliveryAddress = null;
@@ -246,19 +246,19 @@ export const placeOrder = async (req, res) => {
 
     // ✅ Determine payment and order status based on payment method
     let paymentStatus = "COD_PENDING";
-let orderStatus = "PLACED";
+    let orderStatus = "PLACED";
 
-if (paymentMethod === "UPI") {
-  paymentStatus = "PENDING";
-  orderStatus = "PENDING_PAYMENT";
-} else if (paymentMethod === "COD") {
-  paymentStatus = "COD_PENDING";
-  orderStatus = "PLACED";
-} else if (paymentMethod === "RAZORPAY") {
-  // Razorpay doesn't use paymentStatus, uses orderStatus instead
-  orderStatus = "CREATED";
-  paymentStatus = "PENDING";  // Set a default
-}
+    if (paymentMethod === "UPI") {
+      paymentStatus = "PENDING";
+      orderStatus = "PENDING_PAYMENT";
+    } else if (paymentMethod === "COD") {
+      paymentStatus = "COD_PENDING";
+      orderStatus = "PLACED";
+    } else if (paymentMethod === "RAZORPAY") {
+      // Razorpay doesn't use paymentStatus, uses orderStatus instead
+      orderStatus = "CREATED";
+      paymentStatus = "PENDING";  // Set a default
+    }
 
     // ✅ Create order with address (optional for UPI) and payment method
     const orderData = {
@@ -323,58 +323,78 @@ if (paymentMethod === "UPI") {
 };
 
 // 📋 Get all orders for current user
+// ✅ FIXED: Removed TypeScript type annotation from line 343
 export const getMyOrders = async (req, res) => {
   try {
-    // ✅ FIXED: Use _id instead of id
     const userId = req.user._id || req.user.id;
-
     console.log("📋 Fetching orders for user:", userId);
 
-    // ✅ Try to find orders using the correct 'user' field
-    let orders = await Order.find({ user: userId })
-      .populate("user", "name email")
-      .populate("items.product", "name price image")
+    // ✅ CRITICAL: Changed 'image' to 'imageUrl' to match Saree schema
+    const orders = await Order.find({ user: userId })
+      .populate("user", "name email phone")
+      .populate("items.product", "name price imageUrl material color category stock")
       .sort({ createdAt: -1 });
 
-    console.log(`✅ Found ${orders.length} orders with 'user' field`);
+    console.log(`✅ Found ${orders.length} orders`);
 
-    // ✅ Fallback: If no orders found, try legacy 'userId' field
-    // (for backward compatibility with old orders)
-    if (orders.length === 0) {
-      console.log("⚠️ No orders found with 'user' field, trying legacy 'userId' field...");
-      orders = await Order.find({ userId: userId })
-        .populate("user", "name email")
-        .populate("items.product", "name price image")
-        .populate("items.sareeId", "name price image")
-        .sort({ createdAt: -1 });
-      console.log(`✅ Found ${orders.length} orders with legacy 'userId' field`);
-    }
+    // ✅ CRITICAL: Transform orders to ensure product data is always accessible
+    const transformedOrders = orders.map(order => {
+      const plainOrder = order.toObject();
+      
+      plainOrder.items = plainOrder.items.map(item => {
+        if (item.product && typeof item.product === 'object' && item.product._id) {
+          return {
+            ...item,
+            product: {
+              _id: item.product._id,
+              name: item.product.name || item.name,
+              price: item.product.price || item.price,
+              imageUrl: item.product.imageUrl,
+              material: item.product.material,
+              color: item.product.color,
+              category: item.product.category,
+              stock: item.product.stock
+            }
+          };
+        }
+        return {
+          ...item,
+          product: {
+            _id: item.product,
+            name: item.name,
+            price: item.price
+          }
+        };
+      });
+      
+      return plainOrder;
+    });
 
     return res.status(200).json({
       success: true,
       message: "Orders retrieved successfully",
-      orders
+      orders: transformedOrders
     });
   } catch (error) {
     console.error("❌ Error fetching orders:", error);
     return res.status(500).json({ 
       success: false,
-      message: error instanceof Error ? error.message : "Error fetching orders",
-      error: process.env.NODE_ENV === "development" ? error.stack : undefined
+      message: error instanceof Error ? error.message : "Error fetching orders"
     });
   }
 };
 
 // 🔍 Get order details
+// ✅ FIXED: Removed TypeScript type annotation from line 405
 export const getOrderDetails = async (req, res) => {
   try {
     const { id } = req.params;
-    // ✅ FIXED: Use _id instead of id
     const userId = req.user._id || req.user.id;
 
+    // ✅ CRITICAL: Changed 'image' to 'imageUrl'
     const order = await Order.findOne({ _id: id, user: userId })
       .populate("user", "name email phone")
-      .populate("items.product", "name price image");
+      .populate("items.product", "name price imageUrl material color category stock");
 
     if (!order) {
       return res.status(404).json({
@@ -383,10 +403,38 @@ export const getOrderDetails = async (req, res) => {
       });
     }
 
+    // ✅ Transform order
+    const plainOrder = order.toObject();
+    plainOrder.items = plainOrder.items.map(item => {
+      if (item.product && typeof item.product === 'object' && item.product._id) {
+        return {
+          ...item,
+          product: {
+            _id: item.product._id,
+            name: item.product.name || item.name,
+            price: item.product.price || item.price,
+            imageUrl: item.product.imageUrl,
+            material: item.product.material,
+            color: item.product.color,
+            category: item.product.category,
+            stock: item.product.stock
+          }
+        };
+      }
+      return {
+        ...item,
+        product: {
+          _id: item.product,
+          name: item.name,
+          price: item.price
+        }
+      };
+    });
+
     return res.status(200).json({
       success: true,
       message: "Order details retrieved successfully",
-      order
+      order: plainOrder
     });
   } catch (error) {
     console.error("❌ Error fetching order details:", error);
@@ -398,18 +446,51 @@ export const getOrderDetails = async (req, res) => {
 };
 
 // 👨‍💼 Get all orders (Admin)
+// ✅ FIXED: Removed TypeScript type annotation from line 457
 export const getAllOrders = async (req, res) => {
   try {
+    // ✅ CRITICAL: Changed 'image' to 'imageUrl'
     const orders = await Order.find()
       .populate("user", "name email phone")
-      .populate("items.product", "name price image")
+      .populate("items.product", "name price imageUrl material color category stock")
       .sort({ createdAt: -1 });
+
+    // ✅ Transform orders
+    const transformedOrders = orders.map(order => {
+      const plainOrder = order.toObject();
+      plainOrder.items = plainOrder.items.map(item => {
+        if (item.product && typeof item.product === 'object' && item.product._id) {
+          return {
+            ...item,
+            product: {
+              _id: item.product._id,
+              name: item.product.name || item.name,
+              price: item.product.price || item.price,
+              imageUrl: item.product.imageUrl,
+              material: item.product.material,
+              color: item.product.color,
+              category: item.product.category,
+              stock: item.product.stock
+            }
+          };
+        }
+        return {
+          ...item,
+          product: {
+            _id: item.product,
+            name: item.name,
+            price: item.price
+          }
+        };
+      });
+      return plainOrder;
+    });
 
     return res.status(200).json({
       success: true,
       message: "All orders retrieved successfully",
       totalOrders: orders.length,
-      orders
+      orders: transformedOrders
     });
   } catch (error) {
     console.error("❌ Error fetching all orders:", error);
@@ -659,7 +740,7 @@ export const updateOrderStatusWithTimeline = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Order status updated successfully",
-      order: order.populate("user", "name email phone").populate("items.product", "name price image")
+      order: order.populate("user", "name email phone").populate("items.product", "name price imageUrl")
     });
   } catch (error) {
     console.error("❌ Error updating order status:", error);
@@ -678,7 +759,7 @@ export const getOrderWithTimeline = async (req, res) => {
 
     const order = await Order.findOne({ _id: id })
       .populate("user", "name email phone")
-      .populate("items.product", "name price image");
+      .populate("items.product", "name price imageUrl");
 
     if (!order) {
       return res.status(404).json({
@@ -766,7 +847,7 @@ export const updateShippingInfo = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Shipping information updated successfully",
-      order: await order.populate("user", "name email phone").populate("items.product", "name price image")
+      order: await order.populate("user", "name email phone").populate("items.product", "name price imageUrl")
     });
   } catch (error) {
     console.error("❌ Error updating shipping info:", error);

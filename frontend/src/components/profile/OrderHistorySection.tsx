@@ -46,6 +46,14 @@ export const OrderHistorySection = ({ orders }: OrderHistorySectionProps) => {
     setTimeout(() => setSelectedOrder(null), 300);
   };
 
+  // ✅ FIXED: Safely get item count with proper null/undefined checks
+  const getItemCount = (order: Partial<Order>): number => {
+    if (!order.items || !Array.isArray(order.items)) {
+      return 0;
+    }
+    return order.items.length;
+  };
+
   return (
     <>
       <motion.div
@@ -71,99 +79,106 @@ export const OrderHistorySection = ({ orders }: OrderHistorySectionProps) => {
               </div>
             ) : (
               <div className="space-y-4 max-h-[800px] overflow-y-auto pr-2">
-                {orders.map((order, idx) => (
-                  <motion.div
-                    key={order._id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="p-5 border-2 border-muted-foreground/20 rounded-xl hover:border-primary/50 hover:bg-muted/30 transition-all duration-200 group"
-                  >
-                    {/* Top Row: Order ID and Status Badge */}
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg text-white">
-                          Order #{order._id.slice(-8).toUpperCase()}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(order.createdAt).toLocaleDateString(
-                            "en-IN",
-                            {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            }
-                          )}
-                        </p>
-                      </div>
-                      <Badge
-                        className={`${getStatusColor(
-                          order.orderStatus || order.status
-                        )} capitalize text-sm px-3 py-1 font-semibold`}
-                      >
-                        {(order.orderStatus || order.status || "unknown")
-                          .replace(/_/g, " ")
-                          .toUpperCase()}
-                      </Badge>
-                    </div>
+                {orders.map((order, idx) => {
+                  // ✅ FIXED: Safely access order._id
+                  const orderId = order._id || `unknown-${idx}`;
+                  // ✅ FIXED: Safely access and format dates
+                  const createdDate = order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  }) : "Date unknown";
+                  // ✅ FIXED: Safely get item count
+                  const itemCount = getItemCount(order);
+                  // ✅ FIXED: Safely get total amount
+                  const totalAmount = order.totalAmount || 0;
+                  // ✅ FIXED: Safely get order status
+                  const status = order.orderStatus || order.status || "unknown";
 
-                    {/* Middle Row: Items and Price */}
-                    <div className="flex justify-between items-center mb-4 py-2 border-y border-muted-foreground/10">
-                      <div className="flex gap-6">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">
-                            ITEMS
-                          </p>
-                          <p className="font-bold text-white">
-                            {order.items.length} item
-                            {order.items.length !== 1 ? "s" : ""}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">
-                            TOTAL
-                          </p>
-                          <p className="font-bold text-primary text-lg">
-                            ₹{order.totalAmount.toLocaleString()}
+                  return (
+                    <motion.div
+                      key={orderId}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="p-5 border-2 border-muted-foreground/20 rounded-xl hover:border-primary/50 hover:bg-muted/30 transition-all duration-200 group"
+                    >
+                      {/* Top Row: Order ID and Status Badge */}
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-lg text-white">
+                            Order #{(orderId as string).slice(-8).toUpperCase()}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {createdDate}
                           </p>
                         </div>
+                        <Badge
+                          className={`${getStatusColor(status)} capitalize text-sm px-3 py-1 font-semibold`}
+                        >
+                          {(status || "unknown")
+                            .replace(/_/g, " ")
+                            .toUpperCase()}
+                        </Badge>
                       </div>
-                    </div>
 
-                    {/* Shipping Info if available */}
-                    {order.shipping && (
-                      <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Truck className="w-4 h-4 text-blue-400" />
-                          <span className="text-muted-foreground">
-                            {order.shipping.shipper || "Shipping"} •{" "}
-                            {order.shipping.location || "In Transit"}
-                          </span>
-                        </div>
-                        {order.shipping.trackingNumber && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Tracking: {order.shipping.trackingNumber}
+                      {/* Middle Row: Items and Price */}
+                      <div className="flex justify-between items-center mb-4 py-2 border-y border-muted-foreground/10">
+                        <div className="flex gap-6">
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              ITEMS
+                            </p>
+                            <p className="font-bold text-white">
+                              {itemCount} item{itemCount !== 1 ? "s" : ""}
+                            </p>
                           </div>
-                        )}
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              TOTAL
+                            </p>
+                            <p className="font-bold text-primary text-lg">
+                              ₹{totalAmount.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    )}
 
-                    {/* Bottom Row: View Details Button */}
-                    <div className="flex justify-end">
-                      <Button
-                        onClick={() => handleViewDetails(order)}
-                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-base px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 cursor-pointer"
-                      >
-                        <Eye size={18} />
-                        VIEW ORDER DETAILS
-                        <ChevronRight
-                          size={18}
-                          className="group-hover:translate-x-1 transition-transform duration-300"
-                        />
-                      </Button>
-                    </div>
-                  </motion.div>
-                ))}
+                      {/* Shipping Info if available */}
+                      {order.shipping && (
+                        <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Truck className="w-4 h-4 text-blue-400" />
+                            <span className="text-muted-foreground">
+                              {order.shipping.shipper || "Shipping"} •{" "}
+                              {order.shipping.currentLocation || order.shipping.location || "In Transit"}
+                            </span>
+                          </div>
+                          {order.shipping.trackingNumber && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Tracking: {order.shipping.trackingNumber}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Bottom Row: View Details Button */}
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={() => handleViewDetails(order)}
+                          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-base px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 cursor-pointer"
+                        >
+                          <Eye size={18} />
+                          VIEW ORDER DETAILS
+                          <ChevronRight
+                            size={18}
+                            className="group-hover:translate-x-1 transition-transform duration-300"
+                          />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
