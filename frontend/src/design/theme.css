@@ -1,70 +1,78 @@
-/* /src/design/theme.css */
-/* ✅ PRODUCTION-READY LUXURY THEME SYSTEM */
+/* /src/design/theme.css - PREMIUM SAREE BRAND REFACTOR */
+/* ============================================================
+   SIRI SAREES COLLECTIONS - ELEGANT LUXURY BRAND COLORS
+   ============================================================
+   • WCAG AA Accessibility
+   • Premium aesthetic (elegant, warm, luxury)
+   • Consistent light & dark modes
+   • Ethnic brand aesthetic
+============================================================ */
 
 :root {
-  /* ==============================
-     LIGHT MODE - DEFAULT (PRIMARY)
-     ============================== */
+  /* ============================================================
+     LIGHT MODE - SOFT CREAM & ELEGANT
+     ============================================================ */
 
-  /* BASE COLORS - White Dominant */
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #FAF7F2;
-  --bg-soft: #F3EFE8;
-  --bg-card: #FFFFFF;
+  /* PRIMARY BACKGROUNDS - Soft & Premium */
+  --bg-primary: #FAFAF8;          /* Off-white cream base */
+  --bg-secondary: #F5F1EC;        /* Warm beige for sections */
+  --bg-soft: #EFE9E0;             /* Soft taupe accents */
+  --bg-card: #FFFFFF;             /* Pure white cards */
 
-  /* ACCENT COLORS - Gold & Rose */
-  --accent-gold: #C6A75E;
-  --accent-deep-gold: #A8893D;
-  --accent-rose: #B76E79;
-  --accent-maroon: #7A1F3D;
+  /* PRIMARY BRAND COLOR - Deep Royal Purple */
+  --color-purple: #6B21A8;        /* Deep purple (luxurious) */
+  --color-purple-light: #7C3AED;  /* Lighter purple for hover */
+  --color-purple-dark: #581C87;   /* Darker purple for active */
 
-  /* TEXT COLORS */
-  --text-primary: #1E1E1E;
-  --text-secondary: #5C5C5C;
-  --text-muted: #8E8E8E;
+  /* SECONDARY ACCENT - Muted Gold (NOT neon) */
+  --accent-gold: #D4AF37;         /* Classic muted gold */
+  --accent-gold-light: #E5C158;   /* Lighter gold for hover */
+  --accent-gold-dark: #B8941F;    /* Darker gold for active */
 
-  /* BORDER COLORS - Warm & Subtle */
-  --border-light: #E8E2D8;
-  --border-soft: #F1ECE3;
+  /* TERTIARY ACCENTS - Rose & Maroon */
+  --accent-rose: #B76E79;         /* Warm rose tone */
+  --accent-maroon: #6B2C42;       /* Deep maroon */
 
-  /* STATE COLORS */
-  --success: #2F6F4E;
-  --error: #A94442;
-  --warning: #C67C2E;
+  /* TEXT COLORS - Dark Charcoal for Premium Feel */
+  --text-primary: #1F2937;        /* Dark charcoal (headings, body) */
+  --text-secondary: #4B5563;      /* Medium gray (secondary text) */
+  --text-muted: #6B7280;          /* Light gray (captions, subtle) */
+  --text-inverse: #FFFFFF;        /* White for dark backgrounds */
 
-  /* ==============================
-     SHADCN/UI VARIABLES - LIGHT MODE
-     ============================== */
-  
-  --background: 255 255 255; /* #FFFFFF */
-  --foreground: 30 30 30; /* #1E1E1E - dark text */
-  
-  --card: 255 255 255; /* #FFFFFF */
-  --card-foreground: 30 30 30; /* #1E1E1E */
-  
+  /* BORDER COLORS - Subtle & Warm */
+  --border-light: #E5DDD5;        /* Warm soft border */
+  --border-medium: #D9CFC5;       /* Medium border */
+
+  /* STATE COLORS - Accessible */
+  --success: #10B981;             /* Green */
+  --success-light: #D1FAE5;       /* Light green background */
+  --error: #EF4444;               /* Red */
+  --error-light: #FEE2E2;         /* Light red background */
+  --warning: #F59E0B;             /* Amber */
+  --warning-light: #FEF3C7;       /* Light amber background */
+  --info: #3B82F6;                /* Blue */
+  --info-light: #DBEAFE;          /* Light blue background */
+
+  /* SHADCN/UI COMPATIBILITY VARIABLES */
+  --background: 250 250 248;      /* Cream background */
+  --foreground: 31 41 55;         /* Dark charcoal */
+  --card: 255 255 255;            /* White cards */
+  --card-foreground: 31 41 55;
   --popover: 255 255 255;
-  --popover-foreground: 30 30 30;
-  
-  --primary: 139 92 246; /* Purple #8B5CF6 */
+  --popover-foreground: 31 41 55;
+  --primary: 107 33 168;          /* Purple */
   --primary-foreground: 255 255 255;
-  
-  --secondary: 243 244 246; /* Light gray */
-  --secondary-foreground: 30 30 30;
-  
-  --muted: 243 244 246; /* Light gray #F3F4F6 */
-  --muted-foreground: 107 114 128; /* Gray-500 #6B7280 */
-  
-  --accent: 243 244 246;
-  --accent-foreground: 30 30 30;
-  
-  --destructive: 239 68 68; /* Red */
+  --secondary: 245 241 236;       /* Beige */
+  --secondary-foreground: 31 41 55;
+  --muted: 245 241 236;
+  --muted-foreground: 75 85 99;
+  --accent: 212 175 55;           /* Gold */
+  --accent-foreground: 31 41 55;
+  --destructive: 239 68 68;       /* Red */
   --destructive-foreground: 255 255 255;
-  
-  --border: 229 231 235; /* Gray-200 #E5E7EB */
-  --input: 229 231 235;
-  --ring: 139 92 246; /* Purple */
-  
-  --radius: 0.5rem;
+  --border: 229 224 219;          /* Light border */
+  --input: 245 241 236;           /* Input background */
+  --ring: 107 33 168;             /* Focus ring (purple) */
 
   /* SPACING SCALE */
   --spacing-xs: 4px;
@@ -76,104 +84,106 @@
   --spacing-3xl: 48px;
   --spacing-4xl: 64px;
 
-  /* RADIUS SCALE */
+  /* RADIUS SCALE - Premium Curves */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 24px;
 
-  /* TRANSITIONS - Subtle & Responsive */
+  /* TRANSITIONS */
   --transition-fast: 150ms ease-in-out;
   --transition-normal: 300ms ease-in-out;
   --transition-slow: 500ms ease-in-out;
 
-  /* SHADOWS - Minimal */
+  /* SHADOWS - Subtle & Premium */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.12);
-  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.12);
+  --shadow-none: 0 0 0 rgba(0, 0, 0, 0);
 
   /* TYPOGRAPHY */
   --font-serif: 'Playfair Display', serif;
-  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', 'Roboto', sans-serif;
 
   /* COLOR MODE INDICATOR */
   color-scheme: light;
 }
 
-/* ==============================
-   DARK MODE - Soft Textile Dark
-   (No Pure Black - #1A1816)
-   ============================== */
+/* ============================================================
+   DARK MODE - RICH CHARCOAL LUXURY
+   ============================================================
+   Deep, luxurious dark mode with warm undertones
+   NOT pure black - maintains warmth and elegance
+============================================================ */
 
 .dark {
-  /* BASE COLORS - Soft textile, not pure black */
-  --bg-primary: #1A1816;
-  --bg-secondary: #22201D;
-  --bg-soft: #2B2926;
-  --bg-card: #2B2926;
+  /* PRIMARY BACKGROUNDS - Rich & Warm */
+  --bg-primary: #111827;          /* Rich dark charcoal */
+  --bg-secondary: #1F2937;        /* Slightly lighter dark */
+  --bg-soft: #374151;             /* Softer dark for accents */
+  --bg-card: #1F2937;             /* Dark card background */
 
-  /* ACCENT COLORS - Warmer in dark mode */
-  --accent-gold: #D8B96E;
-  --accent-deep-gold: #C6A75E;
-  --accent-rose: #B76E79;
-  --accent-maroon: #A84C61;
+  /* PRIMARY BRAND COLOR - Purple (Slightly lighter for visibility) */
+  --color-purple: #A78BFA;        /* Lighter purple for dark mode */
+  --color-purple-light: #C4B5FD;  /* Even lighter for hover */
+  --color-purple-dark: #8B5CF6;   /* Darker for active */
 
-  /* TEXT COLORS - Warm & Light */
-  --text-primary: #F5F1EA;
-  --text-secondary: #D4CDBF;
-  --text-muted: #9E9998;
+  /* SECONDARY ACCENT - Gold (Slightly brighter) */
+  --accent-gold: #FCD34D;         /* Brighter gold for dark mode */
+  --accent-gold-light: #FBBF24;   /* Even brighter for hover */
+  --accent-gold-dark: #F59E0B;    /* Darker for active */
 
-  /* BORDER COLORS - Subtle dark borders */
-  --border-light: #3A3632;
-  --border-soft: #32302D;
+  /* TERTIARY ACCENTS */
+  --accent-rose: #F472B6;         /* Lighter rose for dark */
+  --accent-maroon: #EC4899;       /* Lighter maroon for dark */
 
-  /* STATE COLORS - Adjusted for dark mode */
-  --success: #3FAD6F;
-  --error: #C05C5C;
-  --warning: #D99C4E;
+  /* TEXT COLORS - Light & Warm (NOT cold white) */
+  --text-primary: #F9FAFB;        /* Off-white (not pure white) */
+  --text-secondary: #D1D5DB;      /* Light gray */
+  --text-muted: #9CA3AF;          /* Muted gray */
+  --text-inverse: #111827;        /* For overlays on light elements */
 
-  /* ==============================
-     SHADCN/UI VARIABLES - DARK MODE
-     ============================== */
-  
-  --background: 15 23 42; /* Slate-900 #0F172A */
-  --foreground: 248 250 252; /* Slate-50 #F8FAFC */
-  
-  --card: 30 41 59; /* Slate-800 #1E293B */
-  --card-foreground: 248 250 252;
-  
-  --popover: 30 41 59;
-  --popover-foreground: 248 250 252;
-  
-  --primary: 167 139 250; /* Purple-400 #A78BFA */
-  --primary-foreground: 17 24 39; /* Gray-900 */
-  
-  --secondary: 51 65 85; /* Slate-700 */
-  --secondary-foreground: 248 250 252;
-  
-  --muted: 51 65 85; /* Slate-700 #334155 */
-  --muted-foreground: 148 163 184; /* Slate-400 #94A3B8 */
-  
-  --accent: 51 65 85;
-  --accent-foreground: 248 250 252;
-  
-  --destructive: 220 38 38; /* Red-600 */
-  --destructive-foreground: 248 250 252;
-  
-  --border: 51 65 85; /* Slate-700 #334155 */
-  --input: 51 65 85;
-  --ring: 167 139 250; /* Purple-400 */
+  /* BORDER COLORS - Dark & Subtle */
+  --border-light: #374151;        /* Medium dark border */
+  --border-medium: #4B5563;       /* Darker border */
 
-  /* COLOR MODE INDICATOR */
-  color-scheme: dark;
+  /* STATE COLORS - Dark Mode Adjusted */
+  --success: #34D399;             /* Bright green for dark */
+  --success-light: #A7F3D0;       /* Light green background */
+  --error: #F87171;               /* Bright red for dark */
+  --error-light: #FECACA;         /* Light red background */
+  --warning: #FBBF24;             /* Bright amber for dark */
+  --warning-light: #FCD34D;       /* Light amber background */
+  --info: #60A5FA;                /* Bright blue for dark */
+  --info-light: #BFDBFE;          /* Light blue background */
+
+  /* SHADCN/UI COMPATIBILITY */
+  --background: 17 24 39;         /* Dark charcoal */
+  --foreground: 249 250 251;      /* Off-white */
+  --card: 31 41 55;               /* Dark card */
+  --card-foreground: 249 250 251;
+  --popover: 31 41 55;
+  --popover-foreground: 249 250 251;
+  --primary: 167 139 250;         /* Light purple */
+  --primary-foreground: 17 24 39;
+  --secondary: 55 65 81;          /* Dark gray */
+  --secondary-foreground: 249 250 251;
+  --muted: 55 65 81;
+  --muted-foreground: 209 213 219;
+  --accent: 252 211 77;           /* Light gold */
+  --accent-foreground: 17 24 39;
+  --destructive: 248 113 113;     /* Light red */
+  --destructive-foreground: 17 24 39;
+  --border: 55 65 81;             /* Dark border */
+  --input: 31 41 55;              /* Dark input */
+  --ring: 167 139 250;            /* Light purple ring */
 }
 
-/* ==============================
+/* ============================================================
    GLOBAL STYLES
-   ============================== */
+   ============================================================ */
 
 html {
   background-color: var(--bg-primary);
@@ -192,27 +202,205 @@ body {
   transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
-/* ==============================
+/* ============================================================
+   TYPOGRAPHY HIERARCHY
+   ============================================================ */
+
+h1 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+h2 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+h3 {
+  font-weight: 600;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  color: var(--text-primary);
+}
+
+h4 {
+  font-weight: 600;
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  color: var(--text-primary);
+}
+
+h5 {
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  color: var(--text-secondary);
+}
+
+h6 {
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--text-secondary);
+}
+
+p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.625rem;
+}
+
+/* ============================================================
    LINK STYLES
-   ============================== */
+   ============================================================ */
 
 a {
-  color: var(--accent-gold);
+  color: var(--color-purple);
   text-decoration: none;
+  font-weight: 500;
   transition: color var(--transition-fast);
 }
 
 a:hover {
-  color: var(--accent-deep-gold);
+  color: var(--color-purple-light);
 }
 
-/* ==============================
+a:active {
+  color: var(--color-purple-dark);
+}
+
+/* ============================================================
+   BUTTON STYLES - Premium CTA
+   ============================================================ */
+
+button {
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Primary Button */
+.btn-primary {
+  background-color: var(--color-purple);
+  color: var(--text-inverse);
+  border: none;
+  padding: 0.75rem 1.5rem;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-purple-light);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:active:not(:disabled) {
+  background-color: var(--color-purple-dark);
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  padding: 0.75rem 1.5rem;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--bg-soft);
+  border-color: var(--color-purple);
+}
+
+/* Outline Button */
+.btn-outline {
+  background-color: transparent;
+  color: var(--color-purple);
+  border: 2px solid var(--color-purple);
+  padding: 0.625rem 1.5rem;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: var(--color-purple);
+  color: var(--text-inverse);
+}
+
+/* Ghost Button */
+.btn-ghost {
+  background-color: transparent;
+  color: var(--color-purple);
+  border: none;
+  padding: 0.75rem 1.5rem;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background-color: var(--bg-soft);
+}
+
+/* ============================================================
+   FORM STYLES
+   ============================================================ */
+
+input,
+textarea,
+select {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  transition: border-color var(--transition-fast);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-purple);
+  box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.1);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   CARD & CONTAINER STYLES
+   ============================================================ */
+
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================================
    SCROLLBAR STYLING
-   ============================== */
+   ============================================================ */
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -220,136 +408,47 @@ a:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-light);
+  background: var(--border-medium);
   border-radius: var(--radius-md);
-  transition: background-color var(--transition-fast);
+  border: 2px solid var(--bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border-soft);
+  background: var(--color-purple);
 }
 
 /* Firefox scrollbar */
 * {
-  scrollbar-color: var(--border-light) var(--bg-secondary);
+  scrollbar-color: var(--border-medium) var(--bg-secondary);
   scrollbar-width: thin;
 }
 
-/* ==============================
-   INPUT RANGE SLIDER STYLING
-   ============================== */
-
-input[type='range'] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(
-    to right,
-    var(--accent-gold),
-    var(--accent-rose)
-  );
-  outline: none;
-  border-radius: 1px;
-}
-
-input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 12px;
-  height: 12px;
-  background: var(--accent-gold);
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 0 0 4px rgba(198, 167, 94, 0.2);
-  transition: all var(--transition-fast);
-}
-
-input[type='range']::-webkit-slider-thumb:hover {
-  background: var(--accent-deep-gold);
-  box-shadow: 0 0 0 4px rgba(198, 167, 94, 0.3);
-}
-
-input[type='range']::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  background: var(--accent-gold);
-  border-radius: 50%;
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 0 0 4px rgba(198, 167, 94, 0.2);
-  transition: all var(--transition-fast);
-}
-
-input[type='range']::-moz-range-thumb:hover {
-  background: var(--accent-deep-gold);
-  box-shadow: 0 0 0 4px rgba(198, 167, 94, 0.3);
-}
-
-/* ==============================
+/* ============================================================
    SELECTION STYLING
-   ============================== */
+   ============================================================ */
 
 ::selection {
-  background-color: var(--accent-gold);
-  color: var(--bg-primary);
+  background-color: var(--color-purple);
+  color: var(--text-inverse);
 }
 
 ::-moz-selection {
-  background-color: var(--accent-gold);
-  color: var(--bg-primary);
+  background-color: var(--color-purple);
+  color: var(--text-inverse);
 }
 
-/* ==============================
-   PLACEHOLDER STYLING
-   ============================== */
-
-::placeholder {
-  color: var(--text-muted);
-}
-
-::-webkit-input-placeholder {
-  color: var(--text-muted);
-}
-
-:-moz-placeholder {
-  color: var(--text-muted);
-}
-
-::-moz-placeholder {
-  color: var(--text-muted);
-}
-
-/* ==============================
+/* ============================================================
    FOCUS STYLES - Accessible
-   ============================== */
+   ============================================================ */
 
 :focus-visible {
-  outline: 2px solid var(--accent-gold);
+  outline: 2px solid var(--color-purple);
   outline-offset: 2px;
 }
 
-/* ==============================
-   TRANSITIONS - Default Smooth
-   ============================== */
-
-* {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-timing-function: ease-in-out;
-  transition-duration: var(--transition-fast);
-}
-
-button,
-a,
-input,
-select,
-textarea {
-  transition: all var(--transition-fast);
-}
-
-/* ==============================
-   UTILITIES
-   ============================== */
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
@@ -358,4 +457,39 @@ textarea {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Gradient Background (Hero, CTAs) */
+.gradient-premium {
+  background: linear-gradient(135deg, var(--color-purple) 0%, var(--accent-rose) 100%);
+  color: var(--text-inverse);
+}
+
+/* Premium Shadow */
+.shadow-premium {
+  box-shadow: 0 20px 60px rgba(107, 33, 168, 0.15);
+}
+
+/* Text Overlay on Images */
+.text-overlay {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Accessibility: High Contrast Mode */
+@media (prefers-contrast: more) {
+  :root {
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --color-purple: #4B0082;
+    --border-light: #999999;
+  }
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

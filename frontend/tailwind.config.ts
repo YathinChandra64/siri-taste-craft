@@ -1,8 +1,7 @@
-// /frontend/tailwind.config.ts
-// ✅ PRODUCTION-READY LUXURY TAILWIND CONFIG
+/* /frontend/tailwind.config.ts - PREMIUM BRAND COLORS */
 
 import type { Config } from 'tailwindcss';
-import animate from 'tailwindcss-animate'; 
+import animate from 'tailwindcss-animate';
 
 export default {
   darkMode: 'class', // Class-based dark mode for .dark selector
@@ -26,38 +25,59 @@ export default {
       },
     },
     extend: {
-      // COLOR SYSTEM - All CSS variables
+      // PREMIUM COLOR SYSTEM
       colors: {
-        // Base Colors
+        // Background Colors - Light & Dark
         bg: {
           primary: 'var(--bg-primary)',
           secondary: 'var(--bg-secondary)',
           soft: 'var(--bg-soft)',
           card: 'var(--bg-card)',
         },
-        // Accent Colors
-        accent: {
-          gold: 'var(--accent-gold)',
-          'deep-gold': 'var(--accent-deep-gold)',
-          rose: 'var(--accent-rose)',
-          maroon: 'var(--accent-maroon)',
+
+        // Primary Brand Purple
+        purple: {
+          DEFAULT: 'var(--color-purple)',
+          light: 'var(--color-purple-light)',
+          dark: 'var(--color-purple-dark)',
         },
+
+        // Accent Gold
+        gold: {
+          DEFAULT: 'var(--accent-gold)',
+          light: 'var(--accent-gold-light)',
+          dark: 'var(--accent-gold-dark)',
+        },
+
+        // Tertiary Accents
+        rose: 'var(--accent-rose)',
+        maroon: 'var(--accent-maroon)',
+
         // Text Colors
         text: {
           primary: 'var(--text-primary)',
           secondary: 'var(--text-secondary)',
           muted: 'var(--text-muted)',
+          inverse: 'var(--text-inverse)',
         },
+
         // Border Colors
         border: {
           light: 'var(--border-light)',
-          soft: 'var(--border-soft)',
+          medium: 'var(--border-medium)',
           DEFAULT: 'hsl(var(--border))',
         },
+
         // State Colors
         success: 'var(--success)',
+        'success-light': 'var(--success-light)',
         error: 'var(--error)',
+        'error-light': 'var(--error-light)',
         warning: 'var(--warning)',
+        'warning-light': 'var(--warning-light)',
+        info: 'var(--info)',
+        'info-light': 'var(--info-light)',
+
         // Shadcn/UI Colors
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
@@ -81,6 +101,10 @@ export default {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',
         },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
@@ -88,7 +112,8 @@ export default {
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
       },
-      // SPACING SCALE
+
+      // SPACING
       spacing: {
         xs: 'var(--spacing-xs)',
         sm: 'var(--spacing-sm)',
@@ -99,7 +124,8 @@ export default {
         '3xl': 'var(--spacing-3xl)',
         '4xl': 'var(--spacing-4xl)',
       },
-      // BORDER RADIUS SCALE
+
+      // BORDER RADIUS
       borderRadius: {
         sm: 'var(--radius-sm)',
         md: 'var(--radius-md)',
@@ -107,15 +133,18 @@ export default {
         xl: 'var(--radius-xl)',
         '2xl': 'var(--radius-2xl)',
       },
+
       // TRANSITIONS
       transitionDuration: {
         fast: 'var(--transition-fast)',
         normal: 'var(--transition-normal)',
         slow: 'var(--transition-slow)',
       },
+
       transitionTimingFunction: {
         'in-out': 'ease-in-out',
       },
+
       // SHADOWS
       boxShadow: {
         sm: 'var(--shadow-sm)',
@@ -123,12 +152,15 @@ export default {
         lg: 'var(--shadow-lg)',
         xl: 'var(--shadow-xl)',
         none: 'var(--shadow-none)',
+        premium: 'var(--shadow-premium)',
       },
+
       // FONTS
       fontFamily: {
         serif: ['var(--font-serif)', 'serif'],
         sans: ['var(--font-sans)', 'sans-serif'],
       },
+
       fontSize: {
         xs: ['12px', { lineHeight: '16px' }],
         sm: ['14px', { lineHeight: '20px' }],
@@ -139,6 +171,7 @@ export default {
         '3xl': ['28px', { lineHeight: '36px' }],
         '4xl': ['36px', { lineHeight: '40px' }],
       },
+
       fontWeight: {
         light: '300',
         normal: '400',
@@ -147,7 +180,8 @@ export default {
         bold: '700',
         extrabold: '800',
       },
-      // KEYFRAMES - Only essential, no heavy animations
+
+      // ANIMATIONS
       keyframes: {
         'fade-in': {
           '0%': { opacity: '0' },
@@ -161,13 +195,20 @@ export default {
           '0%': { opacity: '0', transform: 'scale(0.95)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
+        'slide-down': {
+          '0%': { opacity: '0', transform: 'translateY(-10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
+
       animation: {
         'fade-in': 'fade-in 300ms ease-in-out',
         'slide-up': 'slide-up 300ms ease-in-out',
         'scale-in': 'scale-in 300ms ease-in-out',
+        'slide-down': 'slide-down 300ms ease-in-out',
       },
-      // OPACITY SCALE
+
+      // OPACITY
       opacity: {
         '5': '0.05',
         '10': '0.1',
@@ -181,7 +222,12 @@ export default {
         '90': '0.9',
         '95': '0.95',
       },
+
+      // GRADIENTS
+      backgroundImage: {
+        'gradient-premium': 'linear-gradient(135deg, var(--color-purple) 0%, var(--accent-rose) 100%)',
+      },
     },
   },
-   plugins: [animate], 
+  plugins: [animate],
 } satisfies Config;

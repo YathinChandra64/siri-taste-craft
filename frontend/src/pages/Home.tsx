@@ -155,120 +155,118 @@ const Home = () => {
 
       {/* Features Section */}
       <section className="py-16 px-4 relative z-10">
-        <div className="container mx-auto max-w-6xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <motion.h2 
-              className="text-3xl md:text-4xl font-bold text-foreground mb-4"
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-            >
-              Why Choose Us
-            </motion.h2>
-            <motion.p 
-              className="text-muted-foreground text-lg"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-            >
-              Experience the perfect blend of tradition and quality
-            </motion.p>
-          </motion.div>
+  <div className="container mx-auto max-w-6xl">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+      className="text-center mb-12"
+    >
+      <motion.h2 
+        className="text-3xl md:text-4xl font-bold text-foreground mb-4"
+        initial={{ opacity: 0, scale: 0.9 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+      >
+        Why Choose Us
+      </motion.h2>
+      <motion.p 
+        className="text-muted-foreground text-lg"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ delay: 0.2 }}
+      >
+        Experience the perfect blend of tradition and quality
+      </motion.p>
+    </motion.div>
 
-          <StaggerContainer className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: Heart,
-                title: "Handcrafted with Love",
-                description: "Every saree is selected with genuine care and attention to detail, preserving traditional craftsmanship.",
-                gradient: "bg-gradient-saree",
-              },
-              {
-                icon: Star,
-                title: "Premium Quality",
-                description: "We source the finest fabrics to ensure exceptional quality in every piece of our collection.",
-                gradient: "bg-gradient-saree",
-              },
-              {
-                icon: Users,
-                title: "Family Tradition",
-                description: "A trusted family business bringing generations of expertise and authentic products to your home.",
-                gradient: "bg-gradient-saree",
-              },
-            ].map((feature) => (
-              <StaggerItem key={feature.title}>
-                <motion.div
-                  whileHover={{ scale: 1.05, y: -10, rotateX: 5 }}
-                  className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-hover transition-all duration-300"
-                  style={{ transformStyle: "preserve-3d" }}
-                >
-                  <motion.div 
-                    className={`w-20 h-20 mx-auto mb-6 rounded-full ${feature.gradient} flex items-center justify-center`}
-                    whileHover={{ rotate: 360 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <feature.icon size={40} className="text-white" />
-                  </motion.div>
-                  <h3 className="text-xl font-bold text-foreground mb-3">{feature.title}</h3>
-                  <p className="text-muted-foreground">{feature.description}</p>
-                </motion.div>
-              </StaggerItem>
-            ))}
-          </StaggerContainer>
-        </div>
-      </section>
+    <StaggerContainer className="grid md:grid-cols-3 gap-8">
+      {[
+        {
+          icon: Heart,
+          title: "Handcrafted with Love",
+          description: "Every saree is selected with genuine care and attention to detail, preserving traditional craftsmanship.",
+        },
+        {
+          icon: Star,
+          title: "Premium Quality",
+          description: "We source the finest fabrics to ensure exceptional quality in every piece of our collection.",
+        },
+        {
+          icon: Users,
+          title: "Family Tradition",
+          description: "A trusted family business bringing generations of expertise and authentic products to your home.",
+        },
+      ].map((feature) => (
+        <StaggerItem key={feature.title}>
+          <motion.div
+            whileHover={{ scale: 1.05, y: -10, rotateX: 5 }}
+            className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-hover transition-all duration-300 border border-border"
+            style={{ transformStyle: "preserve-3d" }}
+          >
+            <motion.div 
+              className="w-20 h-20 mx-auto mb-6 rounded-full bg-purple-600 flex items-center justify-center"
+              whileHover={{ rotate: 360 }}
+              transition={{ duration: 0.6 }}
+            >
+              <feature.icon size={40} className="text-white" />
+            </motion.div>
+            <h3 className="text-xl font-bold text-foreground mb-3">{feature.title}</h3>
+            <p className="text-muted-foreground">{feature.description}</p>
+          </motion.div>
+        </StaggerItem>
+      ))}
+    </StaggerContainer>
+  </div>
+</section>
 
       {/* About Snippet */}
-      <section className="py-16 px-4 bg-muted/30 relative z-10">
-        <div className="container mx-auto max-w-3xl text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+      <section className="py-16 px-4 bg-secondary relative z-10">
+  <div className="container mx-auto max-w-3xl text-center">
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+    >
+      <motion.div
+        animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
+        transition={{ duration: 4, repeat: Infinity }}
+      >
+        <Sparkles className="w-12 h-12 mx-auto mb-6 text-primary" />
+      </motion.div>
+      <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">Our Story</h2>
+      <p className="text-muted-foreground text-lg leading-relaxed mb-8">
+        At <span className="font-semibold text-primary">Siri Sarees and Collections</span>, we bring the elegance of 
+        traditional ethnic wear to modern families. Each saree is carefully selected and curated with love, 
+        preserving the essence of our heritage while serving the contemporary woman.
+      </p>
+      <Link to="/our-story">
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Button
+            variant="outline"
+            size="lg"
+            className="group"
           >
+            Read Our Full Story
             <motion.div
-              animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
-              transition={{ duration: 4, repeat: Infinity }}
+              animate={{ x: [0, 5, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
             >
-              <Sparkles className="w-12 h-12 mx-auto mb-6 text-primary" />
+              <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </motion.div>
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">Our Story</h2>
-            <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              At <span className="font-semibold text-primary">Siri Sarees and Collections</span>, we bring the elegance of 
-              traditional ethnic wear to modern families. Each saree is carefully selected and curated with love, 
-              preserving the essence of our heritage while serving the contemporary woman.
-            </p>
-            <Link to="/our-story">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="group"
-                >
-                  Read Our Full Story
-                  <motion.div
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    <ArrowRight className="ml-2" size={20} />
-                  </motion.div>
-                </Button>
-              </motion.div>
-            </Link>
-          </motion.div>
-        </div>
-      </section>
+          </Button>
+        </motion.div>
+      </Link>
+    </motion.div>
+  </div>
+</section>
+
     </div>
   );
 };
